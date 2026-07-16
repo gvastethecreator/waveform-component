@@ -21,12 +21,12 @@ Stop condition: accepted scope implemented; no blocker/P1; every applicable gate
 | Blind audience read       | required      | brief-hidden reviewer record                                                 | `.scratch/design/waveform-component/blind-read.md`                            | passed with accepted repair   |
 | Independent judgment      | required      | fresh delegated raw-artifact review                                          | independent direction read changed control labeling/primary route             | passed for planning           |
 | Package/public seam       | required      | external consumer build and runtime                                          | packed tarball + declarations + SSR import pass for tracer                    | passed for tracer             |
-| Regression/runtime        | required      | focused tests and browser paths                                              | 39 unit/component + 4 Chrome E2E pass                                         | passed through recorded audio |
-| Hostile/boundary input    | required      | fixtures for invalid config, stale async, decode/permission/renderer failure | invalid/empty/stale decode/corrupt media covered; mic/renderer pending        | partial                       |
-| User states               | required      | rendered real states                                                         | static and recorded ready/loading/error/recovery covered; mic pending         | partial                       |
+| Regression/runtime        | required      | focused tests and browser paths                                              | 44 unit/component + 6 Chrome E2E pass                                         | passed through microphone     |
+| Hostile/boundary input    | required      | fixtures for invalid config, stale async, decode/permission/renderer failure | invalid/empty/stale decode/corrupt/permission/device-end covered              | partial: renderer pending     |
+| User states               | required      | rendered real states                                                         | static, recorded, and microphone states/recovery covered                      | partial                       |
 | Viewport/platform         | required      | 1440, 390, 320, ultrawide captures                                           | 1440 and 390 rendered; zero relevant overflow                                 | partial                       |
 | Accessibility             | required      | keyboard/pointer/focus/reduced-motion checks                                 | semantic Canvas, labeled controls, focus and reduced-motion base              | partial                       |
-| Performance/lifecycle     | required      | traces, active-resource audit, long-data scenario                            | cleanup/ownership plus million-sample bounded peaks pass; traced load pending | partial                       |
+| Performance/lifecycle     | required      | traces, active-resource audit, long-data scenario                            | owned/borrowed mic cycles and million-sample bounded peaks pass               | partial: traced load pending  |
 | Export                    | required      | isolated compile/runtime fixture                                             | contract only                                                                 | blocked by implementation     |
 | Adversarial autopsy       | required      | fresh final artifact inspection                                              | not yet applicable                                                            | blocked by implementation     |
 
@@ -59,6 +59,11 @@ Stop condition: accepted scope implemented; no blocker/P1; every applicable gate
 |  23 | Scrubbing needed one input contract across modalities   | Controlled player adds played layers and Arrow/Page/Home/End/Space plus pointer/touch range         | better  | recovery              |
 |  24 | Corrupt media could leave the artifact blank            | Structured alert and replacement proven with real Chrome decode failure and recovery                | better  | rendered pressure     |
 |  25 | Recorded transport added 48 px desktop scroll           | Fixed viewport shell and internal sizing restore zero document overflow                             | better  | microphone lifecycle  |
+|  26 | Permission must never be an import or mount side effect | Inert owned microphone factory plus explicit Connect-driven session attachment added               | better  | live analysis         |
+|  27 | Browser capture exposes more than ready/error           | Requesting/live/muted/silent/ended/denied/unavailable/error stores and recovery copy added          | better  | device loss           |
+|  28 | Device end initially stopped animation but leaked graph | Terminal release now removes listeners and closes analyser, node, context, and owned tracks once    | better  | browser cycles        |
+|  29 | Media hardware is not deterministic test infrastructure | Controllable Chrome mocks prove permission, mute/end, denial, two reconnect cycles, and exact counts | better  | rendered pressure     |
+|  30 | Localized native file text overlapped the source panel  | Full-surface accessible input now uses stable custom Local audio / Choose file presentation         | better  | spectrum analysis     |
 
 ## Loop 10 verdict
 
@@ -117,6 +122,21 @@ Ticket 003 is implemented, verified, and committed. Microphone lifecycle 004 is 
 - Root cause: the root grid had only `min-height`, allowing the recorded player's transport row to grow the document instead of fitting the artifact area.
 - Repair: desktop uses a fixed `100dvh` shell with hidden root overflow; mobile explicitly returns to auto height and visible document flow.
 - Closing proof: recorded WAV metrics show zero document overflow on desktop, zero horizontal overflow at 390 px, and clean console.
+- Unresolved severity: closed.
+
+## Loop 30 verdict
+
+`continue`
+
+Ticket 004 is implemented, verified, and committed. Spectrum analysis 005 is next because it establishes the frequency-domain DSP and capability metadata needed by later dynamics, renderers, and VFX slices.
+
+## Microphone pressure record
+
+- Strongest observed defect: the first device-ended path canceled animation but retained the analyser graph, audio context, listeners, and owned tracks until a later manual disconnect.
+- User harm: device loss could leave capture resources alive and repeated failures could drift above the promised lifecycle baseline.
+- Root cause: track state and source disposal were modeled separately without a shared idempotent resource-release primitive.
+- Repair: device end and detach now share one best-effort, exactly-once release path; terminal frames cannot race back to ready. Browser mocks additionally count two full track/context cycles.
+- Closing proof: five microphone unit tests, 44/44 full package tests, 6/6 Chrome E2E, fresh packed consumer, and inspected `desktop-final.png` with zero overflow/console errors.
 - Unresolved severity: closed.
 
 ## Pressure record

@@ -1,6 +1,8 @@
 # 004 — Connect, explain, and recover live microphone input
 
-Status: ready-for-agent
+Status: ready-for-human
+
+Resolution: completed and verified in commit `b09153c`.
 
 Type: AFK  
 Blocked by: 002  
@@ -25,3 +27,11 @@ Microphone capture begins only after an explicit user action and exposes request
 - Denial and device loss include actionable recovery copy.
 - Disconnect releases only package-owned resources and reconnect works repeatedly.
 - Repeated cycles return listeners, tracks, nodes, contexts, and animation work to baseline.
+
+## Verification
+
+- `bun run verify:tracer`: passed with 44/44 unit/component tests, type/lint/format, library/types/playground builds, SSR import, and a fresh packed external consumer compiling microphone factories, types, and hook declarations.
+- Microphone-source tests prove explicit attach-before-permission, live/silent/muted/ended state propagation, denial mapping, stale permission suppression, immediate device-end release, exact owned cleanup, listener removal, and borrowed-track preservation.
+- `bun run test:e2e`: passed 6/6 installed-Chrome paths. Controllable browser media mocks prove zero requests before Connect, live/mute/unmute/end announcements, two complete reconnect cycles, exact track/context release counts, denial guidance, and recovery to the deterministic demo.
+- Browser inspection: live capture settles at `MICROPHONE / READY`, keeps 1440×960 at zero document overflow, emits no console errors, and uses a stable localized-independent file picker next to the microphone controls.
+- Evidence: `.scratch/evidence/004-microphone/desktop-final.png` (generated evidence is intentionally ignored by Git).
