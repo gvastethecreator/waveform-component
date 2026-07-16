@@ -11,49 +11,54 @@ Stop condition: accepted scope implemented; no blocker/P1; every applicable gate
 
 ## Gate manifest
 
-| Gate                      | Applicability | Safe proof surface                                                           | Current evidence                                                             | State                       |
-| ------------------------- | ------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | --------------------------- |
-| Scope                     | required      | source/diff/task audit                                                       | durable plan, Wayfinder, research note                                       | passed for planning         |
-| Acceptance/baseline       | required      | like-for-like screenshots and PRD                                            | three rendered `folders` captures; approved ready-for-agent PRD              | passed for specification    |
-| Source provenance         | required      | local paths and official specs                                               | cited research note                                                          | passed for planning         |
-| Creative direction search | required      | three same-viewport artifacts                                                | three SVG/PNG directions + direction cards                                   | passed                      |
-| Signature/subtraction     | required      | direction/kill records                                                       | direct signal overlays; remove hero/dashboard/fake signal                    | passed for direction        |
-| Blind audience read       | required      | brief-hidden reviewer record                                                 | `.scratch/design/waveform-component/blind-read.md`                           | passed with accepted repair |
-| Independent judgment      | required      | fresh delegated raw-artifact review                                          | independent direction read changed control labeling/primary route            | passed for planning         |
-| Package/public seam       | required      | external consumer build and runtime                                          | packed tarball + declarations + SSR import pass for tracer                   | passed for tracer           |
-| Regression/runtime        | required      | focused tests and browser paths                                              | 19 unit/component + 2 Chrome E2E pass                                        | passed for tracer           |
-| Hostile/boundary input    | required      | fixtures for invalid config, stale async, decode/permission/renderer failure | invalid/empty static data covered; async/source failures pending             | partial                     |
-| User states               | required      | rendered real states                                                         | ready/empty static frames covered; source state matrix pending               | partial                     |
-| Viewport/platform         | required      | 1440, 390, 320, ultrawide captures                                           | 1440 and 390 rendered; zero relevant overflow                                | partial                     |
-| Accessibility             | required      | keyboard/pointer/focus/reduced-motion checks                                 | semantic Canvas, labeled controls, focus and reduced-motion base             | partial                     |
-| Performance/lifecycle     | required      | traces, active-resource audit, long-data scenario                            | epochs, cleanup, shared session and ownership tests pass; load proof pending | partial                     |
-| Export                    | required      | isolated compile/runtime fixture                                             | contract only                                                                | blocked by implementation   |
-| Adversarial autopsy       | required      | fresh final artifact inspection                                              | not yet applicable                                                           | blocked by implementation   |
+| Gate                      | Applicability | Safe proof surface                                                           | Current evidence                                                              | State                         |
+| ------------------------- | ------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------- |
+| Scope                     | required      | source/diff/task audit                                                       | durable plan, Wayfinder, research note                                        | passed for planning           |
+| Acceptance/baseline       | required      | like-for-like screenshots and PRD                                            | three rendered `folders` captures; approved ready-for-agent PRD               | passed for specification      |
+| Source provenance         | required      | local paths and official specs                                               | cited research note                                                           | passed for planning           |
+| Creative direction search | required      | three same-viewport artifacts                                                | three SVG/PNG directions + direction cards                                    | passed                        |
+| Signature/subtraction     | required      | direction/kill records                                                       | direct signal overlays; remove hero/dashboard/fake signal                     | passed for direction          |
+| Blind audience read       | required      | brief-hidden reviewer record                                                 | `.scratch/design/waveform-component/blind-read.md`                            | passed with accepted repair   |
+| Independent judgment      | required      | fresh delegated raw-artifact review                                          | independent direction read changed control labeling/primary route             | passed for planning           |
+| Package/public seam       | required      | external consumer build and runtime                                          | packed tarball + declarations + SSR import pass for tracer                    | passed for tracer             |
+| Regression/runtime        | required      | focused tests and browser paths                                              | 39 unit/component + 4 Chrome E2E pass                                         | passed through recorded audio |
+| Hostile/boundary input    | required      | fixtures for invalid config, stale async, decode/permission/renderer failure | invalid/empty/stale decode/corrupt media covered; mic/renderer pending        | partial                       |
+| User states               | required      | rendered real states                                                         | static and recorded ready/loading/error/recovery covered; mic pending         | partial                       |
+| Viewport/platform         | required      | 1440, 390, 320, ultrawide captures                                           | 1440 and 390 rendered; zero relevant overflow                                 | partial                       |
+| Accessibility             | required      | keyboard/pointer/focus/reduced-motion checks                                 | semantic Canvas, labeled controls, focus and reduced-motion base              | partial                       |
+| Performance/lifecycle     | required      | traces, active-resource audit, long-data scenario                            | cleanup/ownership plus million-sample bounded peaks pass; traced load pending | partial                       |
+| Export                    | required      | isolated compile/runtime fixture                                             | contract only                                                                 | blocked by implementation     |
+| Adversarial autopsy       | required      | fresh final artifact inspection                                              | not yet applicable                                                            | blocked by implementation     |
 
 ## Valid loop ledger
 
-|   N | Source finding                                        | Artifact/proof delta                                                                                | Verdict | Next                  |
-| --: | ----------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ------- | --------------------- |
-|   1 | Target is reference-only and not a Git repo           | Durable scope, phases, acceptance, and error memory created                                         | better  | baseline              |
-|   2 | `folders` architecture/stack/tracker inspected        | Reusable pattern and package gap fixed in plan                                                      | better  | visual baseline       |
-|   3 | Desktop/narrow/Single runtime inspected               | Three rendered baseline captures establish layout behavior                                          | better  | OBS inventory         |
-|   4 | Both OBS source trees audited                         | Full control/DSP/VFX taxonomy and defects separated from desired behavior                           | better  | license boundary      |
-|   5 | GPL v2/v3 and MIT licenses inspected                  | Clean-room boundary and no-source-copy decision recorded                                            | better  | ElevenLabs            |
-|   6 | ElevenLabs audio modules audited                      | Useful lifecycle/compound/headless patterns retained; monolith/accessibility/perf defects rejected  | better  | platform facts        |
-|   7 | W3C/WHATWG/React sources inspected                    | Canvas/DOM, microphone-state, analyser, and cleanup constraints fixed                               | better  | public seams          |
-|   8 | Three interface alternatives compared                 | Headless session + adapters selected; smart monolith rejected                                       | better  | visual direction      |
-|   9 | Three incompatible visual artifacts rendered          | Signal Workbench selected; matrix/patchbay not blended                                              | better  | independent read      |
-|  10 | Blind review and verification frontier resolved       | Primary route/control-label repair accepted; Wayfinder closed with full proof contract              | better  | ask for seam approval |
-|  11 | Approved PRD/issues made the frontier executable      | 23 self-contained AFK tickets published; durable goal created                                       | better  | tracer scaffold       |
-|  12 | Greenfield package needed a real public boundary      | Library build, public exports, playground alias, SSR-safe import, and packed consumer added         | better  | pure contracts        |
-|  13 | Signed data and DPR behavior needed independent proof | Static validation, deterministic demo, pure geometry, absolute Canvas transform, and 19 tests added | better  | browser path          |
-|  14 | Browser runner lacked only its video helper           | Official Playwright ffmpeg installed; 2/2 Chrome E2E paths now pass                                 | better  | rendered inspection   |
-|  15 | Min/max-only Canvas output read as dotted             | Continuous midpoint path added without removing extrema; final rendered evidence is clean           | better  | session lifecycle     |
-|  16 | Source growth needed one lifecycle authority          | Generic session, immutable snapshots, statuses, errors, epochs, and React store binding added       | better  | race proof            |
-|  17 | Late async connect could outlive replacement          | Abort/epoch guards ignore stale callbacks and dispose late handles exactly once                     | better  | ownership proof       |
-|  18 | Host and package resources need different teardown    | Borrowed stream/node adapters detach without stop/disconnect; owned tracks stop once                | better  | package proof         |
-|  19 | Same-version tarball cache hid new declarations       | Consumer fixture cleans verified local artifacts and installs fresh without manifest cache          | better  | browser path          |
-|  20 | Rapid source-style changes could expose stale UI      | Three rapid transitions end at epoch 9, `DEMO / READY`, correct frame, and clean console            | better  | recorded source       |
+|   N | Source finding                                          | Artifact/proof delta                                                                                | Verdict | Next                  |
+| --: | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ------- | --------------------- |
+|   1 | Target is reference-only and not a Git repo             | Durable scope, phases, acceptance, and error memory created                                         | better  | baseline              |
+|   2 | `folders` architecture/stack/tracker inspected          | Reusable pattern and package gap fixed in plan                                                      | better  | visual baseline       |
+|   3 | Desktop/narrow/Single runtime inspected                 | Three rendered baseline captures establish layout behavior                                          | better  | OBS inventory         |
+|   4 | Both OBS source trees audited                           | Full control/DSP/VFX taxonomy and defects separated from desired behavior                           | better  | license boundary      |
+|   5 | GPL v2/v3 and MIT licenses inspected                    | Clean-room boundary and no-source-copy decision recorded                                            | better  | ElevenLabs            |
+|   6 | ElevenLabs audio modules audited                        | Useful lifecycle/compound/headless patterns retained; monolith/accessibility/perf defects rejected  | better  | platform facts        |
+|   7 | W3C/WHATWG/React sources inspected                      | Canvas/DOM, microphone-state, analyser, and cleanup constraints fixed                               | better  | public seams          |
+|   8 | Three interface alternatives compared                   | Headless session + adapters selected; smart monolith rejected                                       | better  | visual direction      |
+|   9 | Three incompatible visual artifacts rendered            | Signal Workbench selected; matrix/patchbay not blended                                              | better  | independent read      |
+|  10 | Blind review and verification frontier resolved         | Primary route/control-label repair accepted; Wayfinder closed with full proof contract              | better  | ask for seam approval |
+|  11 | Approved PRD/issues made the frontier executable        | 23 self-contained AFK tickets published; durable goal created                                       | better  | tracer scaffold       |
+|  12 | Greenfield package needed a real public boundary        | Library build, public exports, playground alias, SSR-safe import, and packed consumer added         | better  | pure contracts        |
+|  13 | Signed data and DPR behavior needed independent proof   | Static validation, deterministic demo, pure geometry, absolute Canvas transform, and 19 tests added | better  | browser path          |
+|  14 | Browser runner lacked only its video helper             | Official Playwright ffmpeg installed; 2/2 Chrome E2E paths now pass                                 | better  | rendered inspection   |
+|  15 | Min/max-only Canvas output read as dotted               | Continuous midpoint path added without removing extrema; final rendered evidence is clean           | better  | session lifecycle     |
+|  16 | Source growth needed one lifecycle authority            | Generic session, immutable snapshots, statuses, errors, epochs, and React store binding added       | better  | race proof            |
+|  17 | Late async connect could outlive replacement            | Abort/epoch guards ignore stale callbacks and dispose late handles exactly once                     | better  | ownership proof       |
+|  18 | Host and package resources need different teardown      | Borrowed stream/node adapters detach without stop/disconnect; owned tracks stop once                | better  | package proof         |
+|  19 | Same-version tarball cache hid new declarations         | Consumer fixture cleans verified local artifacts and installs fresh without manifest cache          | better  | browser path          |
+|  20 | Rapid source-style changes could expose stale UI        | Three rapid transitions end at epoch 9, `DEMO / READY`, correct frame, and clean console            | better  | recorded source       |
+|  21 | Long decoded PCM could duplicate unbounded display data | Bounded min/max pyramid and compact signed display frame added; million-sample fixture passes       | better  | decode lifecycle      |
+|  22 | Decode and playback own independent resources           | Recorded source owns context, element, URL, listeners, transport store, and stale cleanup           | better  | interaction           |
+|  23 | Scrubbing needed one input contract across modalities   | Controlled player adds played layers and Arrow/Page/Home/End/Space plus pointer/touch range         | better  | recovery              |
+|  24 | Corrupt media could leave the artifact blank            | Structured alert and replacement proven with real Chrome decode failure and recovery                | better  | rendered pressure     |
+|  25 | Recorded transport added 48 px desktop scroll           | Fixed viewport shell and internal sizing restore zero document overflow                             | better  | microphone lifecycle  |
 
 ## Loop 10 verdict
 
@@ -97,6 +102,21 @@ Ticket 002 is implemented, verified, and committed. The frontier now branches in
 - Root cause: Bun's fixture lock/install cache outlived the overwritten local tarball despite `--force`.
 - Repair: a path-guarded cleanup removes only the fixture's `node_modules`, lock, and tarball, then installs the new tarball with `--no-cache`.
 - Closing proof: the fresh pack includes session declarations; the fixture imports both session and convenience APIs; full verification passes.
+- Unresolved severity: closed.
+
+## Loop 25 verdict
+
+`continue`
+
+Ticket 003 is implemented, verified, and committed. Microphone lifecycle 004 is next because it extends the same ownership/epoch/state model to permission and device-loss behavior before spectrum analysis consumes live frames.
+
+## Recorded-audio pressure record
+
+- Strongest observed defect: adding the recorded transport increased the 1440×960 document height by 48 px.
+- User harm: the stable desktop workbench contract regressed and controls/artifact could shift under playback.
+- Root cause: the root grid had only `min-height`, allowing the recorded player's transport row to grow the document instead of fitting the artifact area.
+- Repair: desktop uses a fixed `100dvh` shell with hidden root overflow; mobile explicitly returns to auto height and visible document flow.
+- Closing proof: recorded WAV metrics show zero document overflow on desktop, zero horizontal overflow at 390 px, and clean console.
 - Unresolved severity: closed.
 
 ## Pressure record
