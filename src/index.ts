@@ -115,6 +115,43 @@ export { Spectrum } from "./react/Spectrum";
 export type { SpectrumProps } from "./react/Spectrum";
 export { Meter } from "./react/Meter";
 export type { MeterProps } from "./react/Meter";
+export { SignalOverlay } from "./react/SignalOverlay";
+export type {
+  SignalOverlayChangeMeta,
+  SignalOverlayChangeSource,
+  SignalOverlayHandle,
+  SignalOverlayHandleKind,
+  SignalOverlayMarker,
+  SignalOverlayProps,
+  SignalOverlayRegion,
+  SignalOverlayRegionKind,
+  SignalOverlaySeek,
+} from "./react/SignalOverlay";
+export {
+  assignOverlayCollisionLanes,
+  assignOverlayRangeCollisionLanes,
+  clampNormalized,
+  keyboardNormalizedValue,
+  normalizedToValue,
+  normalizedValueFromPoint,
+  normalizeOverlayRange,
+  positionForNormalizedValue,
+  valueToNormalized,
+} from "./overlays/coordinates";
+export type {
+  OverlayAxis,
+  OverlayBounds,
+  OverlayCollisionItem,
+  OverlayCollisionLayout,
+  OverlayCoordinatePolicy,
+  OverlayDirection,
+  OverlayPoint,
+  OverlayPosition,
+  OverlayRangeCollisionItem,
+  OverlayRangeCollisionLayout,
+  OverlayScale,
+  OverlayValueRange,
+} from "./overlays/coordinates";
 export { DEFAULT_METER_CONFIG, resolveMeterConfig } from "./meterConfig";
 export {
   DEFAULT_SPECTRUM_ANALYSIS_CONFIG,

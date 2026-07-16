@@ -336,6 +336,29 @@ input:focus-visible {
   pointer-events: none;
 }
 
+.meter-scale {
+  position: absolute;
+  z-index: 2;
+  right: 0.75rem;
+  bottom: 0.35rem;
+  left: 0.75rem;
+  display: flex;
+  justify-content: space-between;
+  color: var(--faint);
+  font-family: var(--font-mono);
+  font-size: 0.48rem;
+  pointer-events: none;
+}
+
+.meter-scale[data-orientation="vertical"] {
+  top: 0.75rem;
+  right: 0.55rem;
+  bottom: 0.75rem;
+  left: auto;
+  align-items: flex-end;
+  flex-direction: column;
+}
+
 .signal-scale[data-orientation="vertical"] {
   top: auto;
   right: 0.75rem;
@@ -1076,6 +1099,7 @@ input:focus-visible {
   }
 
   .signal-scale,
+  .meter-scale,
   .frequency-axis,
   .radial-level-key,
   .radial-frequency-key {

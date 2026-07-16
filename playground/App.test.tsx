@@ -152,7 +152,7 @@ describe("Signal Workbench tracer", () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await user.click(screen.getByRole("button", { name: /Transient/ }));
+    await user.click(screen.getByRole("button", { name: /^Transient preset thumbnail\./ }));
     expect(screen.getByRole("heading", { name: "Transient waveform" })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Reset" }));
@@ -204,5 +204,107 @@ describe("Signal Workbench tracer", () => {
     expect(await screen.findByText("DEMO / READY")).toBeInTheDocument();
     expect(screen.getByText("owned")).toBeInTheDocument();
     expect(screen.getByText(/Epoch \d+/)).toBeInTheDocument();
+  });
+
+  it("keeps semantic seeking, regions, markers, and overlapping handles host-controlled", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    const overlay = screen.getByRole("group", {
+      name: "waveform semantic interaction overlay",
+    });
+    const seek = screen.getByRole("slider", { name: "Seek deterministic signal" });
+    const playhead = screen.getByRole("slider", { name: "Playhead handle" });
+    expect(overlay).toHaveAttribute("data-overlay-orientation", "horizontal");
+    expect(seek).toHaveAttribute("aria-valuenow", "0.32");
+    expect(playhead).toHaveAttribute("aria-valuenow", "0.32");
+
+    fireEvent.change(screen.getByRole("slider", { name: "Overlay playhead" }), {
+      target: { value: "0.75" },
+    });
+    expect(seek).toHaveAttribute("aria-valuenow", "0.75");
+    expect(playhead).toHaveAttribute("aria-valuenow", "0.75");
+
+    fireEvent.keyDown(seek, { key: "ArrowRight" });
+    expect(seek).toHaveAttribute("aria-valuenow", "0.76");
+    expect(screen.getByText("Seek committed at 76%")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Playback loop region" }));
+    expect(screen.getByRole("button", { name: "Playback loop region" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await user.click(screen.getByRole("button", { name: "Transient marker" }));
+    expect(screen.getByText("Transient marker activated")).toBeInTheDocument();
+
+    const loopCueLane = screen
+      .getByRole("button", { name: "Loop cue marker" })
+      .getAttribute("data-overlay-lane");
+    const loopHandleLane = screen
+      .getByRole("slider", { name: "Loop start handle" })
+      .getAttribute("data-overlay-lane");
+    expect(loopCueLane).not.toBe(loopHandleLane);
+  });
+
+  it("maps direct spectrum handles into inspector state and gates radial geometry", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole("button", { name: "Spectrum" }));
+    const lowHandle = screen.getByRole("slider", { name: "Low cutoff handle" });
+    const middleHandle = screen.getByRole("slider", { name: "Middle threshold handle" });
+    const crestHandle = screen.getByRole("slider", { name: "Crest threshold handle" });
+    expect(middleHandle.getAttribute("aria-valuemax")).toBe(
+      crestHandle.getAttribute("aria-valuenow"),
+    );
+    expect(crestHandle.getAttribute("aria-valuemin")).toBe(
+      middleHandle.getAttribute("aria-valuenow"),
+    );
+    expect(lowHandle).toHaveAttribute("aria-valuenow", "20");
+    fireEvent.keyDown(lowHandle, { key: "ArrowRight" });
+    expect(lowHandle).toHaveAttribute("aria-valuenow", "30");
+    expect(screen.getByRole("slider", { name: "Low cutoff" })).toHaveValue("30");
+    expect(screen.getByText("Low cutoff committed at 30 Hz")).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByRole("combobox", { name: /^Layout/ }), "radial");
+    expect(
+      screen.queryByRole("group", { name: "spectrum semantic interaction overlay" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("Unavailable · radial")).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: /Overlay direction/ })).toBeDisabled();
+  });
+
+  it("tethers meter thresholds to horizontal and bottom-up vertical value axes", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<App />);
+
+    await user.click(screen.getByRole("button", { name: "Meter" }));
+    const meterScale = container.querySelector(".meter-scale");
+    expect(
+      [...(meterScale?.querySelectorAll("span") ?? [])].map((label) => label.textContent),
+    ).toEqual(["-60 dB", "-30 dB", "0 dB"]);
+    const reactHandle = screen.getByRole("slider", { name: "React threshold handle" });
+    const horizontalPosition = Number(reactHandle.getAttribute("data-overlay-position"));
+    expect(reactHandle).toHaveAttribute("aria-orientation", "horizontal");
+    expect(horizontalPosition).toBeGreaterThan(0);
+    expect(horizontalPosition).toBeLessThan(1);
+
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: /Meter orientation/ }),
+      "vertical",
+    );
+    expect(
+      [...(meterScale?.querySelectorAll("span") ?? [])].map((label) => label.textContent),
+    ).toEqual(["0 dB", "-30 dB", "-60 dB"]);
+    expect(reactHandle).toHaveAttribute("aria-orientation", "vertical");
+    expect(Number(reactHandle.getAttribute("data-overlay-position"))).toBeCloseTo(
+      1 - horizontalPosition,
+      8,
+    );
+    const previous = Number(reactHandle.getAttribute("aria-valuenow"));
+    fireEvent.keyDown(reactHandle, { key: "ArrowUp" });
+    expect(reactHandle).toHaveAttribute("aria-valuenow", String(previous + 1));
+    expect(screen.getByRole("slider", { name: "React level" })).toHaveValue(String(previous + 1));
+    expect(screen.getByRole("combobox", { name: /Overlay direction/ })).toBeDisabled();
   });
 });

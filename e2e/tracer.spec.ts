@@ -23,7 +23,7 @@ test("renders and controls the public Canvas waveform path", async ({ page }) =>
   await amplitude.fill("1.2");
   await expect(page.getByText("1.20×")).toBeVisible();
 
-  await page.getByRole("button", { name: /Transient/ }).click();
+  await page.getByRole("button", { name: /^Transient preset thumbnail\./ }).click();
   await expect(page.getByRole("heading", { name: "Transient waveform" })).toBeVisible();
 
   await page.getByRole("button", { name: "Focus" }).click();
@@ -85,6 +85,230 @@ test("keeps the narrow workbench reachable without horizontal overflow", async (
   );
   expect(overflow).toBeLessThanOrEqual(0);
   await expect(page.getByRole("button", { name: "Copy code" })).toBeVisible();
+});
+
+test("operates seek, regions, markers, and direct handles through semantic overlays", async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  const browserErrors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") browserErrors.push(`console: ${message.text()}`);
+  });
+  page.on("pageerror", (error) => browserErrors.push(`pageerror: ${error.message}`));
+  const evidence = process.env.CAPTURE_OVERLAY_EVIDENCE
+    ? ".scratch/evidence/010-accessible-overlays"
+    : null;
+  if (evidence) await mkdir(evidence, { recursive: true });
+  await page.goto("/", { timeout: 60_000, waitUntil: "domcontentloaded" });
+
+  const overlay = page.getByRole("group", {
+    name: "waveform semantic interaction overlay",
+  });
+  const seek = page.getByRole("slider", { name: "Seek deterministic signal", exact: true });
+  const playheadInspector = page.getByRole("slider", {
+    name: "Overlay playhead",
+    exact: true,
+  });
+  await expect(overlay).toHaveAttribute("data-overlay-orientation", "horizontal");
+  await expect(seek).toHaveAttribute("aria-valuenow", "0.32");
+
+  await seek.focus();
+  await seek.press("ArrowRight");
+  await expect(seek).toHaveAttribute("aria-valuenow", "0.33");
+  await expect(playheadInspector).toHaveValue("0.33");
+  await expect(page.getByText("Seek committed at 33%")).toBeVisible();
+
+  const loopRegion = page.getByRole("button", { name: "Playback loop region", exact: true });
+  await loopRegion.click();
+  await expect(loopRegion).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Transient marker", exact: true }).click();
+  await expect(page.getByText("Transient marker activated", { exact: true })).toBeVisible();
+
+  const loopCue = page.getByRole("button", { name: "Loop cue marker", exact: true });
+  const loopStart = page.getByRole("slider", { name: "Loop start handle", exact: true });
+  expect(await loopCue.getAttribute("data-overlay-lane")).not.toBe(
+    await loopStart.getAttribute("data-overlay-lane"),
+  );
+  await loopStart.focus();
+  await expect(loopStart).toBeFocused();
+  expect(await loopStart.evaluate((element) => getComputedStyle(element).outlineStyle)).toBe(
+    "solid",
+  );
+  if (evidence)
+    await page.locator(".signal-stage").screenshot({ path: `${evidence}/desktop-time-focus.png` });
+
+  const stage = page.locator(".signal-stage");
+  const bounds = await stage.boundingBox();
+  expect(bounds).not.toBeNull();
+  if (!bounds) return;
+  const y = bounds.y + bounds.height * 0.82;
+  await page.mouse.move(bounds.x + bounds.width * 0.9, y);
+  await page.mouse.down();
+  await page.mouse.move(bounds.x + bounds.width * 0.1, y, { steps: 4 });
+  await page.mouse.up();
+  const pointerValue = Number(await seek.getAttribute("aria-valuenow"));
+  expect(pointerValue).toBeGreaterThanOrEqual(0.08);
+  expect(pointerValue).toBeLessThanOrEqual(0.12);
+  await expect(page.locator('[data-overlay-part="hover"]')).toHaveText(/TIME (?:9\.\d|10)%/);
+
+  await page.getByRole("combobox", { name: /Overlay direction/ }).selectOption("rtl");
+  await seek.focus();
+  const beforeRtl = Number(await seek.getAttribute("aria-valuenow"));
+  await seek.press("ArrowRight");
+  await expect(seek).toHaveAttribute("aria-valuenow", (beforeRtl - 0.01).toFixed(2));
+
+  await page.getByRole("button", { name: "Spectrum" }).click();
+  const lowCutoffHandle = page.getByRole("slider", {
+    name: "Low cutoff handle",
+    exact: true,
+  });
+  await lowCutoffHandle.focus();
+  await lowCutoffHandle.press("ArrowRight");
+  await expect(lowCutoffHandle).toHaveAttribute("aria-valuenow", "30");
+  await expect(page.getByRole("slider", { name: "Low cutoff", exact: true })).toHaveValue("30");
+  const spectrumOverlayDirection = await page
+    .getByRole("group", { name: "spectrum semantic interaction overlay" })
+    .getAttribute("data-overlay-direction");
+  expect(spectrumOverlayDirection).toBe("ltr");
+  if (evidence)
+    await page
+      .locator(".signal-stage")
+      .screenshot({ path: `${evidence}/rtl-spectrum-handles.png` });
+
+  await page.getByRole("combobox", { name: /^Layout/ }).selectOption("radial");
+  await expect(
+    page.getByRole("group", { name: "spectrum semantic interaction overlay" }),
+  ).toHaveCount(0);
+  await expect(page.getByText("Unavailable · radial")).toBeVisible();
+  const radialOverlayCount = await page
+    .getByRole("group", { name: "spectrum semantic interaction overlay" })
+    .count();
+
+  await page.getByRole("button", { name: "Meter", exact: true }).click();
+  const reactHandle = page.getByRole("slider", {
+    name: "React threshold handle",
+    exact: true,
+  });
+  await expect(reactHandle).toHaveAttribute("aria-orientation", "horizontal");
+  const meterHorizontalPosition = Number(await reactHandle.getAttribute("data-overlay-position"));
+  await page.getByRole("combobox", { name: /Meter orientation/ }).selectOption("vertical");
+  await expect(reactHandle).toHaveAttribute("aria-orientation", "vertical");
+  const meterVerticalPosition = Number(await reactHandle.getAttribute("data-overlay-position"));
+  expect(meterVerticalPosition).toBeCloseTo(1 - meterHorizontalPosition, 8);
+  const reactBefore = Number(await reactHandle.getAttribute("aria-valuenow"));
+  await reactHandle.focus();
+  await reactHandle.press("ArrowUp");
+  await expect(reactHandle).toHaveAttribute("aria-valuenow", String(reactBefore + 1));
+  await expect(page.getByRole("slider", { name: "React level", exact: true })).toHaveValue(
+    String(reactBefore + 1),
+  );
+  expect(Number(await reactHandle.getAttribute("data-overlay-position"))).toBeLessThan(
+    meterVerticalPosition,
+  );
+  if (evidence)
+    await page
+      .locator(".signal-stage")
+      .screenshot({ path: `${evidence}/vertical-meter-handles.png` });
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - window.innerWidth,
+  );
+  expect(overflow).toBeLessThanOrEqual(0);
+  expect(browserErrors).toEqual([]);
+  if (evidence)
+    await writeFile(
+      `${evidence}/browser-report.json`,
+      `${JSON.stringify(
+        {
+          consoleErrors: browserErrors,
+          horizontalOverflow: overflow,
+          pointerSeekValue: pointerValue,
+          radialOverlayCount,
+          rtl: await page.getByRole("combobox", { name: /Overlay direction/ }).inputValue(),
+          spectrumOverlayDirection,
+        },
+        null,
+        2,
+      )}\n`,
+    );
+});
+
+test("keeps vertical overlays focused and bounded under forced colors and reduced motion", async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  const browserErrors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") browserErrors.push(`console: ${message.text()}`);
+  });
+  page.on("pageerror", (error) => browserErrors.push(`pageerror: ${error.message}`));
+  const evidence = process.env.CAPTURE_OVERLAY_EVIDENCE
+    ? ".scratch/evidence/010-accessible-overlays"
+    : null;
+  if (evidence) await mkdir(evidence, { recursive: true });
+  await page.emulateMedia({ forcedColors: "active", reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/", { timeout: 60_000, waitUntil: "domcontentloaded" });
+  await page.getByRole("combobox", { name: /Overlay direction/ }).selectOption("rtl");
+  await page.getByRole("combobox", { name: /Orientation/ }).selectOption("vertical");
+
+  const overlay = page.getByRole("group", {
+    name: "waveform semantic interaction overlay",
+  });
+  const seek = page.getByRole("slider", { name: "Seek deterministic signal", exact: true });
+  await expect(overlay).toHaveAttribute("data-overlay-direction", "rtl");
+  await expect(overlay).toHaveAttribute("data-overlay-orientation", "vertical");
+  await expect(seek).toHaveAttribute("aria-orientation", "vertical");
+  await seek.focus();
+  await seek.press("ArrowDown");
+  await expect(seek).toHaveAttribute("aria-valuenow", "0.33");
+  expect(await seek.evaluate((element) => getComputedStyle(element).outlineStyle)).toBe("solid");
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - window.innerWidth,
+  );
+  expect(overflow).toBeLessThanOrEqual(0);
+  if (evidence)
+    await page.locator(".signal-stage").screenshot({
+      path: `${evidence}/narrow-vertical-forced-colors.png`,
+    });
+
+  const devtools = await page.context().newCDPSession(page);
+  await devtools.send("Emulation.setPageScaleFactor", { pageScaleFactor: 2 });
+  await expect(seek).toBeVisible();
+  await expect(seek).toBeFocused();
+  const pageScale = await page.evaluate(() => window.visualViewport?.scale ?? 1);
+  expect(pageScale).toBe(2);
+  const zoomOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - window.innerWidth,
+  );
+  expect(zoomOverflow).toBeLessThanOrEqual(0);
+  expect(browserErrors).toEqual([]);
+  if (evidence) {
+    await page.locator(".signal-stage").screenshot({
+      path: `${evidence}/zoom-200-vertical-forced-colors.png`,
+    });
+    await writeFile(
+      `${evidence}/forced-colors-report.json`,
+      `${JSON.stringify(
+        {
+          consoleErrors: browserErrors,
+          forcedColors: await page.evaluate(() => matchMedia("(forced-colors: active)").matches),
+          horizontalOverflow: overflow,
+          orientation: await overlay.getAttribute("data-overlay-orientation"),
+          reducedMotion: await page.evaluate(
+            () => matchMedia("(prefers-reduced-motion: reduce)").matches,
+          ),
+          seekOutlineStyle: await seek.evaluate(
+            (element) => getComputedStyle(element).outlineStyle,
+          ),
+          pageScale,
+          zoomHorizontalOverflow: zoomOverflow,
+        },
+        null,
+        2,
+      )}\n`,
+    );
+  }
 });
 
 test("loads, plays, and keyboard-scrubs a local WAV without upload", async ({ page }) => {
@@ -168,8 +392,8 @@ test("renders ordered spectrum controls through the public Canvas path", async (
   await page.getByRole("combobox", { name: /Color mode/ }).selectOption("solid");
   await expect(page.getByRole("slider", { name: "Line width" })).toBeDisabled();
   await page.getByRole("slider", { name: "Bar gap" }).fill("5");
-  await page.getByRole("slider", { name: "Low cutoff" }).fill("1000");
-  await page.getByRole("slider", { name: "High cutoff" }).fill("12000");
+  await page.getByRole("slider", { name: "Low cutoff", exact: true }).fill("1000");
+  await page.getByRole("slider", { name: "High cutoff", exact: true }).fill("12000");
   await page.getByRole("combobox", { name: /Frequency scale/ }).selectOption("linear");
   await expect(page.getByText("LINEAR Hz")).toBeVisible();
   const bars = await spectrum.screenshot();
@@ -231,7 +455,7 @@ test("renders trustworthy continuous, stepped, and radial meters with bounded hi
   await page.getByRole("slider", { name: "History duration" }).fill("1000");
   await page.getByRole("slider", { name: "History interval" }).fill("25");
   await expect(page.getByText(/Capacity 41 frames/i)).toBeVisible();
-  await page.getByRole("button", { name: "Transient" }).click();
+  await page.getByRole("button", { name: /^Transient preset thumbnail\./ }).click();
   await expect(page.getByRole("heading", { name: "Transient stepped-meter" })).toBeVisible();
   await expect(page.getByText(/HISTORY/)).toBeVisible();
 
@@ -314,8 +538,8 @@ test("renders radial geometry and every reactive color role through Canvas", asy
   expect(gradient.equals(pulse)).toBe(false);
 
   await page.getByRole("combobox", { name: /Color mode/ }).selectOption("range");
-  await page.getByRole("slider", { name: "Middle threshold" }).fill("-48");
-  await page.getByRole("slider", { name: "Crest threshold" }).fill("-18");
+  await page.getByRole("slider", { name: "Middle threshold", exact: true }).fill("-48");
+  await page.getByRole("slider", { name: "Crest threshold", exact: true }).fill("-18");
   await expect(page.getByLabel("Middle color")).toBeEnabled();
   await expect(page.getByLabel("Accent color")).toBeDisabled();
   const range = await stage.screenshot();

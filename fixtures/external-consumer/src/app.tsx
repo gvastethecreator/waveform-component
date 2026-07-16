@@ -1,6 +1,7 @@
 import {
   Envelope,
   Meter,
+  SignalOverlay,
   SessionWaveform,
   Spectrum,
   RecordedWaveformPlayer,
@@ -122,6 +123,54 @@ export function MeterConsumerExample() {
         stepWidth: 8,
       }}
     />
+  );
+}
+
+export function OverlayConsumerExample({
+  playhead,
+  onPlayheadChange,
+}: {
+  readonly playhead: number;
+  readonly onPlayheadChange: (value: number) => void;
+}) {
+  return (
+    <div style={{ height: 180, position: "relative", width: 640 }}>
+      <Waveform ariaLabel="Editable external waveform" data={frame} />
+      <SignalOverlay
+        ariaLabel="External waveform editor"
+        handles={[
+          {
+            domainMaximum: 1,
+            domainMinimum: 0,
+            id: "playhead",
+            kind: "playhead",
+            label: "Playhead",
+            maximum: 1,
+            minimum: 0,
+            onChange: (value) => onPlayheadChange(value),
+            step: 0.01,
+            value: playhead,
+          },
+        ]}
+        markers={[{ id: "transient", label: "Transient marker", position: 0.68 }]}
+        regions={[
+          {
+            active: true,
+            end: 0.42,
+            id: "selection",
+            kind: "selection",
+            label: "Active selection",
+            start: 0.18,
+          },
+        ]}
+        seek={{
+          label: "Seek waveform",
+          onChange: (value) => onPlayheadChange(value),
+          step: 0.01,
+          value: playhead,
+        }}
+      />
+    </div>
   );
 }
 

@@ -20,6 +20,7 @@ The package has no browser side effects at module scope. Rendering and media wor
 - `MeterFrame` stores linear and dBFS peak/RMS values together with its amplitude-1 reference, so measurement units and meaning cannot be inferred from a generic array.
 - Meter ballistics is a stateful stage between analysis and geometry. Timestamp-derived attack/release remains cadence-independent; fast peak bypass is narrower than RMS response; source epoch/channel/sample-rate/backwards-time incompatibility resets smoothing and history.
 - Meter history is bounded twice: analysis capacity is derived from duration/interval under a 16,384-entry hard ceiling, while Canvas samples at most 64 compatible ghosts per draw. Geometry stays pure across continuous/stepped, rectangular/radial, mono/stereo, resize, and degenerate viewports.
+- `SignalOverlay` is a renderer-independent semantic layer above a positioned signal surface. A normalized coordinate seam maps pointer/touch and orientation-aware keyboard input, including LTR/RTL and explicitly reversed axes; React renders controlled seek, region, marker, and slider semantics while the host remains the only state authority. Handle coordinate domains are separate from their currently allowed ranges, so paired handles stay visually tethered while preventing crossings. Region fills are non-interactive while intersecting region controls, markers, and handles receive deterministic lanes and independent tab stops; canceled pointer gestures restore the pre-drag value.
 - `syncCanvasSize` assigns the backing-store dimensions and an absolute DPR transform, avoiding cumulative scale.
 - `Waveform` and `Envelope` are React convenience interfaces over one internal Canvas lifecycle. They create static frames when needed, observe fixed or responsive containers, and draw only after mount.
 
@@ -41,7 +42,7 @@ Visual synchronization is also outside the renderer. Capability resolution rejec
 
 Meter analysis follows the same channel-selection seam as time-domain geometry. `analyzeMeterWindows` creates explicit measurement windows; `createMeterDynamicsProcessor` owns response and history; pure meter geometry maps configured dBFS to lanes, segments, or concentric arcs; Canvas owns only drawing and CSS/system-color resolution. The public capability catalog describes when stepped, radial, history, channel, and color controls apply.
 
-Later tickets add SVG/DOM/WebGL2 adapters, original clean-room VFX, and standalone code export without changing the dependency direction established here.
+Later tickets add SVG/DOM/WebGL2 adapters, original clean-room VFX, and standalone code export without changing the dependency direction established here. Those renderers consume the same overlay coordinate/value contract instead of duplicating editor interaction inside SVG, DOM, or GPU code.
 
 ## Provenance
 

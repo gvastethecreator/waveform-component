@@ -22,6 +22,7 @@ import {
   Meter,
   RecordedWaveformPlayer,
   SessionWaveform,
+  SignalOverlay,
   Spectrum,
   SpectrumFrameDelay,
   SPECTRUM_CONTROL_DEFINITIONS,
@@ -39,6 +40,7 @@ import {
   createSpectrumDynamicsProcessor,
   createWaveformSession,
   getSpectrumControlAvailability,
+  normalizedToValue,
   resolveSpectrumAnalysisConfig,
   resolveMeterConfig,
   resolveMeterDynamicsConfig,
@@ -75,6 +77,7 @@ import {
   type VisualSyncCapability,
   type WaveformSessionStatus,
   type SpectrumWindow,
+  type SignalOverlayHandle,
   type WaveformFrame,
   type WaveformAmplitudePlacement,
   type WaveformChannelLayout,
@@ -197,6 +200,14 @@ export default function App() {
   const [meterHistoryOpacity, setMeterHistoryOpacity] = useState(
     DEFAULT_METER_CONFIG.historyOpacity,
   );
+  const [showOverlays, setShowOverlays] = useState(true);
+  const [overlayDirection, setOverlayDirection] = useState<"ltr" | "rtl">("ltr");
+  const [playheadPosition, setPlayheadPosition] = useState(0.32);
+  const [selectionRange, setSelectionRange] = useState({ end: 0.42, start: 0.18 });
+  const [loopRange, setLoopRange] = useState({ end: 0.76, start: 0.56 });
+  const [activeRegion, setActiveRegion] = useState("selection");
+  const [overlayInspection, setOverlayInspection] = useState<number | null>(null);
+  const [overlayEvent, setOverlayEvent] = useState("No interaction yet");
   const session = useMemo(() => createWaveformSession<WaveformFrame>(), []);
   const preset = PRESETS.find((candidate) => candidate.id === presetId) ?? PRESETS[0];
   const isMeterMode = visualMode === "meter" || visualMode === "stepped-meter";
@@ -518,6 +529,255 @@ export default function App() {
     () => resolveMeterConfig(meterConfig, meterPresentation.frame),
     [meterConfig, meterPresentation.frame],
   );
+  const isTimeOverlay = visualMode === "waveform" || visualMode === "envelope";
+  const overlayOrientation = visualMode === "spectrum" ? "horizontal" : orientation;
+  const radialOverlayUnavailable =
+    (visualMode === "spectrum" && spectrumLayout === "radial") ||
+    (isMeterMode && meterLayout === "radial");
+  const overlayHandles = useMemo<readonly SignalOverlayHandle[]>(() => {
+    const commit = (label: string, value: number, unit: string) =>
+      setOverlayEvent(`${label} committed at ${formatOverlayValue(value, unit)}`);
+    if (radialOverlayUnavailable) return [];
+    if (visualMode === "spectrum")
+      return [
+        {
+          axis: "primary",
+          domainMaximum: nyquist,
+          domainMinimum: 20,
+          formatValue: formatFrequency,
+          id: "low-cutoff",
+          guide: false,
+          kind: "low-cutoff",
+          label: "Low cutoff handle",
+          maximum: Math.max(30, Math.min(highFrequency - 10, nyquist)),
+          minimum: 20,
+          onChange: (value, meta) => {
+            setLowFrequency(Math.min(value, highFrequency - 10));
+            if (meta.commit) commit("Low cutoff", value, "Hz");
+          },
+          scale: "log",
+          step: 10,
+          value: Math.max(20, lowFrequency),
+        },
+        {
+          axis: "primary",
+          domainMaximum: nyquist,
+          domainMinimum: 20,
+          formatValue: formatFrequency,
+          id: "high-cutoff",
+          guide: false,
+          kind: "high-cutoff",
+          label: "High cutoff handle",
+          maximum: nyquist,
+          minimum: Math.max(20, lowFrequency + 10),
+          onChange: (value, meta) => {
+            setHighFrequency(Math.max(value, lowFrequency + 10));
+            if (meta.commit) commit("High cutoff", value, "Hz");
+          },
+          scale: "log",
+          step: 10,
+          value: Math.min(highFrequency, nyquist),
+        },
+        {
+          axis: "cross",
+          domainMaximum: maximumDecibels,
+          domainMinimum: minimumDecibels,
+          formatValue: (value) => `${value.toFixed(0)} dBFS`,
+          id: "middle-threshold",
+          kind: "react-threshold",
+          label: "Middle threshold handle",
+          maximum: resolvedSpectrumConfig.crestDecibels,
+          minimum: minimumDecibels,
+          onChange: (value, meta) => {
+            setMiddleDecibels(Math.min(value, crestDecibels));
+            if (meta.commit) commit("Middle threshold", value, "dBFS");
+          },
+          step: 1,
+          value: resolvedSpectrumConfig.middleDecibels,
+        },
+        {
+          axis: "cross",
+          domainMaximum: maximumDecibels,
+          domainMinimum: minimumDecibels,
+          formatValue: (value) => `${value.toFixed(0)} dBFS`,
+          id: "crest-threshold",
+          kind: "peak-threshold",
+          label: "Crest threshold handle",
+          maximum: maximumDecibels,
+          minimum: resolvedSpectrumConfig.middleDecibels,
+          onChange: (value, meta) => {
+            setCrestDecibels(Math.max(value, middleDecibels));
+            if (meta.commit) commit("Crest threshold", value, "dBFS");
+          },
+          step: 1,
+          value: resolvedSpectrumConfig.crestDecibels,
+        },
+      ];
+    if (isMeterMode)
+      return [
+        {
+          axis: "primary",
+          domainMaximum: meterMaximumDecibels,
+          domainMinimum: meterMinimumDecibels,
+          formatValue: (value) => `${value.toFixed(0)} dBFS`,
+          id: "react-threshold",
+          kind: "react-threshold",
+          label: "React threshold handle",
+          maximum: resolvedMeterDynamics.peakThresholdDb,
+          minimum: meterMinimumDecibels,
+          onChange: (value, meta) => {
+            setMeterDynamicsSettings((current) =>
+              resolveMeterDynamicsConfig({ ...current, reactThresholdDb: value }, meterFrame),
+            );
+            if (meta.commit) commit("React threshold", value, "dBFS");
+          },
+          reversed: orientation === "vertical",
+          step: 1,
+          value: resolvedMeterDynamics.reactThresholdDb,
+        },
+        {
+          axis: "primary",
+          domainMaximum: meterMaximumDecibels,
+          domainMinimum: meterMinimumDecibels,
+          formatValue: (value) => `${value.toFixed(0)} dBFS`,
+          id: "peak-threshold",
+          kind: "peak-threshold",
+          label: "Peak threshold handle",
+          maximum: meterMaximumDecibels,
+          minimum: resolvedMeterDynamics.reactThresholdDb,
+          onChange: (value, meta) => {
+            setMeterDynamicsSettings((current) =>
+              resolveMeterDynamicsConfig({ ...current, peakThresholdDb: value }, meterFrame),
+            );
+            if (meta.commit) commit("Peak threshold", value, "dBFS");
+          },
+          reversed: orientation === "vertical",
+          step: 1,
+          value: resolvedMeterDynamics.peakThresholdDb,
+        },
+      ];
+    return [
+      {
+        domainMaximum: 1,
+        domainMinimum: 0,
+        id: "playhead",
+        kind: "playhead",
+        label: "Playhead handle",
+        maximum: 1,
+        minimum: 0,
+        onChange: (value, meta) => {
+          setPlayheadPosition(value);
+          if (meta.commit) commit("Playhead", value, "percent");
+        },
+        step: 0.01,
+        value: playheadPosition,
+      },
+      {
+        domainMaximum: 1,
+        domainMinimum: 0,
+        id: "selection-start",
+        kind: "selection-start",
+        label: "Selection start handle",
+        maximum: Math.max(0, selectionRange.end - 0.01),
+        minimum: 0,
+        onChange: (value, meta) => {
+          setSelectionRange((current) => ({
+            ...current,
+            start: Math.min(value, current.end - 0.01),
+          }));
+          if (meta.commit) commit("Selection start", value, "percent");
+        },
+        step: 0.01,
+        value: selectionRange.start,
+      },
+      {
+        domainMaximum: 1,
+        domainMinimum: 0,
+        id: "selection-end",
+        kind: "selection-end",
+        label: "Selection end handle",
+        maximum: 1,
+        minimum: Math.min(1, selectionRange.start + 0.01),
+        onChange: (value, meta) => {
+          setSelectionRange((current) => ({
+            ...current,
+            end: Math.max(value, current.start + 0.01),
+          }));
+          if (meta.commit) commit("Selection end", value, "percent");
+        },
+        step: 0.01,
+        value: selectionRange.end,
+      },
+      {
+        domainMaximum: 1,
+        domainMinimum: 0,
+        id: "loop-start",
+        kind: "loop-start",
+        label: "Loop start handle",
+        maximum: Math.max(0, loopRange.end - 0.01),
+        minimum: 0,
+        onChange: (value, meta) => {
+          setLoopRange((current) => ({ ...current, start: Math.min(value, current.end - 0.01) }));
+          if (meta.commit) commit("Loop start", value, "percent");
+        },
+        step: 0.01,
+        value: loopRange.start,
+      },
+      {
+        domainMaximum: 1,
+        domainMinimum: 0,
+        id: "loop-end",
+        kind: "loop-end",
+        label: "Loop end handle",
+        maximum: 1,
+        minimum: Math.min(1, loopRange.start + 0.01),
+        onChange: (value, meta) => {
+          setLoopRange((current) => ({ ...current, end: Math.max(value, current.start + 0.01) }));
+          if (meta.commit) commit("Loop end", value, "percent");
+        },
+        step: 0.01,
+        value: loopRange.end,
+      },
+    ];
+  }, [
+    crestDecibels,
+    highFrequency,
+    isMeterMode,
+    loopRange.end,
+    loopRange.start,
+    lowFrequency,
+    maximumDecibels,
+    meterFrame,
+    meterMaximumDecibels,
+    meterMinimumDecibels,
+    middleDecibels,
+    minimumDecibels,
+    nyquist,
+    orientation,
+    playheadPosition,
+    radialOverlayUnavailable,
+    resolvedMeterDynamics.peakThresholdDb,
+    resolvedMeterDynamics.reactThresholdDb,
+    resolvedSpectrumConfig.crestDecibels,
+    resolvedSpectrumConfig.middleDecibels,
+    selectionRange.end,
+    selectionRange.start,
+    visualMode,
+  ]);
+  const formatOverlayInspection = (value: number) => {
+    if (visualMode === "spectrum")
+      return formatFrequency(
+        normalizedToValue(
+          value,
+          spectrumFrequencyRange.lowFrequency,
+          spectrumFrequencyRange.highFrequency,
+          frequencyScale,
+        ),
+      );
+    if (isMeterMode)
+      return `${Math.round(normalizedToValue(value, meterMinimumDecibels, meterMaximumDecibels))} dBFS`;
+    return `${Math.round(value * 1000) / 10}%`;
+  };
 
   useEffect(() => {
     void session.attach(activeSource);
@@ -594,6 +854,14 @@ export default function App() {
     setMeterStepGap(DEFAULT_METER_CONFIG.stepGap);
     setShowMeterHistory(DEFAULT_METER_CONFIG.showHistory);
     setMeterHistoryOpacity(DEFAULT_METER_CONFIG.historyOpacity);
+    setShowOverlays(true);
+    setOverlayDirection("ltr");
+    setPlayheadPosition(0.32);
+    setSelectionRange({ end: 0.42, start: 0.18 });
+    setLoopRange({ end: 0.76, start: 0.56 });
+    setActiveRegion("selection");
+    setOverlayInspection(null);
+    setOverlayEvent("No interaction yet");
     setCopyState("idle");
   };
 
@@ -829,12 +1097,14 @@ const result = meter.process(
                       </span>
                     </div>
                   ) : (
-                    <div className="signal-scale" data-orientation={orientation} aria-hidden="true">
-                      <span>{meterMaximumDecibels} dB</span>
-                      <span>
-                        {Math.round((meterMinimumDecibels + meterMaximumDecibels) / 2)} dB
-                      </span>
-                      <span>{meterMinimumDecibels} dB</span>
+                    <div className="meter-scale" data-orientation={orientation} aria-hidden="true">
+                      {meterScaleLabels(
+                        meterMinimumDecibels,
+                        meterMaximumDecibels,
+                        orientation,
+                      ).map((label) => (
+                        <span key={label}>{label}</span>
+                      ))}
                     </div>
                   )}
                   <Meter
@@ -947,6 +1217,102 @@ const result = meter.process(
                   ) : null}
                 </>
               )}
+              {showOverlays && !recordedSource && !radialOverlayUnavailable ? (
+                <SignalOverlay
+                  ariaLabel={`${visualMode} semantic interaction overlay`}
+                  direction={isTimeOverlay ? overlayDirection : "ltr"}
+                  formatHoverValue={formatOverlayInspection}
+                  handles={overlayHandles}
+                  markers={
+                    isTimeOverlay
+                      ? [
+                          {
+                            description: "Loop entry cue",
+                            id: "loop-cue",
+                            label: "Loop cue marker",
+                            onActivate: () => setOverlayEvent("Loop cue marker activated"),
+                            position: loopRange.start,
+                          },
+                          {
+                            description: "Detected transient study point",
+                            id: "transient",
+                            label: "Transient marker",
+                            onActivate: () => setOverlayEvent("Transient marker activated"),
+                            position: 0.68,
+                          },
+                        ]
+                      : []
+                  }
+                  hoverLabel={
+                    visualMode === "spectrum" ? "Frequency" : isMeterMode ? "Level" : "Time"
+                  }
+                  hoverReversed={isMeterMode && orientation === "vertical"}
+                  onHoverChange={setOverlayInspection}
+                  orientation={overlayOrientation}
+                  regions={
+                    isTimeOverlay
+                      ? [
+                          {
+                            active: activeRegion === "selection",
+                            description: "Controlled selection range",
+                            end: selectionRange.end,
+                            id: "selection",
+                            kind: "selection",
+                            label: "Active selection region",
+                            onActivate: (id) => {
+                              setActiveRegion(id);
+                              setOverlayEvent("Selection region activated");
+                            },
+                            start: selectionRange.start,
+                          },
+                          {
+                            active: activeRegion === "loop",
+                            description: "Controlled playback loop",
+                            end: loopRange.end,
+                            id: "loop",
+                            kind: "loop",
+                            label: "Playback loop region",
+                            onActivate: (id) => {
+                              setActiveRegion(id);
+                              setOverlayEvent("Loop region activated");
+                            },
+                            start: loopRange.start,
+                          },
+                          {
+                            active: activeRegion === "transient-region",
+                            description: "Annotated transient region",
+                            end: 0.72,
+                            id: "transient-region",
+                            kind: "region",
+                            label: "Transient annotation region",
+                            onActivate: (id) => {
+                              setActiveRegion(id);
+                              setOverlayEvent("Transient annotation activated");
+                            },
+                            start: 0.64,
+                          },
+                        ]
+                      : []
+                  }
+                  seek={
+                    isTimeOverlay
+                      ? {
+                          formatValue: (value) => `${Math.round(value * 1000) / 10}%`,
+                          label: "Seek deterministic signal",
+                          onChange: (value, meta) => {
+                            setPlayheadPosition(value);
+                            if (meta.commit)
+                              setOverlayEvent(
+                                `Seek committed at ${Math.round(value * 1000) / 10}%`,
+                              );
+                          },
+                          step: 0.01,
+                          value: playheadPosition,
+                        }
+                      : undefined
+                  }
+                />
+              ) : null}
             </div>
             <div className="artifact-footer">
               <span>
@@ -1034,7 +1400,7 @@ const result = meter.process(
         <header className="inspector-header">
           <div>
             <span className="eyebrow">PLAYGROUND</span>
-            <h2>Signal 009</h2>
+            <h2>Signal 010</h2>
           </div>
           <span className="version-tag">v0.1 core</span>
         </header>
@@ -1163,6 +1529,134 @@ const result = meter.process(
                 ? "Envelope, spectrum, and meters are disabled: this transport exposes bounded peaks, not raw PCM. Signed polarity remains in the player."
                 : "Mode and engine are separate public contracts."}
             </p>
+          </ControlSection>
+
+          <ControlSection title="Overlays & interaction">
+            <ToggleControl
+              checked={showOverlays}
+              description="Semantic DOM regions, markers, inspection, and direct handles above Canvas."
+              disabled={Boolean(recordedSource)}
+              disabledReason="Recorded playback already exposes its controlled transport slider; raw overlay data is unavailable."
+              label="Semantic overlays"
+              onChange={setShowOverlays}
+            />
+            <SelectControl
+              definition={{
+                description: "Logical direction for horizontal seeking and handle keyboard input.",
+                label: "Overlay direction",
+                options: [
+                  { label: "Left to right", value: "ltr" },
+                  { label: "Right to left", value: "rtl" },
+                ],
+              }}
+              disabled={
+                !showOverlays ||
+                Boolean(recordedSource) ||
+                radialOverlayUnavailable ||
+                !isTimeOverlay
+              }
+              disabledReason={
+                recordedSource
+                  ? "Recorded playback exposes bounded peaks and its own transport, not raw overlay coordinates."
+                  : !showOverlays
+                    ? "Enable semantic overlays on a raw analysis source."
+                    : radialOverlayUnavailable
+                      ? "Direct one-dimensional handles are unavailable for radial layouts."
+                      : !isTimeOverlay
+                        ? "The current spectrum and meter renderers keep an LTR value axis; time overlays demonstrate RTL."
+                        : "Overlay direction is available."
+              }
+              value={overlayDirection}
+              onChange={(value) => setOverlayDirection(value as "ltr" | "rtl")}
+            />
+            {isTimeOverlay && !recordedSource ? (
+              <>
+                <RangeControl
+                  label="Overlay playhead"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={playheadPosition}
+                  valueLabel={`${Math.round(playheadPosition * 1000) / 10}%`}
+                  disabled={!showOverlays}
+                  disabledReason="Enable semantic overlays to control the playhead."
+                  onChange={setPlayheadPosition}
+                />
+                <RangeControl
+                  label="Selection start"
+                  min={0}
+                  max={Math.max(0, selectionRange.end - 0.01)}
+                  step={0.01}
+                  value={selectionRange.start}
+                  valueLabel={`${Math.round(selectionRange.start * 1000) / 10}%`}
+                  disabled={!showOverlays}
+                  disabledReason="Enable semantic overlays to edit the selection."
+                  onChange={(start) => setSelectionRange((current) => ({ ...current, start }))}
+                />
+                <RangeControl
+                  label="Selection end"
+                  min={Math.min(1, selectionRange.start + 0.01)}
+                  max={1}
+                  step={0.01}
+                  value={selectionRange.end}
+                  valueLabel={`${Math.round(selectionRange.end * 1000) / 10}%`}
+                  disabled={!showOverlays}
+                  disabledReason="Enable semantic overlays to edit the selection."
+                  onChange={(end) => setSelectionRange((current) => ({ ...current, end }))}
+                />
+                <RangeControl
+                  label="Loop start"
+                  min={0}
+                  max={Math.max(0, loopRange.end - 0.01)}
+                  step={0.01}
+                  value={loopRange.start}
+                  valueLabel={`${Math.round(loopRange.start * 1000) / 10}%`}
+                  disabled={!showOverlays}
+                  disabledReason="Enable semantic overlays to edit the loop."
+                  onChange={(start) => setLoopRange((current) => ({ ...current, start }))}
+                />
+                <RangeControl
+                  label="Loop end"
+                  min={Math.min(1, loopRange.start + 0.01)}
+                  max={1}
+                  step={0.01}
+                  value={loopRange.end}
+                  valueLabel={`${Math.round(loopRange.end * 1000) / 10}%`}
+                  disabled={!showOverlays}
+                  disabledReason="Enable semantic overlays to edit the loop."
+                  onChange={(end) => setLoopRange((current) => ({ ...current, end }))}
+                />
+              </>
+            ) : null}
+            <StaticRow
+              label="Direct handles"
+              value={
+                recordedSource
+                  ? "Unavailable · recorded peaks"
+                  : !showOverlays
+                    ? "Hidden · overlays off"
+                    : radialOverlayUnavailable
+                      ? "Unavailable · radial"
+                      : visualMode === "spectrum"
+                        ? "Cutoff rail + dB thresholds"
+                        : isMeterMode
+                          ? "React + peak thresholds"
+                          : "Seek + selection + loop"
+              }
+            />
+            <StaticRow
+              label="Inspection"
+              value={
+                recordedSource || radialOverlayUnavailable
+                  ? "Unavailable"
+                  : !showOverlays
+                    ? "Enable overlays"
+                    : overlayInspection === null
+                      ? "Move over artifact"
+                      : formatOverlayInspection(overlayInspection)
+              }
+            />
+            <p className="control-note">{overlayEvent}</p>
           </ControlSection>
 
           {isMeterMode ? (
@@ -2689,6 +3183,13 @@ function formatFrequency(value: number): string {
   return `${Math.round(value)} Hz`;
 }
 
+function formatOverlayValue(value: number, unit: "dBFS" | "Hz" | "percent" | string): string {
+  if (unit === "percent") return `${Math.round(value * 1000) / 10}%`;
+  if (unit === "Hz") return formatFrequency(value);
+  if (unit === "dBFS") return `${Math.round(value)} dBFS`;
+  return `${Math.round(value * 1000) / 1000} ${unit}`;
+}
+
 function formatSigned(value: number): string {
   return `${value > 0 ? "+" : ""}${value}`;
 }
@@ -2713,4 +3214,13 @@ function waveformScale(
   if (placement === "positive-only") return ["+1.0", "+0.5", "0.0"];
   if (placement === "negative-only") return ["0.0", "−0.5", "−1.0"];
   return ["+1.0", "0.0", "−1.0"];
+}
+
+function meterScaleLabels(
+  minimum: number,
+  maximum: number,
+  orientation: WaveformOrientation,
+): readonly string[] {
+  const labels = [`${minimum} dB`, `${Math.round((minimum + maximum) / 2)} dB`, `${maximum} dB`];
+  return orientation === "horizontal" ? labels : [...labels].reverse();
 }

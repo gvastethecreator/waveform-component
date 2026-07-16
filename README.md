@@ -253,6 +253,54 @@ Attack/release uses elapsed timestamps rather than frame count. `fastPeaks` bypa
 
 History capacity is `min(maximumHistoryEntries, floor(duration / interval) + 1)`. Public inputs clamp to at most 600 seconds and 16,384 entries. The processor drops expired frames and resets smoothing/history when the source epoch, channel count, sample rate, or timestamp direction changes. Canvas samples at most 64 compatible history frames for drawing, so a long analysis history cannot create an unbounded render pass. `METER_CONTROL_DEFINITIONS` and `getMeterControlAvailability` expose the inspector's named controls and disabled reasons.
 
+## Accessible seeking and editor overlays
+
+`SignalOverlay` is a controlled semantic layer for a positioned waveform, envelope, spectrum, or meter. Canvas remains the visual renderer; seek value, regions, markers, selection state, and direct handles are independently named DOM controls. The host owns every value and receives both preview (`commit: false`) and committed (`commit: true`) changes.
+
+```tsx
+const [playhead, setPlayhead] = useState(0.32);
+
+<div style={{ height: 240, position: "relative" }}>
+  <Waveform data={frame} />
+  <SignalOverlay
+    ariaLabel="Waveform editor"
+    seek={{
+      label: "Seek waveform",
+      onChange: setPlayhead,
+      step: 0.01,
+      value: playhead,
+    }}
+    handles={[
+      {
+        domainMinimum: 0,
+        domainMaximum: 1,
+        id: "playhead",
+        kind: "playhead",
+        label: "Playhead",
+        minimum: 0,
+        maximum: 1,
+        onChange: setPlayhead,
+        step: 0.01,
+        value: playhead,
+      },
+    ]}
+    markers={[{ id: "transient", label: "Transient marker", position: 0.68 }]}
+    regions={[
+      {
+        active: true,
+        end: 0.42,
+        id: "selection",
+        kind: "selection",
+        label: "Active selection",
+        start: 0.18,
+      },
+    ]}
+  />
+</div>;
+```
+
+`minimum`/`maximum` describe the value a handle may currently commit. Optional `domainMinimum`/`domainMaximum` describe where that value sits on the shared signal axis; paired selection, loop, or cutoff handles therefore cannot cross but do not jump when their allowed range changes. Horizontal controls honor LTR/RTL, vertical controls use up/down keys, and Home/End/Page keys remain bounded. Set `reversed` on a seek surface or handle for a bottom-up or otherwise physically reversed value axis without changing the logical value domain. Pointer events cover mouse, pen, and touch; cancellation restores the value present at pointer-down. Overlapping ranges receive separate hit-target lanes, overlapping markers/handles receive deterministic point lanes, and every control remains a separate tab stop with a component-owned focus indicator and polite commit/activation announcements.
+
 ## Development
 
 Requires Bun 1.3.14.
@@ -264,7 +312,7 @@ bun run verify:tracer
 bun run test:e2e
 ```
 
-The playground imports `waveform-component` through the public entry point and drives its main artifact through a shared session. `fixtures/external-consumer` installs a freshly packed tarball and typechecks waveform/envelope layout, session, recorded-player, microphone, analyzer, spectrum-dynamics, spectrum-renderer, meter-analysis, meter-history, and meter-renderer interfaces against generated declarations exactly as an external consumer would.
+The playground imports `waveform-component` through the public entry point and drives its main artifact through a shared session. `fixtures/external-consumer` installs a freshly packed tarball and typechecks waveform/envelope layout, session, recorded-player, microphone, analyzer, spectrum-dynamics, spectrum-renderer, meter-analysis, meter-history, meter-renderer, and controlled overlay interfaces against generated declarations exactly as an external consumer would.
 
 ## Project records
 
