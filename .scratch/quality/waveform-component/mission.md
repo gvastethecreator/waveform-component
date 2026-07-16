@@ -11,24 +11,24 @@ Stop condition: accepted scope implemented; no blocker/P1; every applicable gate
 
 ## Gate manifest
 
-| Gate                      | Applicability | Safe proof surface                                                           | Current evidence                                                  | State                        |
-| ------------------------- | ------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------- | ---------------------------- |
-| Scope                     | required      | source/diff/task audit                                                       | durable plan, Wayfinder, research note                            | passed for planning          |
-| Acceptance/baseline       | required      | like-for-like screenshots and PRD                                            | three rendered `folders` captures; approved ready-for-agent PRD   | passed for specification     |
-| Source provenance         | required      | local paths and official specs                                               | cited research note                                               | passed for planning          |
-| Creative direction search | required      | three same-viewport artifacts                                                | three SVG/PNG directions + direction cards                        | passed                       |
-| Signature/subtraction     | required      | direction/kill records                                                       | direct signal overlays; remove hero/dashboard/fake signal         | passed for direction         |
-| Blind audience read       | required      | brief-hidden reviewer record                                                 | `.scratch/design/waveform-component/blind-read.md`                | passed with accepted repair  |
-| Independent judgment      | required      | fresh delegated raw-artifact review                                          | independent direction read changed control labeling/primary route | passed for planning          |
-| Package/public seam       | required      | external consumer build and runtime                                          | packed declarations + SSR pass through dynamics APIs              | passed through dynamics      |
-| Regression/runtime        | required      | focused tests and browser paths                                              | 69 unit/component + 8 Chrome E2E pass                             | passed through dynamics      |
-| Hostile/boundary input    | required      | fixtures for invalid config, stale async, decode/permission/renderer failure | invalid FFT/window/dB/log/geometry plus prior source failures     | partial: future renderers    |
-| User states               | required      | rendered real states                                                         | source plus processed/held-muted/hidden-silent dynamics states    | partial                      |
-| Viewport/platform         | required      | 1440, 390, 320, ultrawide captures                                           | 1440 and 390 rendered; zero relevant overflow                     | partial                      |
-| Accessibility             | required      | keyboard/pointer/focus/reduced-motion checks                                 | semantic Canvas, labeled controls, focus and reduced-motion base  | partial                      |
-| Performance/lifecycle     | required      | traces, active-resource audit, long-data scenario                            | bounded spectrum geometry, guarded 65K, mic cycles, long peaks    | partial: traced load pending |
-| Export                    | required      | isolated compile/runtime fixture                                             | contract only                                                     | blocked by implementation    |
-| Adversarial autopsy       | required      | fresh final artifact inspection                                              | not yet applicable                                                | blocked by implementation    |
+| Gate                      | Applicability | Safe proof surface                                                           | Current evidence                                                    | State                         |
+| ------------------------- | ------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------- | ----------------------------- |
+| Scope                     | required      | source/diff/task audit                                                       | durable plan, Wayfinder, research note                              | passed for planning           |
+| Acceptance/baseline       | required      | like-for-like screenshots and PRD                                            | three rendered `folders` captures; approved ready-for-agent PRD     | passed for specification      |
+| Source provenance         | required      | local paths and official specs                                               | cited research note                                                 | passed for planning           |
+| Creative direction search | required      | three same-viewport artifacts                                                | three SVG/PNG directions + direction cards                          | passed                        |
+| Signature/subtraction     | required      | direction/kill records                                                       | direct signal overlays; remove hero/dashboard/fake signal           | passed for direction          |
+| Blind audience read       | required      | brief-hidden reviewer record                                                 | `.scratch/design/waveform-component/blind-read.md`                  | passed with accepted repair   |
+| Independent judgment      | required      | fresh delegated raw-artifact review                                          | independent direction read changed control labeling/primary route   | passed for planning           |
+| Package/public seam       | required      | external consumer build and runtime                                          | fresh packed declarations, SSR, and Canvas/SVG/DOM consumer pass    | passed through DOM renderer   |
+| Regression/runtime        | required      | focused tests and browser paths                                              | 173 unit/component + 17 isolated Chrome E2E pass                    | passed through DOM renderer   |
+| Hostile/boundary input    | required      | fixtures for invalid config, stale async, decode/permission/renderer failure | invalid config/source plus SVG/DOM budget and capability failures   | partial: WebGL/VFX pending    |
+| User states               | required      | rendered real states                                                         | source, analysis, renderer-ready/unsupported/recovery states        | partial: later VFX states     |
+| Viewport/platform         | required      | 1440, 390, 320, ultrawide captures                                           | desktop/narrow/200%-zoom/forced-colors renderer evidence            | partial: final matrix pending |
+| Accessibility             | required      | keyboard/pointer/focus/reduced-motion checks                                 | semantic overlays, disabled reasons, forced colors, zero DOM motion | partial: final audit pending  |
+| Performance/lifecycle     | required      | traces, active-resource audit, long-data scenario                            | bounded SVG/DOM scenes, exact node budget, observer baseline        | partial: traced load pending  |
+| Export                    | required      | isolated compile/runtime fixture                                             | contract only                                                       | blocked by implementation     |
+| Adversarial autopsy       | required      | fresh final artifact inspection                                              | not yet applicable                                                  | blocked by implementation     |
 
 ## Valid loop ledger
 
@@ -302,6 +302,31 @@ Ticket 011 is implemented, verified, documented, and committed. DOM/CSS renderer
 - Root cause: collision lanes modeled point-to-point and range-to-range conflicts independently, then painted both families starting at lane zero.
 - Repair: range controls reserve their occupied cross-axis lanes first; marker and handle collision lanes start after that reserved range count, preserving 24 px targets and deterministic focus order without pointer masking.
 - Closing proof: focused semantic-overlay unit coverage, repaired failing Chrome trace, final 15/15 E2E matrix, 158/158 tests, build/SSR/fresh packed consumer, unique SVG references, bounded node counts, and inspected final narrow/forced-colors evidence.
+- Unresolved severity: closed.
+
+## Loops 66–70
+
+|   N | Source finding                                                                | Artifact/proof delta                                                                                                                                                                                | Verdict  | Next                            |
+| --: | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------- |
+|  66 | DOM/CSS parity must be a declared subset, not accidental browser output       | Added an orthogonal `dom` renderer ID, rectangular-bars/meter capability metadata, explicit time-domain/curve/radial reasons, and public config preservation.                                       | continue | Build bounded pure scenes       |
+|  67 | A post-render node check still permits an unbounded geometry allocation       | Preflighted stepped-meter worst cases, capped spectrum work at 256 bars before geometry creation, sampled history to four layers, and enforced a final 1,024-node scene ceiling.                    | continue | Preserve CSS and channel intent |
+|  68 | DOM theming loses value if headless code resolves browser color variables     | Preserved CSS variables through pure scenes, reused shared geometry/color roles and channel ordering, integrated public React surfaces, SSR, packed consumer, overlays, and live adapter switching. | continue | Pressure runtime lifecycle      |
+|  69 | React rejected mixed background shorthand/longhand updates during live redraw | Split node paint into `backgroundColor`/`backgroundImage` plus position/size longhands, eliminating rerender warnings without changing shared CSS-variable and gradient behavior.                   | continue | Pressure constrained rendering  |
+|  70 | Forced-colors suppressed CSS background images and blanked the primary chart  | Mapped every visual paint to system roles, scoped `forced-color-adjust: none` to the noninteractive visual surface, captured visible 390 px/200% evidence, and passed 173 tests plus 17 E2E.        | continue | Open WebGL2 Pulse Ring 013      |
+
+## Loop 70 verdict
+
+`continue`
+
+Ticket 012 is implemented, verified, documented, and committed. WebGL2 Pulse Ring 013 is next because it establishes the remaining renderer lifecycle, context-loss recovery, deterministic GPU proof, and first clean-room VFX path before the later effect families depend on it.
+
+## DOM/CSS-renderer pressure record
+
+- Strongest observed defect: Chrome forced-colors suppressed CSS `background-image`, so gradient bars remained present in the DOM and tests but the rendered signal was visually blank.
+- User harm: a high-contrast user received an apparently empty primary visualization despite valid data and successful node-count/lifecycle checks.
+- Root cause: system color tokens inside a CSS gradient do not prevent the user agent from removing background images under automatic forced-color adjustment.
+- Repair: all forced-color visual paints use system roles and only the noninteractive chart surface opts out of automatic adjustment; semantic overlays and controls stay outside that scope.
+- Closing proof: inspected forced-colors and actual 200% page-scale captures, computed system-role/background assertions, zero animations/errors, exact 94/94 spectrum node parity, 387-node meter bound, five-observer baseline after switching, 173/173 tests, and 17/17 Chrome E2E.
 - Unresolved severity: closed.
 
 ## Pressure record
