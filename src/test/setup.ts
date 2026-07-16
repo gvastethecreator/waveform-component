@@ -34,13 +34,21 @@ if (typeof window !== "undefined") {
   }
 
   const context = {
+    arc: vi.fn(),
     beginPath: vi.fn(),
     clearRect: vi.fn(),
+    closePath: vi.fn(),
+    createLinearGradient: vi.fn(() => ({ addColorStop: vi.fn() })),
+    createRadialGradient: vi.fn(() => ({ addColorStop: vi.fn() })),
+    fill: vi.fn(),
     fillRect: vi.fn(),
     lineTo: vi.fn(),
     moveTo: vi.fn(),
+    roundRect: vi.fn(),
     setTransform: vi.fn(),
     stroke: vi.fn(),
+    strokeRect: vi.fn(),
+    canvas: document.createElement("canvas"),
     fillStyle: "",
     lineCap: "butt",
     lineWidth: 1,

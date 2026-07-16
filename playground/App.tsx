@@ -7,7 +7,7 @@ import {
   IconRefresh,
 } from "@tabler/icons-react";
 import { useEffect, useId, useMemo, useState } from "react";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import {
   DEFAULT_SPECTRUM_ANALYSIS_CONFIG,
   DEFAULT_SPECTRUM_CONFIG,
@@ -39,7 +39,7 @@ import {
   resolveVisualSyncOffset,
   useWaveformSession,
   useMicrophoneSource,
-  type CanvasSpectrumConfig,
+  type CanvasSpectrumConfigInput,
   type CanvasWaveformConfigInput,
   type EnvelopeAmplitudePlacement,
   type EnvelopeFrame,
@@ -52,8 +52,11 @@ import {
   type SpectrumFrequencyScale,
   type SpectrumFrame,
   type SpectrumGeometry,
+  type SpectrumColorMode,
   type SpectrumInputState,
   type SpectrumInterpolation,
+  type SpectrumLayout,
+  type SpectrumPulseMode,
   type SpectrumSmoothingMode,
   type VisualSyncCapability,
   type WaveformSessionStatus,
@@ -118,8 +121,33 @@ export default function App() {
   const [spectrumGeometry, setSpectrumGeometry] = useState<SpectrumGeometry>(
     DEFAULT_SPECTRUM_CONFIG.geometry,
   );
+  const [spectrumLayout, setSpectrumLayout] = useState<SpectrumLayout>(
+    DEFAULT_SPECTRUM_CONFIG.layout,
+  );
+  const [radialInvert, setRadialInvert] = useState(DEFAULT_SPECTRUM_CONFIG.radialInvert);
+  const [radialDeadzone, setRadialDeadzone] = useState(DEFAULT_SPECTRUM_CONFIG.radialDeadzone);
+  const [radialArc, setRadialArc] = useState(DEFAULT_SPECTRUM_CONFIG.radialArc);
+  const [radialRotation, setRadialRotation] = useState(DEFAULT_SPECTRUM_CONFIG.radialRotation);
+  const [roundedCaps, setRoundedCaps] = useState(DEFAULT_SPECTRUM_CONFIG.roundedCaps);
+  const [cornerRadius, setCornerRadius] = useState(DEFAULT_SPECTRUM_CONFIG.cornerRadius);
   const [barWidth, setBarWidth] = useState(DEFAULT_SPECTRUM_CONFIG.barWidth);
   const [barGap, setBarGap] = useState(DEFAULT_SPECTRUM_CONFIG.barGap);
+  const [spectrumColorMode, setSpectrumColorMode] = useState<SpectrumColorMode>(
+    DEFAULT_SPECTRUM_CONFIG.colorMode,
+  );
+  const [spectrumPulseMode, setSpectrumPulseMode] = useState<SpectrumPulseMode>(
+    DEFAULT_SPECTRUM_CONFIG.pulseMode,
+  );
+  const [baseAlpha, setBaseAlpha] = useState(DEFAULT_SPECTRUM_CONFIG.colorRoles.base.alpha);
+  const [middleColor, setMiddleColor] = useState(DEFAULT_SPECTRUM_CONFIG.colorRoles.middle.color);
+  const [middleAlpha, setMiddleAlpha] = useState(DEFAULT_SPECTRUM_CONFIG.colorRoles.middle.alpha);
+  const [crestColor, setCrestColor] = useState(DEFAULT_SPECTRUM_CONFIG.colorRoles.crest.color);
+  const [crestAlpha, setCrestAlpha] = useState(DEFAULT_SPECTRUM_CONFIG.colorRoles.crest.alpha);
+  const [accentColor, setAccentColor] = useState(DEFAULT_SPECTRUM_CONFIG.colorRoles.accent.color);
+  const [accentAlpha, setAccentAlpha] = useState(DEFAULT_SPECTRUM_CONFIG.colorRoles.accent.alpha);
+  const [gradientRatio, setGradientRatio] = useState(DEFAULT_SPECTRUM_CONFIG.gradientRatio);
+  const [middleDecibels, setMiddleDecibels] = useState(DEFAULT_SPECTRUM_CONFIG.middleDecibels);
+  const [crestDecibels, setCrestDecibels] = useState(DEFAULT_SPECTRUM_CONFIG.crestDecibels);
   const [showSpectrumGrid, setShowSpectrumGrid] = useState(DEFAULT_SPECTRUM_CONFIG.showGrid);
   const [dynamicsSettings, setDynamicsSettings] = useState<SpectrumDynamicsConfig>(
     DEFAULT_SPECTRUM_DYNAMICS_CONFIG,
@@ -244,34 +272,77 @@ export default function App() {
     offsetMs: microphoneSource ? visualSyncOffsetMs : 0,
     sourceEpoch: sessionSnapshot.epoch,
   });
-  const spectrumConfig = useMemo<Partial<CanvasSpectrumConfig>>(
+  const spectrumConfig = useMemo<CanvasSpectrumConfigInput>(
     () => ({
       barGap,
       barWidth,
       color: signalColor,
+      colorMode: spectrumColorMode,
+      colorRoles: {
+        accent: {
+          alpha: accentAlpha,
+          color: `var(--waveform-color-accent, ${accentColor})`,
+        },
+        base: { alpha: baseAlpha, color: `var(--waveform-color-base, ${signalColor})` },
+        crest: { alpha: crestAlpha, color: `var(--waveform-color-crest, ${crestColor})` },
+        middle: {
+          alpha: middleAlpha,
+          color: `var(--waveform-color-middle, ${middleColor})`,
+        },
+      },
+      cornerRadius,
+      crestDecibels,
       frequencyScale,
       geometry: spectrumGeometry,
+      gradientRatio,
       highFrequency,
       interpolation: spectrumInterpolation,
+      layout: spectrumLayout,
       lineWidth,
       lowFrequency,
       maximumDecibels,
+      middleDecibels,
       minimumDecibels,
+      pulseMode: spectrumPulseMode,
+      radialArc,
+      radialDeadzone,
+      radialInvert,
+      radialRotation,
+      roundedCaps,
       showGrid: showSpectrumGrid,
     }),
     [
+      accentAlpha,
+      accentColor,
       barGap,
       barWidth,
+      baseAlpha,
+      cornerRadius,
+      crestAlpha,
+      crestColor,
+      crestDecibels,
       frequencyScale,
+      gradientRatio,
       highFrequency,
       lineWidth,
       lowFrequency,
       maximumDecibels,
+      middleAlpha,
+      middleColor,
+      middleDecibels,
       minimumDecibels,
+      radialArc,
+      radialDeadzone,
+      radialInvert,
+      radialRotation,
+      roundedCaps,
       signalColor,
       showSpectrumGrid,
+      spectrumColorMode,
       spectrumGeometry,
       spectrumInterpolation,
+      spectrumLayout,
+      spectrumPulseMode,
     ],
   );
   const resolvedSpectrumConfig = useMemo(
@@ -320,8 +391,27 @@ export default function App() {
     setFrequencyScale(DEFAULT_SPECTRUM_CONFIG.frequencyScale);
     setSpectrumInterpolation(DEFAULT_SPECTRUM_CONFIG.interpolation);
     setSpectrumGeometry(DEFAULT_SPECTRUM_CONFIG.geometry);
+    setSpectrumLayout(DEFAULT_SPECTRUM_CONFIG.layout);
+    setRadialInvert(DEFAULT_SPECTRUM_CONFIG.radialInvert);
+    setRadialDeadzone(DEFAULT_SPECTRUM_CONFIG.radialDeadzone);
+    setRadialArc(DEFAULT_SPECTRUM_CONFIG.radialArc);
+    setRadialRotation(DEFAULT_SPECTRUM_CONFIG.radialRotation);
+    setRoundedCaps(DEFAULT_SPECTRUM_CONFIG.roundedCaps);
+    setCornerRadius(DEFAULT_SPECTRUM_CONFIG.cornerRadius);
     setBarWidth(DEFAULT_SPECTRUM_CONFIG.barWidth);
     setBarGap(DEFAULT_SPECTRUM_CONFIG.barGap);
+    setSpectrumColorMode(DEFAULT_SPECTRUM_CONFIG.colorMode);
+    setSpectrumPulseMode(DEFAULT_SPECTRUM_CONFIG.pulseMode);
+    setBaseAlpha(DEFAULT_SPECTRUM_CONFIG.colorRoles.base.alpha);
+    setMiddleColor(DEFAULT_SPECTRUM_CONFIG.colorRoles.middle.color);
+    setMiddleAlpha(DEFAULT_SPECTRUM_CONFIG.colorRoles.middle.alpha);
+    setCrestColor(DEFAULT_SPECTRUM_CONFIG.colorRoles.crest.color);
+    setCrestAlpha(DEFAULT_SPECTRUM_CONFIG.colorRoles.crest.alpha);
+    setAccentColor(DEFAULT_SPECTRUM_CONFIG.colorRoles.accent.color);
+    setAccentAlpha(DEFAULT_SPECTRUM_CONFIG.colorRoles.accent.alpha);
+    setGradientRatio(DEFAULT_SPECTRUM_CONFIG.gradientRatio);
+    setMiddleDecibels(DEFAULT_SPECTRUM_CONFIG.middleDecibels);
+    setCrestDecibels(DEFAULT_SPECTRUM_CONFIG.crestDecibels);
     setShowSpectrumGrid(DEFAULT_SPECTRUM_CONFIG.showGrid);
     setDynamicsSettings(DEFAULT_SPECTRUM_DYNAMICS_CONFIG);
     setVisualSyncOffsetMs(0);
@@ -335,7 +425,7 @@ export default function App() {
   const copyCode = async () => {
     const code =
       visualMode === "spectrum"
-        ? `const dynamics = createSpectrumDynamicsProcessor();\n\n<Spectrum\n  data={dynamics.process(\n    analyzeSpectrum(samples, {\n      sampleRate: ${sampleRate},\n      fftSize: ${spectrumAnalysis.fftSize},\n      allowLargeFft: ${spectrumAnalysis.allowLargeFft},\n      window: "${spectrumAnalysis.window}",\n      powerOfSineExponent: ${spectrumAnalysis.powerOfSineExponent},\n      minimumDecibels: ${spectrumAnalysis.minimumDecibels},\n      maximumDecibels: ${spectrumAnalysis.maximumDecibels}\n    }),\n    {\n      smoothingMode: "${dynamicsSettings.smoothingMode}",\n      smoothingFactor: ${dynamicsSettings.smoothingFactor},\n      attackMs: ${dynamicsSettings.attackMs},\n      releaseMs: ${dynamicsSettings.releaseMs},\n      inertiaMs: ${dynamicsSettings.inertiaMs},\n      fastPeaks: ${dynamicsSettings.fastPeaks},\n      normalizationEnabled: ${dynamicsSettings.normalizationEnabled},\n      normalizationTargetDb: ${dynamicsSettings.normalizationTargetDb},\n      normalizationMaxGainDb: ${dynamicsSettings.normalizationMaxGainDb},\n      gaussianRadius: ${dynamicsSettings.gaussianRadius},\n      highFrequencySlopeDbPerOctave: ${dynamicsSettings.highFrequencySlopeDbPerOctave},\n      rolloffBandwidthHz: ${dynamicsSettings.rolloffBandwidthHz},\n      rolloffAttenuationDb: ${dynamicsSettings.rolloffAttenuationDb}\n    },\n    { timestampMs: performance.now(), sourceState: "ready" }\n  ).frame}\n  config={{\n    renderer: "canvas2d",\n    mode: "spectrum",\n    geometry: "${spectrumGeometry}",\n    frequencyScale: "${frequencyScale}",\n    lowFrequency: ${lowFrequency},\n    highFrequency: ${highFrequency},\n    minimumDecibels: ${minimumDecibels},\n    maximumDecibels: ${maximumDecibels},\n    interpolation: "${spectrumInterpolation}",\n    lineWidth: ${lineWidth},\n    barWidth: ${barWidth},\n    barGap: ${barGap},\n    showGrid: ${showSpectrumGrid},\n    color: "${signalColor}"\n  }}\n/>`
+        ? `const dynamics = createSpectrumDynamicsProcessor();\n\n<Spectrum\n  data={dynamics.process(\n    analyzeSpectrum(samples, {\n      sampleRate: ${sampleRate},\n      fftSize: ${spectrumAnalysis.fftSize},\n      allowLargeFft: ${spectrumAnalysis.allowLargeFft},\n      window: "${spectrumAnalysis.window}",\n      powerOfSineExponent: ${spectrumAnalysis.powerOfSineExponent},\n      minimumDecibels: ${spectrumAnalysis.minimumDecibels},\n      maximumDecibels: ${spectrumAnalysis.maximumDecibels}\n    }),\n    {\n      smoothingMode: "${dynamicsSettings.smoothingMode}",\n      smoothingFactor: ${dynamicsSettings.smoothingFactor},\n      attackMs: ${dynamicsSettings.attackMs},\n      releaseMs: ${dynamicsSettings.releaseMs},\n      inertiaMs: ${dynamicsSettings.inertiaMs},\n      fastPeaks: ${dynamicsSettings.fastPeaks},\n      normalizationEnabled: ${dynamicsSettings.normalizationEnabled},\n      normalizationTargetDb: ${dynamicsSettings.normalizationTargetDb},\n      normalizationMaxGainDb: ${dynamicsSettings.normalizationMaxGainDb},\n      gaussianRadius: ${dynamicsSettings.gaussianRadius},\n      highFrequencySlopeDbPerOctave: ${dynamicsSettings.highFrequencySlopeDbPerOctave},\n      rolloffBandwidthHz: ${dynamicsSettings.rolloffBandwidthHz},\n      rolloffAttenuationDb: ${dynamicsSettings.rolloffAttenuationDb}\n    },\n    { timestampMs: performance.now(), sourceState: "ready" }\n  ).frame}\n  config={{\n    renderer: "canvas2d",\n    mode: "spectrum",\n    geometry: "${spectrumGeometry}",\n    layout: "${spectrumLayout}",\n    radialInvert: ${radialInvert},\n    radialDeadzone: ${radialDeadzone.toFixed(2)},\n    radialArc: ${radialArc},\n    radialRotation: ${radialRotation},\n    roundedCaps: ${roundedCaps},\n    cornerRadius: ${cornerRadius},\n    frequencyScale: "${frequencyScale}",\n    lowFrequency: ${lowFrequency},\n    highFrequency: ${highFrequency},\n    minimumDecibels: ${minimumDecibels},\n    maximumDecibels: ${maximumDecibels},\n    interpolation: "${spectrumInterpolation}",\n    lineWidth: ${lineWidth},\n    barWidth: ${barWidth},\n    barGap: ${barGap},\n    colorMode: "${spectrumColorMode}",\n    pulseMode: "${spectrumPulseMode}",\n    colorRoles: {\n      base: { color: "${signalColor}", alpha: ${baseAlpha.toFixed(2)} },\n      middle: { color: "${middleColor}", alpha: ${middleAlpha.toFixed(2)} },\n      crest: { color: "${crestColor}", alpha: ${crestAlpha.toFixed(2)} },\n      accent: { color: "${accentColor}", alpha: ${accentAlpha.toFixed(2)} }\n    },\n    gradientRatio: ${gradientRatio.toFixed(2)},\n    middleDecibels: ${middleDecibels},\n    crestDecibels: ${crestDecibels},\n    showGrid: ${showSpectrumGrid}\n  }}\n/>`
         : visualMode === "envelope"
           ? `<Envelope\n  data={magnitudes}\n  ${timeDomainSizing === "fixed" ? `width={${fixedTimeDomainWidth}}\n  ` : ""}config={{\n    renderer: "canvas2d",\n    mode: "envelope",\n    channelMode: "${channelMode}",${channelMode === "single" ? `\n    channelIndex: ${channelIndex},` : ""}\n    channelLayout: "${channelLayout}",\n    channelGap: ${channelGap},\n    amplitudePlacement: "${envelopePlacement}",\n    orientation: "${orientation}",\n    amplitude: ${amplitude.toFixed(2)},\n    lineWidth: ${lineWidth.toFixed(1)},\n    color: "${signalColor}",\n    showCenterLine: ${showCenterLine}\n  }}\n/>`
           : `<Waveform\n  data={channels}\n  ${timeDomainSizing === "fixed" ? `width={${fixedTimeDomainWidth}}\n  ` : ""}config={{\n    renderer: "canvas2d",\n    mode: "waveform",\n    channelMode: "${channelMode}",${channelMode === "single" ? `\n    channelIndex: ${channelIndex},` : ""}\n    channelLayout: "${channelLayout}",\n    channelGap: ${channelGap},\n    amplitudePlacement: "${waveformPlacement}",\n    orientation: "${orientation}",\n    amplitude: ${amplitude.toFixed(2)},\n    lineWidth: ${lineWidth.toFixed(1)},\n    color: "${signalColor}",\n    showCenterLine: ${showCenterLine}\n  }}\n/>`;
@@ -349,7 +439,9 @@ export default function App() {
 
   const spectrumCapabilityContext = {
     allowLargeFft,
+    colorMode: spectrumColorMode,
     geometry: spectrumGeometry,
+    layout: spectrumLayout,
     window: spectrumWindow,
   } as const;
   const powerExponentAvailability = getSpectrumControlAvailability(
@@ -364,12 +456,54 @@ export default function App() {
     "barWidth",
     spectrumCapabilityContext,
   );
+  const radialAvailability = getSpectrumControlAvailability("radialArc", spectrumCapabilityContext);
+  const roundedCapsAvailability = getSpectrumControlAvailability(
+    "roundedCaps",
+    spectrumCapabilityContext,
+  );
+  const cornerRadiusAvailability = getSpectrumControlAvailability(
+    "cornerRadius",
+    spectrumCapabilityContext,
+  );
+  const pulseModeAvailability = getSpectrumControlAvailability(
+    "pulseMode",
+    spectrumCapabilityContext,
+  );
+  const middleColorAvailability = getSpectrumControlAvailability(
+    "middleColor",
+    spectrumCapabilityContext,
+  );
+  const crestColorAvailability = getSpectrumControlAvailability(
+    "crestColor",
+    spectrumCapabilityContext,
+  );
+  const accentColorAvailability = getSpectrumControlAvailability(
+    "accentColor",
+    spectrumCapabilityContext,
+  );
+  const gradientRatioAvailability = getSpectrumControlAvailability(
+    "gradientRatio",
+    spectrumCapabilityContext,
+  );
+  const rangeThresholdAvailability = getSpectrumControlAvailability(
+    "middleDecibels",
+    spectrumCapabilityContext,
+  );
   const temporalCapabilityReason = microphoneSource
     ? undefined
     : "Requires a clocked live frame stream; the deterministic demo has no cadence.";
   const syncCapabilityReason = microphoneSource
     ? visualSyncResolution.reason
     : "Requires a clocked source. Static previews have no audio/visual timeline to offset.";
+  const spectrumStageStyle =
+    visualMode === "spectrum"
+      ? ({
+          "--waveform-color-accent": accentColor,
+          "--waveform-color-base": signalColor,
+          "--waveform-color-crest": crestColor,
+          "--waveform-color-middle": middleColor,
+        } as CSSProperties)
+      : undefined;
 
   return (
     <div className="workbench" data-view={view}>
@@ -426,7 +560,7 @@ export default function App() {
                 <span>CANVAS 2D</span>
                 <span>
                   {visualMode === "spectrum"
-                    ? "MONO"
+                    ? `${spectrumLayout.toUpperCase()} · ${spectrumColorMode.toUpperCase()}`
                     : `${selectedChannelCount} CH · ${channelLayout.toUpperCase()}`}
                 </span>
               </div>
@@ -434,6 +568,9 @@ export default function App() {
             <div
               className="signal-stage"
               data-dynamics-policy={spectrumPresentation.result?.policy ?? "unprocessed"}
+              data-spectrum-color-mode={visualMode === "spectrum" ? spectrumColorMode : undefined}
+              data-spectrum-layout={visualMode === "spectrum" ? spectrumLayout : undefined}
+              style={spectrumStageStyle}
             >
               {recordedSource && !microphoneSource ? (
                 <RecordedWaveformPlayer
@@ -446,11 +583,26 @@ export default function App() {
                 />
               ) : visualMode === "spectrum" ? (
                 <>
-                  <div className="signal-scale" aria-hidden="true">
-                    <span>{maximumDecibels} dB</span>
-                    <span>{Math.round((minimumDecibels + maximumDecibels) / 2)} dB</span>
-                    <span>{minimumDecibels} dB</span>
-                  </div>
+                  {spectrumLayout === "radial" ? (
+                    <div className="radial-level-key" aria-hidden="true">
+                      <span>
+                        INNER{" "}
+                        {radialInvert ? `CEILING ${maximumDecibels}` : `FLOOR ${minimumDecibels}`}{" "}
+                        dB
+                      </span>
+                      <span>
+                        OUTER{" "}
+                        {radialInvert ? `FLOOR ${minimumDecibels}` : `CEILING ${maximumDecibels}`}{" "}
+                        dB
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="signal-scale" aria-hidden="true">
+                      <span>{maximumDecibels} dB</span>
+                      <span>{Math.round((minimumDecibels + maximumDecibels) / 2)} dB</span>
+                      <span>{minimumDecibels} dB</span>
+                    </div>
+                  )}
                   <Spectrum
                     ariaLabel={`${microphoneSource ? "Live microphone" : preset.label} ordered spectrum preview`}
                     className="primary-waveform"
@@ -468,9 +620,20 @@ export default function App() {
                       Hidden · below silence policy
                     </div>
                   ) : null}
-                  <div className="frequency-axis" aria-hidden="true">
+                  <div
+                    className={
+                      spectrumLayout === "radial" ? "radial-frequency-key" : "frequency-axis"
+                    }
+                    aria-hidden="true"
+                  >
                     <span>{formatFrequency(spectrumFrequencyRange.lowFrequency)}</span>
-                    <span>{frequencyScale === "log" ? "LOG Hz" : "LINEAR Hz"}</span>
+                    <span>
+                      {spectrumLayout === "radial"
+                        ? `${Math.round(radialArc)}° ARC · ${Math.round(radialRotation)}° START`
+                        : frequencyScale === "log"
+                          ? "LOG Hz"
+                          : "LINEAR Hz"}
+                    </span>
                     <span>{formatFrequency(spectrumFrequencyRange.highFrequency)}</span>
                   </div>
                 </>
@@ -537,7 +700,7 @@ export default function App() {
               </span>
               <span>
                 {visualMode === "spectrum"
-                  ? `${spectrumPresentation.result?.policy.toUpperCase() ?? "UNPROCESSED"} · VISUAL ONLY`
+                  ? `${spectrumPresentation.result?.policy.toUpperCase() ?? "UNPROCESSED"} · VISUAL ONLY · ${spectrumLayout.toUpperCase()}/${spectrumColorMode.toUpperCase()}`
                   : `${orientation.toUpperCase()} · ${timeDomainSizing.toUpperCase()}`}
               </span>
             </div>
@@ -600,7 +763,7 @@ export default function App() {
         <header className="inspector-header">
           <div>
             <span className="eyebrow">PLAYGROUND</span>
-            <h2>Signal 007</h2>
+            <h2>Signal 008</h2>
           </div>
           <span className="version-tag">v0.1 core</span>
         </header>
@@ -1041,6 +1204,11 @@ export default function App() {
                   onChange={(value) => setSpectrumGeometry(value as SpectrumGeometry)}
                 />
                 <SelectControl
+                  definition={spectrumControl("layout")}
+                  value={spectrumLayout}
+                  onChange={(value) => setSpectrumLayout(value as SpectrumLayout)}
+                />
+                <SelectControl
                   definition={spectrumControl("interpolation")}
                   value={spectrumInterpolation}
                   onChange={(value) => setSpectrumInterpolation(value as SpectrumInterpolation)}
@@ -1077,6 +1245,66 @@ export default function App() {
                   disabled={!barWidthAvailability.enabled}
                   disabledReason={barWidthAvailability.reason}
                   onChange={setBarGap}
+                />
+                <ToggleControl
+                  checked={radialInvert}
+                  description={spectrumControl("radialInvert").description}
+                  disabled={!radialAvailability.enabled}
+                  disabledReason={radialAvailability.reason}
+                  label={spectrumControl("radialInvert").label}
+                  onChange={setRadialInvert}
+                />
+                <RangeControl
+                  label={spectrumControl("radialDeadzone").label}
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={radialDeadzone * 100}
+                  valueLabel={`${Math.round(radialDeadzone * 100)}%`}
+                  disabled={!radialAvailability.enabled}
+                  disabledReason={radialAvailability.reason}
+                  onChange={(value) => setRadialDeadzone(value / 100)}
+                />
+                <RangeControl
+                  label={spectrumControl("radialArc").label}
+                  min={0}
+                  max={360}
+                  step={1}
+                  value={radialArc}
+                  valueLabel={`${Math.round(radialArc)}°`}
+                  disabled={!radialAvailability.enabled}
+                  disabledReason={radialAvailability.reason}
+                  onChange={setRadialArc}
+                />
+                <RangeControl
+                  label={spectrumControl("radialRotation").label}
+                  min={0}
+                  max={360}
+                  step={1}
+                  value={radialRotation}
+                  valueLabel={`${Math.round(radialRotation)}°`}
+                  disabled={!radialAvailability.enabled}
+                  disabledReason={radialAvailability.reason}
+                  onChange={setRadialRotation}
+                />
+                <ToggleControl
+                  checked={roundedCaps}
+                  description={spectrumControl("roundedCaps").description}
+                  disabled={!roundedCapsAvailability.enabled}
+                  disabledReason={roundedCapsAvailability.reason}
+                  label={spectrumControl("roundedCaps").label}
+                  onChange={setRoundedCaps}
+                />
+                <RangeControl
+                  label={spectrumControl("cornerRadius").label}
+                  min={0}
+                  max={32}
+                  step={1}
+                  value={cornerRadius}
+                  valueLabel={`${cornerRadius} px`}
+                  disabled={!cornerRadiusAvailability.enabled}
+                  disabledReason={cornerRadiusAvailability.reason}
+                  onChange={setCornerRadius}
                 />
               </>
             ) : (
@@ -1245,39 +1473,128 @@ export default function App() {
           </ControlSection>
 
           <ControlSection title="Color & guides">
-            <label className="color-control">
-              <span>Signal color</span>
-              <span className="color-readout">
-                <input
-                  type="color"
-                  aria-label="Signal color"
-                  value={signalColor}
-                  onChange={(event) => setSignalColor(event.currentTarget.value)}
+            {visualMode === "spectrum" ? (
+              <>
+                <SelectControl
+                  definition={spectrumControl("colorMode")}
+                  value={spectrumColorMode}
+                  onChange={(value) => setSpectrumColorMode(value as SpectrumColorMode)}
                 />
-                {signalColor.toUpperCase()}
-              </span>
-            </label>
-            <label className="toggle-control">
-              <span>
-                <strong>{visualMode === "spectrum" ? "dB grid" : "Center line"}</strong>
-                <small>
-                  {visualMode === "spectrum"
-                    ? "Floor, midpoint, and ceiling reference"
-                    : visualMode === "envelope"
+                <SelectControl
+                  definition={spectrumControl("pulseMode")}
+                  value={spectrumPulseMode}
+                  disabled={!pulseModeAvailability.enabled}
+                  disabledReason={pulseModeAvailability.reason}
+                  onChange={(value) => setSpectrumPulseMode(value as SpectrumPulseMode)}
+                />
+                <ColorRoleControl
+                  alpha={baseAlpha}
+                  color={signalColor}
+                  description="Primary role; supplied to Canvas through --waveform-color-base."
+                  label="Base"
+                  onAlpha={setBaseAlpha}
+                  onColor={setSignalColor}
+                />
+                <ColorRoleControl
+                  alpha={middleAlpha}
+                  color={middleColor}
+                  description="Intermediate energy role for ordered dB ranges."
+                  disabled={!middleColorAvailability.enabled}
+                  disabledReason={middleColorAvailability.reason}
+                  label="Middle"
+                  onAlpha={setMiddleAlpha}
+                  onColor={setMiddleColor}
+                />
+                <ColorRoleControl
+                  alpha={crestAlpha}
+                  color={crestColor}
+                  description="High-energy role for gradients and ordered dB ranges."
+                  disabled={!crestColorAvailability.enabled}
+                  disabledReason={crestColorAvailability.reason}
+                  label="Crest"
+                  onAlpha={setCrestAlpha}
+                  onColor={setCrestColor}
+                />
+                <ColorRoleControl
+                  alpha={accentAlpha}
+                  color={accentColor}
+                  description="Reactive destination role for peak pulse mapping."
+                  disabled={!accentColorAvailability.enabled}
+                  disabledReason={accentColorAvailability.reason}
+                  label="Accent"
+                  onAlpha={setAccentAlpha}
+                  onColor={setAccentColor}
+                />
+                <RangeControl
+                  label={spectrumControl("gradientRatio").label}
+                  min={0}
+                  max={4}
+                  step={0.05}
+                  value={gradientRatio}
+                  valueLabel={`${gradientRatio.toFixed(2)}×`}
+                  disabled={!gradientRatioAvailability.enabled}
+                  disabledReason={gradientRatioAvailability.reason}
+                  onChange={setGradientRatio}
+                />
+                <RangeControl
+                  label={spectrumControl("middleDecibels").label}
+                  min={minimumDecibels}
+                  max={maximumDecibels}
+                  step={1}
+                  value={resolvedSpectrumConfig.middleDecibels}
+                  valueLabel={`${resolvedSpectrumConfig.middleDecibels} dBFS`}
+                  disabled={!rangeThresholdAvailability.enabled}
+                  disabledReason={rangeThresholdAvailability.reason}
+                  onChange={(value) =>
+                    setMiddleDecibels(Math.min(value, resolvedSpectrumConfig.crestDecibels))
+                  }
+                />
+                <RangeControl
+                  label={spectrumControl("crestDecibels").label}
+                  min={minimumDecibels}
+                  max={maximumDecibels}
+                  step={1}
+                  value={resolvedSpectrumConfig.crestDecibels}
+                  valueLabel={`${resolvedSpectrumConfig.crestDecibels} dBFS`}
+                  disabled={!rangeThresholdAvailability.enabled}
+                  disabledReason={rangeThresholdAvailability.reason}
+                  onChange={(value) =>
+                    setCrestDecibels(Math.max(value, resolvedSpectrumConfig.middleDecibels))
+                  }
+                />
+                <ToggleControl
+                  checked={showSpectrumGrid}
+                  description="Floor, midpoint, and ceiling reference"
+                  label="dB grid"
+                  onChange={setShowSpectrumGrid}
+                />
+              </>
+            ) : (
+              <>
+                <label className="color-control">
+                  <span>Signal color</span>
+                  <span className="color-readout">
+                    <input
+                      type="color"
+                      aria-label="Signal color"
+                      value={signalColor}
+                      onChange={(event) => setSignalColor(event.currentTarget.value)}
+                    />
+                    {signalColor.toUpperCase()}
+                  </span>
+                </label>
+                <ToggleControl
+                  checked={showCenterLine}
+                  description={
+                    visualMode === "envelope"
                       ? "Magnitude baseline reference"
-                      : "Zero-amplitude reference"}
-                </small>
-              </span>
-              <input
-                type="checkbox"
-                checked={visualMode === "spectrum" ? showSpectrumGrid : showCenterLine}
-                onChange={(event) =>
-                  visualMode === "spectrum"
-                    ? setShowSpectrumGrid(event.currentTarget.checked)
-                    : setShowCenterLine(event.currentTarget.checked)
-                }
-              />
-            </label>
+                      : "Zero-amplitude reference"
+                  }
+                  label="Center line"
+                  onChange={setShowCenterLine}
+                />
+              </>
+            )}
           </ControlSection>
 
           <ControlSection title="Contract">
@@ -1470,6 +1787,65 @@ function ToggleControl({
         onChange={(event) => onChange(event.currentTarget.checked)}
       />
     </label>
+  );
+}
+
+function ColorRoleControl({
+  alpha,
+  color,
+  description,
+  disabled = false,
+  disabledReason,
+  label,
+  onAlpha,
+  onColor,
+}: {
+  readonly alpha: number;
+  readonly color: string;
+  readonly description: string;
+  readonly disabled?: boolean;
+  readonly disabledReason?: string;
+  readonly label: string;
+  readonly onAlpha: (alpha: number) => void;
+  readonly onColor: (color: string) => void;
+}) {
+  const descriptionId = useId();
+  const alphaId = useId();
+  return (
+    <div className="color-role-control" data-disabled={disabled || undefined}>
+      <div className="color-role-heading">
+        <span>
+          <strong>{label}</strong>
+          <small id={descriptionId}>{disabledReason ?? description}</small>
+        </span>
+        <span className="color-readout">
+          <input
+            type="color"
+            aria-describedby={descriptionId}
+            aria-label={`${label} color`}
+            disabled={disabled}
+            value={color}
+            onChange={(event) => onColor(event.currentTarget.value)}
+          />
+          {color.toUpperCase()}
+        </span>
+      </div>
+      <div className="color-alpha-heading">
+        <label htmlFor={alphaId}>{label} alpha</label>
+        <output htmlFor={alphaId}>{Math.round(alpha * 100)}%</output>
+      </div>
+      <input
+        id={alphaId}
+        type="range"
+        aria-describedby={descriptionId}
+        disabled={disabled}
+        min={0}
+        max={1}
+        step={0.01}
+        value={alpha}
+        onChange={(event) => onAlpha(Number(event.currentTarget.value))}
+      />
+    </div>
   );
 }
 

@@ -4,7 +4,7 @@ import {
   GUARDED_SPECTRUM_FFT_SIZE,
   SPECTRUM_FFT_SIZES,
 } from "../spectrumConfig";
-import type { SpectrumGeometry, SpectrumWindow } from "../types";
+import type { SpectrumColorMode, SpectrumGeometry, SpectrumLayout, SpectrumWindow } from "../types";
 
 export type SpectrumControlId =
   | "fftSize"
@@ -21,7 +21,22 @@ export type SpectrumControlId =
   | "lineWidth"
   | "barWidth"
   | "barGap"
-  | "color";
+  | "layout"
+  | "radialInvert"
+  | "radialDeadzone"
+  | "radialArc"
+  | "radialRotation"
+  | "roundedCaps"
+  | "cornerRadius"
+  | "colorMode"
+  | "pulseMode"
+  | "color"
+  | "middleColor"
+  | "crestColor"
+  | "accentColor"
+  | "gradientRatio"
+  | "middleDecibels"
+  | "crestDecibels";
 
 export interface SpectrumControlDefinition {
   readonly defaultValue: boolean | number | string;
@@ -33,13 +48,15 @@ export interface SpectrumControlDefinition {
   readonly minimum?: number;
   readonly options?: readonly { readonly label: string; readonly value: number | string }[];
   readonly step?: number;
-  readonly unit?: "dBFS" | "Hz" | "px";
+  readonly unit?: "%" | "dBFS" | "deg" | "Hz" | "px" | "×";
   readonly valueType: "boolean" | "color" | "number" | "select";
 }
 
 export interface SpectrumCapabilityContext {
   readonly allowLargeFft: boolean;
+  readonly colorMode: SpectrumColorMode;
   readonly geometry: SpectrumGeometry;
+  readonly layout: SpectrumLayout;
   readonly window: SpectrumWindow;
 }
 
@@ -162,9 +179,132 @@ export const SPECTRUM_CONTROL_DEFINITIONS: readonly SpectrumControlDefinition[] 
     unit: "px",
     valueType: "number",
   }),
+  definition("layout", "Layout", "geometry", DEFAULT_SPECTRUM_CONFIG.layout, {
+    description: "Use a rectangular plot or map ordered frequencies around a polar arc.",
+    options: [
+      { label: "Rectangular", value: "rectangular" },
+      { label: "Radial", value: "radial" },
+    ],
+    valueType: "select",
+  }),
+  definition("radialInvert", "Invert radius", "geometry", false, {
+    description:
+      "Grow magnitude inward from the outer radius instead of outward from the deadzone.",
+    valueType: "boolean",
+  }),
+  definition("radialDeadzone", "Deadzone", "geometry", 28, {
+    description: "Reserve a quiet inner radius as a percentage of the available circle.",
+    maximum: 100,
+    minimum: 0,
+    step: 1,
+    unit: "%",
+    valueType: "number",
+  }),
+  definition("radialArc", "Arc", "geometry", 360, {
+    description: "Visible polar sweep; zero is intentionally empty and 360 closes the circle.",
+    maximum: 360,
+    minimum: 0,
+    step: 1,
+    unit: "deg",
+    valueType: "number",
+  }),
+  definition("radialRotation", "Rotation", "geometry", 270, {
+    description: "Clockwise starting angle normalized through wraparound rotations.",
+    maximum: 360,
+    minimum: 0,
+    step: 1,
+    unit: "deg",
+    valueType: "number",
+  }),
+  definition("roundedCaps", "Rounded caps", "geometry", true, {
+    description: "Round curve endpoints and polar bar caps where the primitive supports it.",
+    valueType: "boolean",
+  }),
+  definition("cornerRadius", "Corner radius", "geometry", 3, {
+    description: "Round rectangular bar corners without changing their measured bounds.",
+    maximum: 32,
+    minimum: 0,
+    step: 1,
+    unit: "px",
+    valueType: "number",
+  }),
+  definition("colorMode", "Color mode", "color", DEFAULT_SPECTRUM_CONFIG.colorMode, {
+    description: "Choose outline, filled, amplitude gradient, peak pulse, or dB-range coloring.",
+    options: [
+      { label: "Line", value: "line" },
+      { label: "Solid", value: "solid" },
+      { label: "Gradient", value: "gradient" },
+      { label: "Peak pulse", value: "pulse" },
+      { label: "dB range", value: "range" },
+    ],
+    valueType: "select",
+  }),
+  definition("pulseMode", "Pulse mapping", "color", DEFAULT_SPECTRUM_CONFIG.pulseMode, {
+    description: "Drive the base-to-accent blend from peak magnitude or peak frequency position.",
+    options: [
+      { label: "Peak magnitude", value: "peak-magnitude" },
+      { label: "Peak frequency", value: "peak-frequency" },
+    ],
+    valueType: "select",
+  }),
   definition("color", "Signal color", "color", DEFAULT_SPECTRUM_CONFIG.color, {
-    description: "Base curve or bar color; advanced color grammars are capability-gated later.",
+    description:
+      "Base role used by every color mode; CSS variables and explicit alpha are supported.",
     valueType: "color",
+  }),
+  definition(
+    "middleColor",
+    "Middle color",
+    "color",
+    DEFAULT_SPECTRUM_CONFIG.colorRoles.middle.color,
+    {
+      description: "Middle dB-range role, including its own alpha channel.",
+      valueType: "color",
+    },
+  ),
+  definition("crestColor", "Crest color", "color", DEFAULT_SPECTRUM_CONFIG.colorRoles.crest.color, {
+    description: "High-energy role used by gradients and dB ranges.",
+    valueType: "color",
+  }),
+  definition(
+    "accentColor",
+    "Accent color",
+    "color",
+    DEFAULT_SPECTRUM_CONFIG.colorRoles.accent.color,
+    {
+      description: "Reactive destination color used by peak pulse mapping.",
+      valueType: "color",
+    },
+  ),
+  definition("gradientRatio", "Color ratio", "color", DEFAULT_SPECTRUM_CONFIG.gradientRatio, {
+    description: "Moves the gradient crest or scales peak-pulse response.",
+    maximum: 4,
+    minimum: 0,
+    step: 0.05,
+    unit: "×",
+    valueType: "number",
+  }),
+  definition(
+    "middleDecibels",
+    "Middle threshold",
+    "color",
+    DEFAULT_SPECTRUM_CONFIG.middleDecibels,
+    {
+      description: "First ordered dB boundary for range coloring.",
+      maximum: 0,
+      minimum: -120,
+      step: 1,
+      unit: "dBFS",
+      valueType: "number",
+    },
+  ),
+  definition("crestDecibels", "Crest threshold", "color", DEFAULT_SPECTRUM_CONFIG.crestDecibels, {
+    description: "Second ordered dB boundary for range coloring.",
+    maximum: 0,
+    minimum: -120,
+    step: 1,
+    unit: "dBFS",
+    valueType: "number",
   }),
 ]);
 
@@ -182,10 +322,58 @@ export function getSpectrumControlAvailability(
       enabled: true,
       reason: "65,536 remains disabled until high-cost FFT is allowed.",
     });
-  if (id === "lineWidth" && context.geometry !== "curve")
-    return Object.freeze({ enabled: false, reason: "Line width applies only to curve geometry." });
+  if (
+    id === "lineWidth" &&
+    context.colorMode !== "line" &&
+    !(context.geometry === "curve" && context.colorMode === "range")
+  )
+    return Object.freeze({
+      enabled: false,
+      reason: "Line width applies to Line mode and range-colored curves.",
+    });
   if ((id === "barWidth" || id === "barGap") && context.geometry !== "bars")
     return Object.freeze({ enabled: false, reason: "Bar sizing applies only to bars geometry." });
+  if (
+    ["radialInvert", "radialDeadzone", "radialArc", "radialRotation"].includes(id) &&
+    context.layout !== "radial"
+  )
+    return Object.freeze({
+      enabled: false,
+      reason: "Select radial layout to edit polar geometry.",
+    });
+  if (id === "cornerRadius" && (context.layout !== "rectangular" || context.geometry !== "bars"))
+    return Object.freeze({
+      enabled: false,
+      reason: "Corner radius applies only to rectangular bars.",
+    });
+  if (
+    id === "roundedCaps" &&
+    ((context.layout === "rectangular" && context.geometry === "bars") ||
+      (context.geometry === "curve" && !["line", "range"].includes(context.colorMode)))
+  )
+    return Object.freeze({
+      enabled: false,
+      reason:
+        "Rounded caps apply to stroked curves and radial bars; filled curves have no endpoints.",
+    });
+  if (id === "pulseMode" && context.colorMode !== "pulse")
+    return Object.freeze({ enabled: false, reason: "Select Peak pulse to choose its mapping." });
+  if (id === "middleColor" && context.colorMode !== "range")
+    return Object.freeze({ enabled: false, reason: "Middle color applies only to dB range mode." });
+  if (id === "crestColor" && !["gradient", "range"].includes(context.colorMode))
+    return Object.freeze({
+      enabled: false,
+      reason: "Crest color applies to Gradient and dB range modes.",
+    });
+  if (id === "accentColor" && context.colorMode !== "pulse")
+    return Object.freeze({ enabled: false, reason: "Accent color applies only to Peak pulse." });
+  if (id === "gradientRatio" && !["gradient", "pulse"].includes(context.colorMode))
+    return Object.freeze({
+      enabled: false,
+      reason: "Color ratio applies to Gradient and Peak pulse modes.",
+    });
+  if ((id === "middleDecibels" || id === "crestDecibels") && context.colorMode !== "range")
+    return Object.freeze({ enabled: false, reason: "dB thresholds apply only to dB range mode." });
   return Object.freeze({ enabled: true });
 }
 

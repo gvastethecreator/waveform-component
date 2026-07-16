@@ -53,4 +53,36 @@ describe("spectrum config", () => {
     expect(frame).toMatchObject({ maximumDecibels: 0, minimumDecibels: -1 });
     expect(frame.bins.every((value) => value === -1)).toBe(true);
   });
+
+  it("normalizes radial extremes, threshold order, and nested color roles", () => {
+    const config = resolveSpectrumConfig({
+      color: "#123456",
+      colorMode: "range",
+      colorRoles: {
+        accent: { alpha: 2, color: "var(--signal-accent, #ff0000)" },
+        base: { alpha: -1 },
+      },
+      crestDecibels: -80,
+      gradientRatio: 99,
+      middleDecibels: -10,
+      radialArc: 999,
+      radialDeadzone: 2,
+      radialRotation: -90,
+    });
+
+    expect(config).toMatchObject({
+      color: "#123456",
+      crestDecibels: -10,
+      gradientRatio: 4,
+      middleDecibels: -80,
+      radialArc: 360,
+      radialDeadzone: 1,
+      radialRotation: 270,
+    });
+    expect(config.colorRoles).toMatchObject({
+      accent: { alpha: 1, color: "var(--signal-accent, #ff0000)" },
+      base: { alpha: 0, color: "#123456" },
+    });
+    expect(Object.isFrozen(config.colorRoles)).toBe(true);
+  });
 });

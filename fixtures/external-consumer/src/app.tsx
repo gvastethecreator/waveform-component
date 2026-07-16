@@ -79,11 +79,22 @@ export function SpectrumConsumerExample() {
       ariaLabel="External ordered spectrum"
       data={responsiveSpectrum.frame}
       config={{
+        colorMode: "gradient",
+        colorRoles: {
+          base: { alpha: 0.7, color: "#62dcf5" },
+          crest: { alpha: 1, color: "#f8d65c" },
+        },
         frequencyScale: "log",
         geometry: "bars",
+        gradientRatio: 1.5,
         highFrequency: 20_000,
         interpolation: "lanczos",
+        layout: "radial",
         lowFrequency: 20,
+        radialArc: 300,
+        radialDeadzone: 0.24,
+        radialRotation: 300,
+        roundedCaps: true,
       }}
     />
   );

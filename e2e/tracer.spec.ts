@@ -160,6 +160,8 @@ test("renders ordered spectrum controls through the public Canvas path", async (
   await exponent.fill("3");
 
   await page.getByRole("combobox", { name: /Geometry/ }).selectOption("bars");
+  await expect(page.getByRole("slider", { name: "Line width" })).toBeEnabled();
+  await page.getByRole("combobox", { name: /Color mode/ }).selectOption("solid");
   await expect(page.getByRole("slider", { name: "Line width" })).toBeDisabled();
   await page.getByRole("slider", { name: "Bar gap" }).fill("5");
   await page.getByRole("slider", { name: "Low cutoff" }).fill("1000");
@@ -168,6 +170,67 @@ test("renders ordered spectrum controls through the public Canvas path", async (
   await expect(page.getByText("LINEAR Hz")).toBeVisible();
   const bars = await spectrum.screenshot();
   expect(curve.equals(bars)).toBe(false);
+});
+
+test("renders radial geometry and every reactive color role through Canvas", async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.getByRole("button", { name: "Spectrum" }).click();
+
+  const stage = page.locator(".signal-stage");
+  const spectrum = page.getByRole("img", { name: /Broadcast ordered spectrum preview/ });
+  const rectangular = await stage.screenshot();
+  await expect(page.getByRole("slider", { name: "Arc" })).toBeDisabled();
+
+  await page.getByRole("combobox", { name: /Geometry/ }).selectOption("bars");
+  await page.getByRole("combobox", { name: /Color mode/ }).selectOption("solid");
+  await page.getByRole("slider", { name: "Corner radius" }).fill("0");
+  const squareBars = await stage.screenshot();
+  await page.getByRole("slider", { name: "Corner radius" }).fill("16");
+  const roundedBars = await stage.screenshot();
+  expect(squareBars.equals(roundedBars)).toBe(false);
+
+  await page.getByRole("combobox", { name: /Layout/ }).selectOption("radial");
+  await page.getByRole("slider", { name: "Deadzone" }).fill("30");
+  await page.getByRole("slider", { name: "Arc" }).fill("300");
+  await page.getByRole("slider", { name: "Rotation" }).fill("320");
+  await page.getByRole("checkbox", { name: /Invert radius/ }).check();
+  await expect(stage).toHaveAttribute("data-spectrum-layout", "radial");
+  await expect(spectrum).toHaveAttribute("data-spectrum-layout", "radial");
+  await expect(page.getByRole("slider", { name: "Corner radius" })).toBeDisabled();
+  const roundCaps = await stage.screenshot();
+  await page.getByRole("checkbox", { name: /Rounded caps/ }).uncheck();
+  const flatCaps = await stage.screenshot();
+  expect(roundCaps.equals(flatCaps)).toBe(false);
+  await page.getByRole("checkbox", { name: /Rounded caps/ }).check();
+
+  await page.getByRole("combobox", { name: /Color mode/ }).selectOption("gradient");
+  await page.getByRole("slider", { name: "Color ratio" }).fill("2");
+  await page.getByRole("slider", { name: "Crest alpha" }).fill("0.72");
+  await expect(stage).toHaveAttribute("data-spectrum-color-mode", "gradient");
+  const gradient = await stage.screenshot();
+  expect(rectangular.equals(gradient)).toBe(false);
+
+  await page.getByRole("combobox", { name: /Color mode/ }).selectOption("pulse");
+  await page.getByRole("combobox", { name: /Pulse mapping/ }).selectOption("peak-frequency");
+  await page.getByRole("slider", { name: "Accent alpha" }).fill("0.5");
+  const pulse = await stage.screenshot();
+  expect(gradient.equals(pulse)).toBe(false);
+
+  await page.getByRole("combobox", { name: /Color mode/ }).selectOption("range");
+  await page.getByRole("slider", { name: "Middle threshold" }).fill("-48");
+  await page.getByRole("slider", { name: "Crest threshold" }).fill("-18");
+  await expect(page.getByLabel("Middle color")).toBeEnabled();
+  await expect(page.getByLabel("Accent color")).toBeDisabled();
+  const range = await stage.screenshot();
+  expect(pulse.equals(range)).toBe(false);
+  await expect(spectrum).toHaveAttribute("data-spectrum-color-mode", "range");
+  await expect(page.getByText(/PROCESSED · VISUAL ONLY · RADIAL\/RANGE/)).toBeVisible();
+
+  const horizontalOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - window.innerWidth,
+  );
+  expect(horizontalOverflow).toBeLessThanOrEqual(0);
 });
 
 test("applies spectrum normalization and filtering through the public dynamics stage", async ({

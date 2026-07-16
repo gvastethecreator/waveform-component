@@ -43,6 +43,21 @@ export type SpectrumWindow =
 export type SpectrumFrequencyScale = "linear" | "log";
 export type SpectrumInterpolation = "nearest" | "lanczos" | "catmull-rom";
 export type SpectrumGeometry = "curve" | "bars";
+export type SpectrumLayout = "radial" | "rectangular";
+export type SpectrumColorMode = "gradient" | "line" | "pulse" | "range" | "solid";
+export type SpectrumPulseMode = "peak-frequency" | "peak-magnitude";
+
+export interface SpectrumColorRole {
+  readonly alpha: number;
+  readonly color: string;
+}
+
+export interface SpectrumColorRoles {
+  readonly accent: SpectrumColorRole;
+  readonly base: SpectrumColorRole;
+  readonly crest: SpectrumColorRole;
+  readonly middle: SpectrumColorRole;
+}
 
 export interface SpectrumAnalysisConfig {
   readonly allowLargeFft: boolean;
@@ -60,17 +75,39 @@ export interface CanvasSpectrumConfig {
   readonly barGap: number;
   readonly barWidth: number;
   readonly color: string;
+  readonly colorMode: SpectrumColorMode;
+  readonly colorRoles: SpectrumColorRoles;
+  readonly cornerRadius: number;
+  readonly crestDecibels: number;
   readonly frequencyScale: SpectrumFrequencyScale;
   readonly geometry: SpectrumGeometry;
+  readonly gradientRatio: number;
   readonly gridColor: string;
   readonly highFrequency: number;
   readonly interpolation: SpectrumInterpolation;
   readonly lineWidth: number;
+  readonly layout: SpectrumLayout;
   readonly lowFrequency: number;
   readonly maximumDecibels: number;
   readonly minimumDecibels: number;
   readonly padding: number;
+  readonly pulseMode: SpectrumPulseMode;
+  readonly radialArc: number;
+  readonly radialDeadzone: number;
+  readonly radialInvert: boolean;
+  readonly radialRotation: number;
+  readonly middleDecibels: number;
+  readonly roundedCaps: boolean;
   readonly showGrid: boolean;
+}
+
+export interface CanvasSpectrumConfigInput extends Omit<
+  Partial<CanvasSpectrumConfig>,
+  "colorRoles"
+> {
+  readonly colorRoles?: Partial<{
+    readonly [Role in keyof SpectrumColorRoles]: Partial<SpectrumColorRole>;
+  }>;
 }
 
 export type CanvasVisualizationConfig = CanvasWaveformConfig | CanvasSpectrumConfig;
@@ -191,6 +228,7 @@ export interface WaveformColumn {
 export interface SpectrumPoint {
   readonly decibels: number;
   readonly frequency: number;
+  readonly level: number;
   readonly x: number;
   readonly y: number;
 }
@@ -198,6 +236,24 @@ export interface SpectrumPoint {
 export interface SpectrumBar extends SpectrumPoint {
   readonly height: number;
   readonly width: number;
+}
+
+export interface SpectrumRadialPoint extends SpectrumPoint {
+  readonly angle: number;
+  readonly baselineRadius: number;
+  readonly baseX: number;
+  readonly baseY: number;
+  readonly centerX: number;
+  readonly centerY: number;
+  readonly radius: number;
+}
+
+export interface SpectrumRadialBar extends SpectrumRadialPoint {
+  readonly width: number;
+  readonly x1: number;
+  readonly x2: number;
+  readonly y1: number;
+  readonly y2: number;
 }
 
 export class WaveformInputError extends TypeError {

@@ -1,11 +1,14 @@
 import { fractionalBinForFrequency } from "../analysis/spectrum";
 import { resolveSpectrumConfig, resolveSpectrumFrequencyRange } from "../spectrumConfig";
 import type {
+  CanvasSpectrumConfigInput,
   CanvasSpectrumConfig,
   SpectrumBar,
   SpectrumFrame,
   SpectrumInterpolation,
   SpectrumPoint,
+  SpectrumRadialBar,
+  SpectrumRadialPoint,
   WaveformViewport,
 } from "../types";
 
@@ -14,7 +17,7 @@ const MAX_CURVE_POINTS = 4096;
 export function buildSpectrumPoints(
   frame: SpectrumFrame,
   viewport: WaveformViewport,
-  config?: Partial<CanvasSpectrumConfig>,
+  config?: CanvasSpectrumConfigInput,
 ): readonly SpectrumPoint[] {
   if (frame.state === "empty" || frame.bins.length === 0) return [];
   const resolved = resolveSpectrumConfig(config, frame);
@@ -33,7 +36,7 @@ export function buildSpectrumPoints(
 export function buildSpectrumBars(
   frame: SpectrumFrame,
   viewport: WaveformViewport,
-  config?: Partial<CanvasSpectrumConfig>,
+  config?: CanvasSpectrumConfigInput,
 ): readonly SpectrumBar[] {
   if (frame.state === "empty" || frame.bins.length === 0) return [];
   const resolved = resolveSpectrumConfig(config, frame);
@@ -57,6 +60,56 @@ export function buildSpectrumBars(
       height: Math.max(0, baseline - point.y),
       width: barWidth,
       x: offset + index * slotWidth,
+    });
+  });
+}
+
+export function buildSpectrumRadialPoints(
+  frame: SpectrumFrame,
+  viewport: WaveformViewport,
+  config?: CanvasSpectrumConfigInput,
+): readonly SpectrumRadialPoint[] {
+  if (frame.state === "empty" || frame.bins.length === 0) return [];
+  const resolved = resolveSpectrumConfig({ ...config, layout: "radial" }, frame);
+  const metrics = radialMetrics(viewport, resolved);
+  if (!metrics || metrics.arc === 0) return [];
+  const count = Math.min(
+    MAX_CURVE_POINTS,
+    Math.max(2, Math.floor(metrics.arc * Math.max(1, metrics.maximumRadius)) + 1),
+  );
+  return Array.from({ length: count }, (_, index) => {
+    const ratio = index / (count - 1);
+    return radialPoint(frame, resolved, ratio, metrics);
+  });
+}
+
+export function buildSpectrumRadialBars(
+  frame: SpectrumFrame,
+  viewport: WaveformViewport,
+  config?: CanvasSpectrumConfigInput,
+): readonly SpectrumRadialBar[] {
+  if (frame.state === "empty" || frame.bins.length === 0) return [];
+  const resolved = resolveSpectrumConfig({ ...config, layout: "radial" }, frame);
+  const metrics = radialMetrics(viewport, resolved);
+  if (!metrics || metrics.arc === 0) return [];
+  const referenceRadius = (metrics.minimumRadius + metrics.maximumRadius) / 2;
+  const arcLength = Math.max(0, metrics.arc * referenceRadius);
+  const slot = Math.max(1, resolved.barWidth + resolved.barGap);
+  const count = Math.min(
+    MAX_CURVE_POINTS,
+    Math.max(1, Math.floor((arcLength + resolved.barGap) / slot)),
+  );
+  return Array.from({ length: count }, (_, index) => {
+    const ratio =
+      count === 1 ? 0.5 : resolved.radialArc === 360 ? (index + 0.5) / count : index / (count - 1);
+    const point = radialPoint(frame, resolved, ratio, metrics);
+    return Object.freeze({
+      ...point,
+      width: Math.min(resolved.barWidth, Math.max(1, arcLength)),
+      x1: point.baseX,
+      x2: point.x,
+      y1: point.baseY,
+      y2: point.y,
     });
   });
 }
@@ -119,8 +172,74 @@ function spectrumPoint(
   return Object.freeze({
     decibels,
     frequency,
+    level,
     x: config.padding + ratio * innerWidth,
     y: config.padding + (1 - level) * innerHeight,
+  });
+}
+
+interface RadialMetrics {
+  readonly arc: number;
+  readonly baselineRadius: number;
+  readonly centerX: number;
+  readonly centerY: number;
+  readonly direction: -1 | 1;
+  readonly extent: number;
+  readonly maximumRadius: number;
+  readonly minimumRadius: number;
+  readonly rotation: number;
+}
+
+function radialMetrics(
+  viewport: WaveformViewport,
+  config: CanvasSpectrumConfig,
+): RadialMetrics | null {
+  const width = finiteDimension(viewport.width);
+  const height = finiteDimension(viewport.height);
+  const padding = Math.min(config.padding, width / 2, height / 2);
+  const maximumRadius = Math.max(0, Math.min(width - padding * 2, height - padding * 2) / 2);
+  if (maximumRadius === 0) return null;
+  const minimumRadius = maximumRadius * config.radialDeadzone;
+  const direction = config.radialInvert ? -1 : 1;
+  return Object.freeze({
+    arc: (config.radialArc * Math.PI) / 180,
+    baselineRadius: config.radialInvert ? maximumRadius : minimumRadius,
+    centerX: width / 2,
+    centerY: height / 2,
+    direction,
+    extent: maximumRadius - minimumRadius,
+    maximumRadius,
+    minimumRadius,
+    rotation: (config.radialRotation * Math.PI) / 180,
+  });
+}
+
+function radialPoint(
+  frame: SpectrumFrame,
+  config: CanvasSpectrumConfig,
+  ratio: number,
+  metrics: RadialMetrics,
+): SpectrumRadialPoint {
+  const sampled = spectrumPoint(frame, config, ratio, 0, 0);
+  const angle = metrics.rotation + metrics.arc * ratio;
+  const radius = clamp(
+    metrics.baselineRadius + metrics.direction * sampled.level * metrics.extent,
+    metrics.minimumRadius,
+    metrics.maximumRadius,
+  );
+  const cosine = Math.cos(angle);
+  const sine = Math.sin(angle);
+  return Object.freeze({
+    ...sampled,
+    angle,
+    baselineRadius: metrics.baselineRadius,
+    baseX: metrics.centerX + cosine * metrics.baselineRadius,
+    baseY: metrics.centerY + sine * metrics.baselineRadius,
+    centerX: metrics.centerX,
+    centerY: metrics.centerY,
+    radius,
+    x: metrics.centerX + cosine * radius,
+    y: metrics.centerY + sine * radius,
   });
 }
 
@@ -148,4 +267,8 @@ function lanczosKernel(value: number, radius: number): number {
 
 function finiteDimension(value: number): number {
   return Number.isFinite(value) ? Math.max(0, value) : 0;
+}
+
+function clamp(value: number, minimum: number, maximum: number): number {
+  return Math.min(maximum, Math.max(minimum, value));
 }

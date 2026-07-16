@@ -11,11 +11,25 @@ describe("Spectrum", () => {
       minimumDecibels: -100,
       sampleRate: 48_000,
     });
-    render(<Spectrum ariaLabel="Voice spectrum" data={frame} />);
+    render(
+      <Spectrum
+        ariaLabel="Voice spectrum"
+        config={{ colorMode: "gradient", layout: "radial" }}
+        data={frame}
+      />,
+    );
     expect(
       screen.getByRole("img", {
         name: "Voice spectrum. 16 ordered bins, 48000 Hz sample rate.",
       }),
     ).toHaveAttribute("data-spectrum-state", "ready");
+    expect(screen.getByRole("img", { name: /Voice spectrum/ })).toHaveAttribute(
+      "data-spectrum-layout",
+      "radial",
+    );
+    expect(screen.getByRole("img", { name: /Voice spectrum/ })).toHaveAttribute(
+      "data-spectrum-color-mode",
+      "gradient",
+    );
   });
 });

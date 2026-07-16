@@ -14,7 +14,13 @@ describe("spectrum control capabilities", () => {
   });
 
   it("explains controls that cannot affect the selected capability", () => {
-    const context = { allowLargeFft: false, geometry: "curve", window: "hann" } as const;
+    const context = {
+      allowLargeFft: false,
+      colorMode: "line",
+      geometry: "curve",
+      layout: "rectangular",
+      window: "hann",
+    } as const;
     expect(getSpectrumControlAvailability("powerOfSineExponent", context)).toMatchObject({
       enabled: false,
       reason: expect.stringContaining("Power-of-Sine"),
@@ -26,5 +32,29 @@ describe("spectrum control capabilities", () => {
     expect(getSpectrumControlAvailability("barGap", { ...context, geometry: "bars" })).toEqual({
       enabled: true,
     });
+    expect(getSpectrumControlAvailability("lineWidth", { ...context, geometry: "bars" })).toEqual({
+      enabled: true,
+    });
+    expect(
+      getSpectrumControlAvailability("lineWidth", {
+        ...context,
+        colorMode: "solid",
+        geometry: "bars",
+      }),
+    ).toMatchObject({ enabled: false });
+    expect(getSpectrumControlAvailability("radialArc", context)).toMatchObject({
+      enabled: false,
+      reason: expect.stringContaining("radial"),
+    });
+    expect(getSpectrumControlAvailability("radialArc", { ...context, layout: "radial" })).toEqual({
+      enabled: true,
+    });
+    expect(getSpectrumControlAvailability("accentColor", context)).toMatchObject({
+      enabled: false,
+      reason: expect.stringContaining("Peak pulse"),
+    });
+    expect(
+      getSpectrumControlAvailability("accentColor", { ...context, colorMode: "pulse" }),
+    ).toEqual({ enabled: true });
   });
 });

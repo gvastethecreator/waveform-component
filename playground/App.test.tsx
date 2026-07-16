@@ -36,13 +36,43 @@ describe("Signal Workbench tracer", () => {
     expect(exponent).toBeEnabled();
 
     await user.selectOptions(screen.getByRole("combobox", { name: /Geometry/ }), "bars");
-    expect(screen.getByRole("slider", { name: "Line width" })).toBeDisabled();
+    expect(screen.getByRole("slider", { name: "Line width" })).toBeEnabled();
     expect(screen.getByRole("slider", { name: "Bar width" })).toBeEnabled();
+    await user.selectOptions(screen.getByRole("combobox", { name: /Color mode/ }), "solid");
+    expect(screen.getByRole("slider", { name: "Line width" })).toBeDisabled();
 
     fireEvent.change(screen.getByRole("slider", { name: "Low cutoff" }), {
       target: { value: "1000" },
     });
     expect(screen.getAllByText("1.0 kHz").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("gates radial geometry and the complete color grammar by capability", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole("button", { name: "Spectrum" }));
+    expect(screen.getByRole("slider", { name: "Arc" })).toBeDisabled();
+    expect(screen.getByRole("combobox", { name: /Pulse mapping/ })).toBeDisabled();
+
+    await user.selectOptions(screen.getByRole("combobox", { name: /^Layout/ }), "radial");
+    expect(screen.getByRole("slider", { name: "Arc" })).toBeEnabled();
+    expect(screen.getByRole("checkbox", { name: /Invert radius/ })).toBeEnabled();
+    expect(screen.getByRole("slider", { name: "Corner radius" })).toBeDisabled();
+    expect(screen.getByText("RADIAL · LINE")).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByRole("combobox", { name: /Color mode/ }), "gradient");
+    expect(screen.getByRole("slider", { name: "Color ratio" })).toBeEnabled();
+    expect(screen.getByLabelText("Crest color")).toBeEnabled();
+    expect(screen.getByLabelText("Accent color")).toBeDisabled();
+
+    await user.selectOptions(screen.getByRole("combobox", { name: /Color mode/ }), "pulse");
+    expect(screen.getByRole("combobox", { name: /Pulse mapping/ })).toBeEnabled();
+    expect(screen.getByLabelText("Accent color")).toBeEnabled();
+    fireEvent.change(screen.getByRole("slider", { name: "Accent alpha" }), {
+      target: { value: "0.5" },
+    });
+    expect(screen.getByText("50%")).toBeInTheDocument();
   });
 
   it("exposes honest dynamics, filtering, and source-policy capabilities", async () => {

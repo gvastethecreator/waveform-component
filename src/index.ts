@@ -38,6 +38,14 @@ export {
   getSpectrumControlAvailability,
   SPECTRUM_CONTROL_DEFINITIONS,
 } from "./capabilities/spectrumControls";
+export {
+  colorWithAlpha,
+  mixSpectrumColors,
+  resolveCssVariableColor,
+  spectrumPulseAmount,
+  spectrumRangeRole,
+} from "./color/spectrumColor";
+export type { SpectrumColorRoleName } from "./color/spectrumColor";
 export type {
   SpectrumCapabilityContext,
   SpectrumControlAvailability,
@@ -52,7 +60,13 @@ export {
 } from "./core/staticFrame";
 export type { DemoWaveformOptions, StaticWaveformOptions } from "./core/staticFrame";
 export { buildTimeDomainSegments, buildWaveformColumns } from "./core/waveformGeometry";
-export { buildSpectrumBars, buildSpectrumPoints, resampleSpectrum } from "./core/spectrumGeometry";
+export {
+  buildSpectrumBars,
+  buildSpectrumPoints,
+  buildSpectrumRadialBars,
+  buildSpectrumRadialPoints,
+  resampleSpectrum,
+} from "./core/spectrumGeometry";
 export { createWaveformFrameFromPeakLevel, extractWaveformPeakPyramid } from "./core/waveformPeaks";
 export type { WaveformPeakOptions } from "./core/waveformPeaks";
 export { renderCanvasTimeDomain, renderCanvasWaveform, syncCanvasSize } from "./renderers/canvas2d";
@@ -134,6 +148,7 @@ export type {
   AnalysisFrame,
   BandEnergyFrame,
   CanvasSpectrumConfig,
+  CanvasSpectrumConfigInput,
   CanvasVisualizationConfig,
   CanvasEnvelopeModeConfig,
   CanvasWaveformConfig,
@@ -147,10 +162,17 @@ export type {
   SpectrumFrame,
   SpectrumAnalysisConfig,
   SpectrumBar,
+  SpectrumColorMode,
+  SpectrumColorRole,
+  SpectrumColorRoles,
   SpectrumFrequencyScale,
   SpectrumGeometry,
   SpectrumInterpolation,
+  SpectrumLayout,
   SpectrumPoint,
+  SpectrumPulseMode,
+  SpectrumRadialBar,
+  SpectrumRadialPoint,
   SpectrumWindow,
   StaticWaveformInput,
   TimeDomainFrame,

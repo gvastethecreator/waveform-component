@@ -64,6 +64,40 @@ The layouts are deliberately distinct: `stacked` partitions the amplitude axis i
 
 `buildTimeDomainSegments` is orientation-neutral and keeps source/display channel indices on every segment. Numeric width and height request fixed internal sizing; percentage/string sizing remains responsive, and a fixed width clamps to its container on narrow layouts. Canvas backing stores are recreated from current CSS bounds and DPR with an absolute transform.
 
+## Radial spectrum and color roles
+
+Spectrum keeps visual primitive (`curve` or `bars`) separate from layout (`rectangular` or `radial`). Polar geometry exposes an explicit deadzone ratio, 0…360° arc, wraparound rotation, inward inversion, and rounded caps. A zero arc intentionally draws no signal; a 100% deadzone intentionally collapses magnitude extent while keeping every coordinate finite.
+
+```tsx
+<Spectrum
+  className="themed-spectrum"
+  data={spectrumFrame}
+  config={{
+    geometry: "bars",
+    layout: "radial",
+    radialDeadzone: 0.24,
+    radialArc: 300,
+    radialRotation: 300,
+    roundedCaps: true,
+    colorMode: "gradient", // line | solid | gradient | pulse | range
+    colorRoles: {
+      base: { color: "var(--signal-base, #62dcf5)", alpha: 0.72 },
+      crest: { color: "var(--signal-crest, #f8d65c)", alpha: 1 },
+    },
+    gradientRatio: 1.5,
+  }}
+/>
+```
+
+```css
+.themed-spectrum {
+  --signal-base: #62dcf5;
+  --signal-crest: #f8d65c;
+}
+```
+
+`pulse` blends base→accent from peak magnitude or peak-frequency position. `range` maps ordered base/middle/crest roles using normalized `middleDecibels <= crestDecibels` thresholds. Every role has independent alpha. The React Canvas path resolves inherited CSS custom properties at draw time; direct headless/Canvas callers can pass computed CSS colors as typed values.
+
 ## Shared headless session
 
 `WaveformSession` separates source ownership and frame publication from React. One source connection can feed several views, and source epochs prevent stale async work from publishing after replacement.

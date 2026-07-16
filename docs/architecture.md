@@ -15,6 +15,8 @@ The package has no browser side effects at module scope. Rendering and media wor
 - `buildTimeDomainSegments` is pure orientation-neutral geometry. It bins extrema per primary-axis pixel, retains source/display channel indices, applies only valid waveform/envelope amplitude placement, and lays out stacked/split/overlay channels without reading DOM or Canvas state.
 - `CanvasWaveformConfig` is discriminated by data mode and channel selection. Runtime frame-count/layout constraints raise `WaveformConfigError`; the React layer surfaces that structured failure without unmounting the semantic canvas.
 - `renderCanvasTimeDomain` consumes a canonical frame/config/viewport, groups overlay strokes by channel color, and splits playback by normalized progress in either orientation.
+- Spectrum geometry keeps rectangular and polar coordinates pure. Full arcs close without duplicating radial bars; partial arcs include both frequency endpoints; deadzone/inversion never alter ordered-bin meaning.
+- The spectrum color grammar is renderer-independent at its decision seam: thresholds select named roles, pulse mapping produces a bounded factor, and Canvas resolves typed alpha/CSS variables only at the drawing boundary.
 - `syncCanvasSize` assigns the backing-store dimensions and an absolute DPR transform, avoiding cumulative scale.
 - `Waveform` and `Envelope` are React convenience interfaces over one internal Canvas lifecycle. They create static frames when needed, observe fixed or responsive containers, and draw only after mount.
 
@@ -34,7 +36,7 @@ Spectrum dynamics is a separate stateful stage after analysis and before geometr
 
 Visual synchronization is also outside the renderer. Capability resolution rejects look-ahead for live sources, while a bounded frame queue supports positive visual delay without claiming ownership of the audio clock or output. The playground enables temporal/source/sync controls only for clocked live input and explains why static previews cannot demonstrate them.
 
-Later tickets add SVG/DOM/WebGL2 adapters, broader capability-scoped schemas, original clean-room VFX, and standalone code export without changing the dependency direction established here.
+Later tickets add meters/history, SVG/DOM/WebGL2 adapters, original clean-room VFX, and standalone code export without changing the dependency direction established here.
 
 ## Provenance
 

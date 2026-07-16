@@ -1,10 +1,16 @@
 import type {
+  CanvasSpectrumConfigInput,
   CanvasSpectrumConfig,
   SpectrumAnalysisConfig,
   SpectrumFrame,
   SpectrumFrequencyScale,
   SpectrumGeometry,
   SpectrumInterpolation,
+  SpectrumLayout,
+  SpectrumColorMode,
+  SpectrumColorRole,
+  SpectrumColorRoles,
+  SpectrumPulseMode,
   SpectrumWindow,
 } from "./types";
 
@@ -29,16 +35,34 @@ export const DEFAULT_SPECTRUM_CONFIG: CanvasSpectrumConfig = Object.freeze({
   barGap: 2,
   barWidth: 7,
   color: "#62dcf5",
+  colorMode: "line",
+  colorRoles: Object.freeze({
+    accent: Object.freeze({ alpha: 1, color: "#ff7892" }),
+    base: Object.freeze({ alpha: 1, color: "#62dcf5" }),
+    crest: Object.freeze({ alpha: 1, color: "#f8d65c" }),
+    middle: Object.freeze({ alpha: 1, color: "#a7f59c" }),
+  }),
+  cornerRadius: 3,
+  crestDecibels: -12,
   frequencyScale: "log",
   geometry: "curve",
+  gradientRatio: 1,
   gridColor: "rgba(169, 190, 194, 0.16)",
   highFrequency: 20_000,
   interpolation: "catmull-rom",
+  layout: "rectangular",
   lineWidth: 1.5,
   lowFrequency: 20,
   maximumDecibels: 0,
   minimumDecibels: -100,
   padding: 20,
+  pulseMode: "peak-magnitude",
+  radialArc: 360,
+  radialDeadzone: 0.28,
+  radialInvert: false,
+  radialRotation: 270,
+  middleDecibels: -36,
+  roundedCaps: true,
   showGrid: true,
 });
 
@@ -66,7 +90,7 @@ export function resolveSpectrumAnalysisConfig(
 }
 
 export function resolveSpectrumConfig(
-  config: Partial<CanvasSpectrumConfig> | undefined,
+  config: CanvasSpectrumConfigInput | undefined,
   frame?: SpectrumFrame,
 ): CanvasSpectrumConfig {
   const candidate = { ...DEFAULT_SPECTRUM_CONFIG, ...config };
@@ -76,13 +100,32 @@ export function resolveSpectrumConfig(
   );
   const lowFrequency = clampFinite(candidate.lowFrequency, 0, 192_000, 20);
   const highFrequency = clampFinite(candidate.highFrequency, 1, 192_000, 20_000);
+  const firstThreshold = clampFinite(
+    candidate.middleDecibels,
+    range.minimum,
+    range.maximum,
+    Math.max(range.minimum, -36),
+  );
+  const secondThreshold = clampFinite(
+    candidate.crestDecibels,
+    range.minimum,
+    range.maximum,
+    Math.max(range.minimum, -12),
+  );
+  const colorRoles = resolveColorRoles(config, candidate.color || DEFAULT_SPECTRUM_CONFIG.color);
   return Object.freeze({
     renderer: "canvas2d",
     mode: "spectrum",
     backgroundColor: candidate.backgroundColor || DEFAULT_SPECTRUM_CONFIG.backgroundColor,
     barGap: clampFinite(candidate.barGap, 0, 32, DEFAULT_SPECTRUM_CONFIG.barGap),
     barWidth: clampFinite(candidate.barWidth, 1, 64, DEFAULT_SPECTRUM_CONFIG.barWidth),
-    color: candidate.color || DEFAULT_SPECTRUM_CONFIG.color,
+    color: colorRoles.base.color,
+    colorMode: isColorMode(candidate.colorMode)
+      ? candidate.colorMode
+      : DEFAULT_SPECTRUM_CONFIG.colorMode,
+    colorRoles,
+    cornerRadius: clampFinite(candidate.cornerRadius, 0, 128, DEFAULT_SPECTRUM_CONFIG.cornerRadius),
+    crestDecibels: Math.max(firstThreshold, secondThreshold),
     frequencyScale: isFrequencyScale(candidate.frequencyScale)
       ? candidate.frequencyScale
       : DEFAULT_SPECTRUM_CONFIG.frequencyScale,
@@ -90,16 +133,63 @@ export function resolveSpectrumConfig(
       ? candidate.geometry
       : DEFAULT_SPECTRUM_CONFIG.geometry,
     gridColor: candidate.gridColor || DEFAULT_SPECTRUM_CONFIG.gridColor,
+    gradientRatio: clampFinite(
+      candidate.gradientRatio,
+      0,
+      4,
+      DEFAULT_SPECTRUM_CONFIG.gradientRatio,
+    ),
     highFrequency: Math.max(lowFrequency, highFrequency),
     interpolation: isInterpolation(candidate.interpolation)
       ? candidate.interpolation
       : DEFAULT_SPECTRUM_CONFIG.interpolation,
     lineWidth: clampFinite(candidate.lineWidth, 0.5, 12, DEFAULT_SPECTRUM_CONFIG.lineWidth),
+    layout: isLayout(candidate.layout) ? candidate.layout : DEFAULT_SPECTRUM_CONFIG.layout,
     lowFrequency: Math.min(lowFrequency, highFrequency),
     maximumDecibels: range.maximum,
     minimumDecibels: range.minimum,
     padding: clampFinite(candidate.padding, 0, 160, DEFAULT_SPECTRUM_CONFIG.padding),
+    pulseMode: isPulseMode(candidate.pulseMode)
+      ? candidate.pulseMode
+      : DEFAULT_SPECTRUM_CONFIG.pulseMode,
+    radialArc: clampFinite(candidate.radialArc, 0, 360, DEFAULT_SPECTRUM_CONFIG.radialArc),
+    radialDeadzone: clampFinite(
+      candidate.radialDeadzone,
+      0,
+      1,
+      DEFAULT_SPECTRUM_CONFIG.radialDeadzone,
+    ),
+    radialInvert: Boolean(candidate.radialInvert),
+    radialRotation: normalizeDegrees(candidate.radialRotation),
+    middleDecibels: Math.min(firstThreshold, secondThreshold),
+    roundedCaps: Boolean(candidate.roundedCaps),
     showGrid: Boolean(candidate.showGrid),
+  });
+}
+
+function resolveColorRoles(
+  config: CanvasSpectrumConfigInput | undefined,
+  legacyColor: string,
+): SpectrumColorRoles {
+  const input = config?.colorRoles;
+  return Object.freeze({
+    accent: resolveColorRole(input?.accent, DEFAULT_SPECTRUM_CONFIG.colorRoles.accent),
+    base: resolveColorRole(
+      { ...input?.base, color: input?.base?.color ?? legacyColor },
+      DEFAULT_SPECTRUM_CONFIG.colorRoles.base,
+    ),
+    crest: resolveColorRole(input?.crest, DEFAULT_SPECTRUM_CONFIG.colorRoles.crest),
+    middle: resolveColorRole(input?.middle, DEFAULT_SPECTRUM_CONFIG.colorRoles.middle),
+  });
+}
+
+function resolveColorRole(
+  input: Partial<SpectrumColorRole> | undefined,
+  fallback: SpectrumColorRole,
+): SpectrumColorRole {
+  return Object.freeze({
+    alpha: clampFinite(input?.alpha ?? fallback.alpha, 0, 1, fallback.alpha),
+    color: input?.color?.trim() || fallback.color,
   });
 }
 
@@ -147,6 +237,23 @@ function isFrequencyScale(value: unknown): value is SpectrumFrequencyScale {
 
 function isGeometry(value: unknown): value is SpectrumGeometry {
   return value === "curve" || value === "bars";
+}
+
+function isLayout(value: unknown): value is SpectrumLayout {
+  return value === "radial" || value === "rectangular";
+}
+
+function isColorMode(value: unknown): value is SpectrumColorMode {
+  return ["gradient", "line", "pulse", "range", "solid"].includes(String(value));
+}
+
+function isPulseMode(value: unknown): value is SpectrumPulseMode {
+  return value === "peak-frequency" || value === "peak-magnitude";
+}
+
+function normalizeDegrees(value: number): number {
+  const finite = Number.isFinite(value) ? value : DEFAULT_SPECTRUM_CONFIG.radialRotation;
+  return ((finite % 360) + 360) % 360;
 }
 
 function isInterpolation(value: unknown): value is SpectrumInterpolation {

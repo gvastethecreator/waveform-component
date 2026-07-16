@@ -3,11 +3,11 @@ import type { CSSProperties, HTMLAttributes } from "react";
 import { renderCanvasSpectrum } from "../renderers/canvasSpectrum";
 import { syncCanvasSize } from "../renderers/canvas2d";
 import { resolveSpectrumConfig } from "../spectrumConfig";
-import type { CanvasSpectrumConfig, SpectrumFrame } from "../types";
+import type { CanvasSpectrumConfigInput, SpectrumFrame } from "../types";
 
 export interface SpectrumProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "color"> {
   readonly ariaLabel?: string;
-  readonly config?: Partial<CanvasSpectrumConfig>;
+  readonly config?: CanvasSpectrumConfigInput;
   readonly data: SpectrumFrame;
   readonly height?: number | string;
 }
@@ -63,6 +63,8 @@ export function Spectrum({
       <canvas
         ref={canvasRef}
         aria-label={`${ariaLabel}. ${binLabel}, ${data.sampleRate} Hz sample rate.`}
+        data-spectrum-color-mode={resolvedConfig.colorMode}
+        data-spectrum-layout={resolvedConfig.layout}
         data-spectrum-state={data.state}
         role="img"
       >
