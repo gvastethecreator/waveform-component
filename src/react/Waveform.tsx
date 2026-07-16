@@ -1,12 +1,13 @@
 import { useMemo } from "react";
 import type { HTMLAttributes } from "react";
 import { createStaticWaveformFrame } from "../core/staticFrame";
-import type { CanvasWaveformConfigInput, StaticWaveformInput, WaveformFrame } from "../types";
+import type { StaticWaveformInput, WaveformConfigInput, WaveformFrame } from "../types";
 import { TimeDomainCanvas } from "./TimeDomainCanvas";
+import { TimeDomainSvg } from "./TimeDomainSvg";
 
 export interface WaveformProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "color"> {
   readonly ariaLabel?: string;
-  readonly config?: CanvasWaveformConfigInput;
+  readonly config?: WaveformConfigInput;
   readonly data: StaticWaveformInput | WaveformFrame;
   readonly height?: number | string;
   readonly width?: number | string;
@@ -22,6 +23,10 @@ export function Waveform({
     () => (isWaveformFrame(data) ? data : createStaticWaveformFrame(data)),
     [data],
   );
+  if (config?.renderer === "svg")
+    return (
+      <TimeDomainSvg {...containerProps} ariaLabel={ariaLabel} config={config} frame={frame} />
+    );
   return (
     <TimeDomainCanvas {...containerProps} ariaLabel={ariaLabel} config={config} frame={frame} />
   );

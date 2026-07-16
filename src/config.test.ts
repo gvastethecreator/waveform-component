@@ -29,6 +29,7 @@ describe("resolveWaveformConfig", () => {
     const resolved = resolveWaveformConfig({ channelColors: colors });
     colors[0] = "#000000";
     expect(resolved.channelColors).toEqual(["#00ffff", "#ffff00"]);
+    expect(resolveWaveformConfig({ renderer: "svg" }).renderer).toBe("svg");
   });
 
   it("rejects invalid mode, placement, orientation, and incomplete selection", () => {

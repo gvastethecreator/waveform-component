@@ -160,10 +160,6 @@ export function SignalOverlay({
       ),
     [handles, markers],
   );
-  const lanes = useMemo(
-    () => new Map(collisionLayout.map((item) => [item.id, item.lane])),
-    [collisionLayout],
-  );
   const regionLayout = useMemo(
     () =>
       new Map(
@@ -172,6 +168,17 @@ export function SignalOverlay({
         ).map((item) => [item.id, item]),
       ),
     [regions],
+  );
+  const regionLaneCount = useMemo(
+    () =>
+      regionLayout.size === 0
+        ? 0
+        : Math.max(...Array.from(regionLayout.values(), (item) => item.lane)) + 1,
+    [regionLayout],
+  );
+  const lanes = useMemo(
+    () => new Map(collisionLayout.map((item) => [item.id, item.lane + regionLaneCount])),
+    [collisionLayout, regionLaneCount],
   );
 
   useEffect(() => () => onHoverChange?.(null), [onHoverChange]);
@@ -679,12 +686,14 @@ function markerControlStyle(
     return {
       ...common,
       left: 8 + lane * 28,
-      top: `calc(${position * 100}% - 12px)`,
+      top: `${position * 100}%`,
+      transform: `translateY(${-position * 100}%)`,
     };
   return {
     ...common,
-    left: `calc(${physical * 100}% - 12px)`,
+    left: `${physical * 100}%`,
     top: 8 + lane * 28,
+    transform: `translateX(${-physical * 100}%)`,
   };
 }
 
@@ -783,14 +792,36 @@ function handleStyle(
   };
   if (axis === "primary" && orientation === "horizontal") {
     const physical = direction === "rtl" ? 1 - position : position;
-    return { ...common, left: `calc(${physical * 100}% - ${size / 2}px)`, top: crossOffset };
+    return {
+      ...common,
+      left: `${physical * 100}%`,
+      top: crossOffset,
+      transform: `translateX(${-physical * 100}%)`,
+    };
   }
   if (axis === "primary")
-    return { ...common, left: crossOffset, top: `calc(${position * 100}% - ${size / 2}px)` };
-  if (orientation === "horizontal")
-    return { ...common, left: crossOffset, top: `calc(${(1 - position) * 100}% - ${size / 2}px)` };
+    return {
+      ...common,
+      left: crossOffset,
+      top: `${position * 100}%`,
+      transform: `translateY(${-position * 100}%)`,
+    };
+  if (orientation === "horizontal") {
+    const physical = 1 - position;
+    return {
+      ...common,
+      left: crossOffset,
+      top: `${physical * 100}%`,
+      transform: `translateY(${-physical * 100}%)`,
+    };
+  }
   const physical = direction === "rtl" ? 1 - position : position;
-  return { ...common, left: `calc(${physical * 100}% - ${size / 2}px)`, top: crossOffset };
+  return {
+    ...common,
+    left: `${physical * 100}%`,
+    top: crossOffset,
+    transform: `translateX(${-physical * 100}%)`,
+  };
 }
 
 function axisOrientation(axis: OverlayAxis, orientation: WaveformOrientation): WaveformOrientation {
@@ -823,7 +854,7 @@ const hoverStyle: CSSProperties = {
 
 const focusedButtonStyle: CSSProperties = {
   outline: "3px solid var(--waveform-overlay-focus, Highlight)",
-  outlineOffset: 2,
+  outlineOffset: -4,
 };
 
 const focusedHandleStyle: CSSProperties = {

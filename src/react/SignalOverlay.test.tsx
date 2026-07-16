@@ -151,6 +151,38 @@ describe("SignalOverlay", () => {
     const playhead = screen.getByRole("slider", { name: "Playhead" });
     fireEvent.focus(playhead);
     expect(playhead.style.outline).toContain("Highlight");
+    expect(playhead.style.outlineOffset).toBe("-4px");
+  });
+
+  it("keeps boundary marker and handle hit targets inside a clipped signal surface", () => {
+    render(
+      <SignalOverlay
+        handles={[
+          handle({ id: "minimum", label: "Minimum handle", value: 0 }),
+          handle({ id: "maximum", label: "Maximum handle", value: 1 }),
+        ]}
+        markers={[
+          { id: "start", label: "Start marker", position: 0 },
+          { id: "end", label: "End marker", position: 1 },
+        ]}
+      />,
+    );
+    for (const [name, left, transform] of [
+      ["Minimum handle", "0%", "translateX(0%)"],
+      ["Maximum handle", "100%", "translateX(-100%)"],
+    ]) {
+      const control = screen.getByRole("slider", { name });
+      expect(control.style.left).toBe(left);
+      expect(control.style.transform).toBe(transform);
+    }
+    for (const [name, left, transform] of [
+      ["Start marker", "0%", "translateX(0%)"],
+      ["End marker", "100%", "translateX(-100%)"],
+    ]) {
+      const control = screen.getByRole("button", { name });
+      expect(control.style.left).toBe(left);
+      expect(control.style.transform).toBe(transform);
+    }
   });
 
   it("formats logical hover inspection and clears host state on leave and unmount", () => {
@@ -214,6 +246,10 @@ describe("SignalOverlay", () => {
     );
     const region = screen.getByRole("button", { name: "Chorus loop" });
     const marker = screen.getByRole("button", { name: "Transient marker" });
+    expect(region).toHaveAttribute("data-overlay-lane", "0");
+    expect(marker).toHaveAttribute("data-overlay-lane", "1");
+    expect(region.style.top).toBe("8px");
+    expect(marker.style.top).toBe("36px");
     expect(region).toHaveAccessibleDescription("Range 30% to 70%. Selected.");
     expect(marker).toHaveAccessibleDescription("Transient at 40 percent. Position 40%.");
     fireEvent.click(region);

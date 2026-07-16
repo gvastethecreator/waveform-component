@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import App from "./App";
 
 describe("Signal Workbench tracer", () => {
@@ -12,7 +12,7 @@ describe("Signal Workbench tracer", () => {
       "aria-pressed",
       "true",
     );
-    expect(screen.getByText("Rendering engine").nextElementSibling).toHaveTextContent("Canvas 2D");
+    expect(screen.getByRole("combobox", { name: /Rendering engine/ })).toHaveValue("canvas2d");
 
     const amplitude = screen.getByRole("slider", { name: "Amplitude" });
     fireEvent.change(amplitude, { target: { value: "1.2" } });
@@ -96,7 +96,7 @@ describe("Signal Workbench tracer", () => {
     expect(screen.getByText("+6 dB")).toBeInTheDocument();
     expect(screen.getByText("2.00 bins")).toBeInTheDocument();
     expect(screen.getByText(/PEAK .* dBFS/)).toBeInTheDocument();
-    expect(screen.getByText(/PROCESSED · VISUAL ONLY/)).toBeInTheDocument();
+    expect(screen.getByText(/PROCESSED · CANVAS 2D/)).toBeInTheDocument();
   });
 
   it("keeps RMS, peak, continuous, and stepped meters as distinct public modes", async () => {
@@ -190,7 +190,7 @@ describe("Signal Workbench tracer", () => {
     await user.selectOptions(screen.getByRole("combobox", { name: /Orientation/ }), "vertical");
     await user.selectOptions(screen.getByRole("combobox", { name: /Sizing/ }), "fixed");
     expect(screen.getByRole("slider", { name: "Component width" })).toBeEnabled();
-    expect(screen.getByText("VERTICAL · FIXED")).toBeInTheDocument();
+    expect(screen.getByText(/CANVAS 2D · VERTICAL · FIXED/)).toBeInTheDocument();
     const amplitudeScale = container.querySelector(".signal-scale");
     expect(amplitudeScale).toHaveAttribute("data-orientation", "vertical");
     expect(
@@ -204,6 +204,44 @@ describe("Signal Workbench tracer", () => {
     expect(await screen.findByText("DEMO / READY")).toBeInTheDocument();
     expect(screen.getByText("owned")).toBeInTheDocument();
     expect(screen.getByText(/Epoch \d+/)).toBeInTheDocument();
+  });
+
+  it("switches Canvas and SVG live without replacing session or controlled overlay state", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<App />);
+    await screen.findByText("DEMO / READY");
+    const engine = screen.getByRole("combobox", { name: /Rendering engine/ });
+    const playheadControl = screen.getByRole("slider", { name: "Overlay playhead" });
+    fireEvent.change(playheadControl, { target: { value: "0.63" } });
+    const epoch = screen.getByText(/Epoch \d+/).textContent;
+
+    await user.selectOptions(engine, "svg");
+    const vector = screen.getByRole("img", {
+      name: /Broadcast deterministic waveform preview.*2 source channels/,
+    });
+    expect(vector.tagName).toBe("svg");
+    expect(vector).toHaveAttribute("data-renderer", "svg");
+    expect(container.querySelector(".signal-stage")).toHaveAttribute("data-renderer", "svg");
+    expect(screen.getByRole("slider", { name: "Playhead handle" })).toHaveAttribute(
+      "aria-valuenow",
+      "0.63",
+    );
+    expect(screen.getByText(epoch ?? "")).toBeInTheDocument();
+    expect(
+      screen.getByText(/SVG sampled .*canonical extrema|SVG samples time-domain/),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Spectrum" }));
+    expect(screen.getByRole("img", { name: /ordered spectrum preview/ }).tagName).toBe("svg");
+    expect(screen.getByText(/SVG samples spectrum geometry to 512 points/)).toBeInTheDocument();
+    const writeText = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue(undefined);
+    await user.click(screen.getByRole("button", { name: "Copy code" }));
+    expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining('renderer: "svg"'));
+
+    await user.selectOptions(engine, "canvas2d");
+    expect(screen.getByRole("img", { name: /ordered spectrum preview/ }).tagName).toBe("CANVAS");
+    await user.click(screen.getByRole("button", { name: "Reset" }));
+    expect(engine).toHaveValue("canvas2d");
   });
 
   it("keeps semantic seeking, regions, markers, and overlapping handles host-controlled", async () => {

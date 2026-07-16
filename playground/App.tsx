@@ -16,6 +16,7 @@ import {
   DEFAULT_METER_DYNAMICS_CONFIG,
   DEFAULT_ENVELOPE_CONFIG,
   DEFAULT_WAVEFORM_CONFIG,
+  CORE_RENDERER_CATALOG,
   Envelope,
   GUARDED_SPECTRUM_FFT_SIZE,
   METER_PRESETS,
@@ -40,6 +41,7 @@ import {
   createSpectrumDynamicsProcessor,
   createWaveformSession,
   getSpectrumControlAvailability,
+  getRendererSupport,
   normalizedToValue,
   resolveSpectrumAnalysisConfig,
   resolveMeterConfig,
@@ -50,9 +52,10 @@ import {
   resolveVisualSyncOffset,
   useWaveformSession,
   useMicrophoneSource,
-  type CanvasSpectrumConfigInput,
-  type CanvasMeterConfigInput,
-  type CanvasWaveformConfigInput,
+  type SpectrumConfigInput,
+  type MeterConfigInput,
+  type WaveformConfigInput,
+  type CoreRendererId,
   type EnvelopeAmplitudePlacement,
   type EnvelopeFrame,
   type RecordedAudioSource,
@@ -99,6 +102,7 @@ export default function App() {
   const [visualMode, setVisualMode] = useState<
     "envelope" | "meter" | "spectrum" | "stepped-meter" | "waveform"
   >("waveform");
+  const [renderer, setRenderer] = useState<CoreRendererId>("canvas2d");
   const [presetId, setPresetId] = useState<Preset["id"]>("broadcast");
   const [signalColor, setSignalColor] = useState<string>(PRESETS[0].color);
   const [sampleCount, setSampleCount] = useState(2048);
@@ -223,7 +227,7 @@ export default function App() {
     [preset.id, preset.phase, sampleCount],
   );
   const activeSource = microphoneSource ?? recordedSource ?? demoSource;
-  const timeDomainConfig = useMemo<CanvasWaveformConfigInput>(
+  const timeDomainConfig = useMemo<WaveformConfigInput>(
     () => ({
       amplitude,
       amplitudePlacement: visualMode === "envelope" ? envelopePlacement : waveformPlacement,
@@ -236,6 +240,7 @@ export default function App() {
       lineWidth,
       mode: visualMode === "envelope" ? "envelope" : "waveform",
       orientation,
+      renderer,
       showCenterLine,
     }),
     [
@@ -247,6 +252,7 @@ export default function App() {
       envelopePlacement,
       lineWidth,
       orientation,
+      renderer,
       showCenterLine,
       signalColor,
       visualMode,
@@ -328,7 +334,7 @@ export default function App() {
     offsetMs: microphoneSource ? visualSyncOffsetMs : 0,
     sourceEpoch: sessionSnapshot.epoch,
   });
-  const spectrumConfig = useMemo<CanvasSpectrumConfigInput>(
+  const spectrumConfig = useMemo<SpectrumConfigInput>(
     () => ({
       barGap,
       barWidth,
@@ -364,6 +370,7 @@ export default function App() {
       radialDeadzone,
       radialInvert,
       radialRotation,
+      renderer,
       roundedCaps,
       showGrid: showSpectrumGrid,
     }),
@@ -391,6 +398,7 @@ export default function App() {
       radialDeadzone,
       radialInvert,
       radialRotation,
+      renderer,
       roundedCaps,
       signalColor,
       showSpectrumGrid,
@@ -457,7 +465,7 @@ export default function App() {
     sessionSnapshot.epoch,
     sessionSnapshot.frame,
   ]);
-  const meterConfig = useMemo<CanvasMeterConfigInput>(
+  const meterConfig = useMemo<MeterConfigInput>(
     () => ({
       barWidth: meterBarWidth,
       channelGap: meterChannelGap,
@@ -485,6 +493,7 @@ export default function App() {
       radialInvert,
       radialRotation,
       reactThresholdDb: resolvedMeterDynamics.reactThresholdDb,
+      renderer,
       roundedCaps,
       showHistory: showMeterHistory,
       stepGap: meterStepGap,
@@ -519,6 +528,7 @@ export default function App() {
       radialRotation,
       resolvedMeterDynamics.peakThresholdDb,
       resolvedMeterDynamics.reactThresholdDb,
+      renderer,
       roundedCaps,
       showMeterHistory,
       signalColor,
@@ -529,6 +539,26 @@ export default function App() {
     () => resolveMeterConfig(meterConfig, meterPresentation.frame),
     [meterConfig, meterPresentation.frame],
   );
+  const rendererCapabilities = CORE_RENDERER_CATALOG[renderer];
+  const rendererSupport = getRendererSupport(renderer, {
+    channelCount: selectedChannelCount,
+    frameKind: isMeterMode
+      ? "meter"
+      : visualMode === "spectrum"
+        ? "spectrum"
+        : visualMode === "envelope"
+          ? "envelope"
+          : "waveform",
+    historyCount: isMeterMode ? meterPresentation.history.length : 0,
+    mode: visualMode,
+    pointCount:
+      visualMode === "spectrum"
+        ? spectrumFrame.bins.length
+        : (sessionSnapshot.frame?.sampleCount ?? 0),
+  });
+  const rendererStatusCopy = !rendererSupport.enabled
+    ? rendererSupport.reasons.join(" ")
+    : (rendererSupport.warnings[0] ?? rendererCapabilities.description);
   const isTimeOverlay = visualMode === "waveform" || visualMode === "envelope";
   const overlayOrientation = visualMode === "spectrum" ? "horizontal" : orientation;
   const radialOverlayUnavailable =
@@ -788,6 +818,7 @@ export default function App() {
 
   const reset = () => {
     setVisualMode("waveform");
+    setRenderer("canvas2d");
     setPresetId("broadcast");
     setSignalColor(PRESETS[0].color);
     setSampleCount(2048);
@@ -929,8 +960,11 @@ const result = meter.process(
         : visualMode === "envelope"
           ? `<Envelope\n  data={magnitudes}\n  ${timeDomainSizing === "fixed" ? `width={${fixedTimeDomainWidth}}\n  ` : ""}config={{\n    renderer: "canvas2d",\n    mode: "envelope",\n    channelMode: "${channelMode}",${channelMode === "single" ? `\n    channelIndex: ${channelIndex},` : ""}\n    channelLayout: "${channelLayout}",\n    channelGap: ${channelGap},\n    amplitudePlacement: "${envelopePlacement}",\n    orientation: "${orientation}",\n    amplitude: ${amplitude.toFixed(2)},\n    lineWidth: ${lineWidth.toFixed(1)},\n    color: "${signalColor}",\n    showCenterLine: ${showCenterLine}\n  }}\n/>`
           : `<Waveform\n  data={channels}\n  ${timeDomainSizing === "fixed" ? `width={${fixedTimeDomainWidth}}\n  ` : ""}config={{\n    renderer: "canvas2d",\n    mode: "waveform",\n    channelMode: "${channelMode}",${channelMode === "single" ? `\n    channelIndex: ${channelIndex},` : ""}\n    channelLayout: "${channelLayout}",\n    channelGap: ${channelGap},\n    amplitudePlacement: "${waveformPlacement}",\n    orientation: "${orientation}",\n    amplitude: ${amplitude.toFixed(2)},\n    lineWidth: ${lineWidth.toFixed(1)},\n    color: "${signalColor}",\n    showCenterLine: ${showCenterLine}\n  }}\n/>`;
+    const rendererCode = code.includes("renderer:")
+      ? code.replaceAll('renderer: "canvas2d"', `renderer: "${renderer}"`)
+      : code.replace("config={{", `config={{\n    renderer: "${renderer}",`);
     try {
-      await navigator.clipboard.writeText(code);
+      await navigator.clipboard.writeText(rendererCode);
       setCopyState("copied");
     } catch {
       setCopyState("failed");
@@ -1057,7 +1091,7 @@ const result = meter.process(
               </div>
               <div className="artifact-badges" aria-label="Active visualization">
                 <span>{visualMode.toUpperCase()}</span>
-                <span>CANVAS 2D</span>
+                <span>{rendererCapabilities.label.toUpperCase()}</span>
                 <span>
                   {visualMode === "spectrum"
                     ? `${spectrumLayout.toUpperCase()} · ${spectrumColorMode.toUpperCase()}`
@@ -1069,6 +1103,7 @@ const result = meter.process(
             </div>
             <div
               className="signal-stage"
+              data-renderer={renderer}
               data-dynamics-policy={spectrumPresentation.result?.policy ?? "unprocessed"}
               data-spectrum-color-mode={visualMode === "spectrum" ? spectrumColorMode : undefined}
               data-spectrum-layout={visualMode === "spectrum" ? spectrumLayout : undefined}
@@ -1335,10 +1370,10 @@ const result = meter.process(
               </span>
               <span>
                 {visualMode === "spectrum"
-                  ? `${spectrumPresentation.result?.policy.toUpperCase() ?? "UNPROCESSED"} · VISUAL ONLY · ${spectrumLayout.toUpperCase()}/${spectrumColorMode.toUpperCase()}`
+                  ? `${spectrumPresentation.result?.policy.toUpperCase() ?? "UNPROCESSED"} · ${rendererCapabilities.label.toUpperCase()} · ${spectrumLayout.toUpperCase()}/${spectrumColorMode.toUpperCase()}`
                   : isMeterMode
-                    ? `${resolvedMeterDynamics.attackMs}/${resolvedMeterDynamics.releaseMs} ms · ${meterLayout.toUpperCase()}/${meterColorMode.toUpperCase()}`
-                    : `${orientation.toUpperCase()} · ${timeDomainSizing.toUpperCase()}`}
+                    ? `${resolvedMeterDynamics.attackMs}/${resolvedMeterDynamics.releaseMs} ms · ${rendererCapabilities.label.toUpperCase()} · ${meterLayout.toUpperCase()}/${meterColorMode.toUpperCase()}`
+                    : `${rendererCapabilities.label.toUpperCase()} · ${orientation.toUpperCase()} · ${timeDomainSizing.toUpperCase()}`}
               </span>
             </div>
           </div>
@@ -1400,7 +1435,7 @@ const result = meter.process(
         <header className="inspector-header">
           <div>
             <span className="eyebrow">PLAYGROUND</span>
-            <h2>Signal 010</h2>
+            <h2>Signal 011</h2>
           </div>
           <span className="version-tag">v0.1 core</span>
         </header>
@@ -1520,7 +1555,19 @@ const result = meter.process(
                 Stepped meter
               </button>
             </div>
-            <StaticRow label="Rendering engine" value="Canvas 2D" />
+            <SelectControl
+              definition={{
+                description:
+                  "Switch the rendering adapter without replacing source or controlled editor state.",
+                label: "Rendering engine",
+                options: [
+                  { label: "Canvas 2D", value: "canvas2d" },
+                  { label: "SVG", value: "svg" },
+                ],
+              }}
+              value={renderer}
+              onChange={(value) => setRenderer(value as CoreRendererId)}
+            />
             <p
               className="control-note"
               id={recordedSource ? "time-domain-source-limit" : undefined}
@@ -1529,12 +1576,20 @@ const result = meter.process(
                 ? "Envelope, spectrum, and meters are disabled: this transport exposes bounded peaks, not raw PCM. Signed polarity remains in the player."
                 : "Mode and engine are separate public contracts."}
             </p>
+            <p
+              className="capability-note"
+              data-enabled={rendererSupport.enabled}
+              data-renderer-support={renderer}
+              role="status"
+            >
+              {rendererStatusCopy}
+            </p>
           </ControlSection>
 
           <ControlSection title="Overlays & interaction">
             <ToggleControl
               checked={showOverlays}
-              description="Semantic DOM regions, markers, inspection, and direct handles above Canvas."
+              description="Semantic DOM regions, markers, inspection, and direct handles above either visual renderer."
               disabled={Boolean(recordedSource)}
               disabledReason="Recorded playback already exposes its controlled transport slider; raw overlay data is unavailable."
               label="Semantic overlays"
@@ -2594,7 +2649,7 @@ const result = meter.process(
                 <ColorRoleControl
                   alpha={baseAlpha}
                   color={signalColor}
-                  description="Primary role; supplied to Canvas through --waveform-color-base."
+                  description="Primary role; inherited by both renderers through --waveform-color-base."
                   label="Base"
                   onAlpha={setBaseAlpha}
                   onColor={setSignalColor}
@@ -2809,8 +2864,20 @@ const result = meter.process(
                 </dd>
               </div>
               <div>
+                <dt>Renderer</dt>
+                <dd>{rendererCapabilities.label}</dd>
+              </div>
+              <div>
                 <dt>Resize</dt>
-                <dd>DPR aware</dd>
+                <dd>{renderer === "canvas2d" ? "DPR bitmap" : "responsive viewBox"}</dd>
+              </div>
+              <div>
+                <dt>Budget</dt>
+                <dd>
+                  {renderer === "canvas2d"
+                    ? "dense core"
+                    : `${rendererCapabilities.limits.maximumSpectrumPoints} points · ${rendererCapabilities.limits.maximumNodes} nodes`}
+                </dd>
               </div>
               <div>
                 <dt>Import</dt>

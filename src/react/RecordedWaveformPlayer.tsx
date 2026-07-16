@@ -2,7 +2,7 @@ import { useMemo, useState, useSyncExternalStore } from "react";
 import type { KeyboardEvent } from "react";
 import type { RecordedAudioSnapshot, RecordedAudioSource } from "../recorded/RecordedAudioSource";
 import type { WaveformSession } from "../session/types";
-import type { CanvasWaveformConfigInput, WaveformFrame } from "../types";
+import type { WaveformConfigInput, WaveformFrame } from "../types";
 import { SessionWaveform } from "./SessionWaveform";
 import type { SessionWaveformProps } from "./SessionWaveform";
 
@@ -10,7 +10,7 @@ export interface RecordedWaveformPlayerProps extends Omit<
   SessionWaveformProps,
   "config" | "session"
 > {
-  readonly config?: CanvasWaveformConfigInput;
+  readonly config?: WaveformConfigInput;
   readonly keyboardStep?: number;
   readonly session: WaveformSession<WaveformFrame>;
   readonly source: RecordedAudioSource;

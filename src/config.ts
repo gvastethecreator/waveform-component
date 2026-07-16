@@ -104,7 +104,7 @@ export function resolveWaveformConfig(
     padding: clampFinite(candidate.padding, 0, 160, defaults.padding),
     playbackProgress: clampFinite(candidate.playbackProgress, 0, 1, 0),
     playedColor: nonEmptyString(candidate.playedColor, defaults.playedColor),
-    renderer: "canvas2d" as const,
+    renderer: resolveRenderer(candidate.renderer),
     showCenterLine: Boolean(candidate.showCenterLine),
     ...selection,
   };
@@ -144,6 +144,10 @@ function resolveOrientation(value: unknown): WaveformOrientation {
     "INVALID_ORIENTATION",
     'orientation must be "horizontal" or "vertical".',
   );
+}
+
+function resolveRenderer(value: unknown): "canvas2d" | "svg" {
+  return value === "svg" ? "svg" : "canvas2d";
 }
 
 function resolveAmplitudePlacement(

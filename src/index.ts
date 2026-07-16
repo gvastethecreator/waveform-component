@@ -107,6 +107,35 @@ export { renderCanvasTimeDomain, renderCanvasWaveform, syncCanvasSize } from "./
 export { renderCanvasMeter } from "./renderers/canvasMeter";
 export { renderCanvasSpectrum } from "./renderers/canvasSpectrum";
 export type { CanvasSize } from "./renderers/canvas2d";
+export {
+  CANVAS2D_RENDERER_CAPABILITIES,
+  CORE_RENDERER_CATALOG,
+  SVG_RENDERER_CAPABILITIES,
+  getRendererSupport,
+} from "./renderers/capabilities";
+export type {
+  CoreRendererMode,
+  RendererCapabilities,
+  RendererLimits,
+  RendererSupport,
+  RendererSupportQuery,
+} from "./renderers/capabilities";
+export { renderSvgTimeDomain } from "./renderers/svgTimeDomain";
+export { renderSvgSpectrum } from "./renderers/svgSpectrum";
+export { renderSvgMeter } from "./renderers/svgMeter";
+export { SVG_RENDERER_ADAPTER, renderSvgFrame } from "./renderers/svg";
+export type { SvgRendererAdapter, SvgRenderRequest } from "./renderers/svg";
+export type {
+  SvgGradient,
+  SvgGradientStop,
+  SvgLinearGradient,
+  SvgNode,
+  SvgPathNode,
+  SvgRadialGradient,
+  SvgRectNode,
+  SvgRenderOptions,
+  SvgScene,
+} from "./renderers/svgTypes";
 export { Waveform } from "./react/Waveform";
 export type { WaveformProps } from "./react/Waveform";
 export { Envelope } from "./react/Envelope";
@@ -234,6 +263,9 @@ export type {
   CanvasWaveformConfigInput,
   CanvasWaveformModeConfig,
   EnergyBand,
+  CoreRendererId,
+  CoreVisualizationConfigInput,
+  CoreVisualizationConfig,
   EnvelopeAmplitudePlacement,
   EnvelopeFrame,
   MeterChannel,
@@ -244,6 +276,8 @@ export type {
   MeterGeometry,
   MeterHistoryPoint,
   MeterMeasurement,
+  MeterConfigInput,
+  MeterConfig,
   MeterRect,
   MeterSegment,
   SpectrumFrame,
@@ -261,6 +295,8 @@ export type {
   SpectrumRadialBar,
   SpectrumRadialPoint,
   SpectrumWindow,
+  SpectrumConfigInput,
+  SpectrumConfig,
   StaticWaveformInput,
   TimeDomainFrame,
   WaveformChannelInput,
@@ -275,4 +311,6 @@ export type {
   WaveformPeakLevel,
   WaveformPeakPyramid,
   WaveformViewport,
+  WaveformConfigInput,
+  WaveformConfig,
 } from "./types";

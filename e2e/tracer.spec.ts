@@ -15,9 +15,7 @@ test("renders and controls the public Canvas waveform path", async ({ page }) =>
     "aria-pressed",
     "true",
   );
-  await expect(
-    page.getByText("Rendering engine").locator("..").getByText("Canvas 2D"),
-  ).toBeVisible();
+  await expect(page.getByRole("combobox", { name: /Rendering engine/ })).toHaveValue("canvas2d");
 
   const amplitude = page.getByRole("slider", { name: /Amplitude/ });
   await amplitude.fill("1.2");
@@ -64,7 +62,7 @@ test("preserves stereo identity across layouts, envelope placement, and orientat
   await page.getByRole("combobox", { name: /Orientation/ }).selectOption("vertical");
   await page.getByRole("combobox", { name: /Sizing/ }).selectOption("fixed");
   await page.getByRole("slider", { name: "Component width" }).fill("480");
-  await expect(page.getByText("VERTICAL · FIXED")).toBeVisible();
+  await expect(page.getByText(/CANVAS 2D · VERTICAL · FIXED/)).toBeVisible();
   await expect(envelope).not.toHaveAttribute("data-render-error");
   const verticalEnvelope = await stage.screenshot();
   expect(overlay.equals(verticalEnvelope)).toBe(false);
@@ -362,6 +360,211 @@ test("explains a corrupt local file and recovers with a replacement", async ({ p
   await expect(page.getByRole("region", { name: "replacement.wav player" })).toBeVisible();
 });
 
+test("switches Canvas and SVG through one frame/config/session contract", async ({ page }) => {
+  test.setTimeout(120_000);
+  const browserErrors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") browserErrors.push(`console: ${message.text()}`);
+  });
+  page.on("pageerror", (error) => browserErrors.push(`pageerror: ${error.message}`));
+  await page.addInitScript(() => {
+    const NativeResizeObserver = window.ResizeObserver;
+    const stats = { active: 0, created: 0, disconnected: 0 };
+    class CountingResizeObserver extends NativeResizeObserver {
+      private released = false;
+
+      constructor(callback: ResizeObserverCallback) {
+        super(callback);
+        stats.active += 1;
+        stats.created += 1;
+      }
+
+      override disconnect() {
+        if (!this.released) {
+          this.released = true;
+          stats.active -= 1;
+          stats.disconnected += 1;
+        }
+        super.disconnect();
+      }
+    }
+    Object.defineProperty(window, "ResizeObserver", {
+      configurable: true,
+      value: CountingResizeObserver,
+    });
+    Reflect.set(window, "__rendererObserverStats", stats);
+  });
+
+  const evidence = process.env.CAPTURE_SVG_EVIDENCE ? ".scratch/evidence/011-svg-renderer" : null;
+  if (evidence) await mkdir(evidence, { recursive: true });
+  await page.goto("/", { timeout: 60_000, waitUntil: "domcontentloaded" });
+  await expect(page.getByLabel("Signal status")).toContainText("DEMO / READY");
+
+  const stage = page.locator(".signal-stage");
+  const engine = page.getByRole("combobox", { name: /Rendering engine/ });
+  const observerBaseline = await rendererObserverStat(page, "active");
+  expect(observerBaseline).toBeGreaterThan(0);
+  const epoch = await page.getByText(/Epoch \d+/).textContent();
+  await page.getByRole("slider", { name: "Overlay playhead", exact: true }).fill("0.63");
+  const canvasWaveform = await stage.screenshot();
+  if (evidence) await stage.screenshot({ path: `${evidence}/canvas-waveform.png` });
+
+  await engine.selectOption("svg");
+  await expect(stage).toHaveAttribute("data-renderer", "svg");
+  const svgWaveform = page.getByRole("img", {
+    name: /Broadcast deterministic waveform preview.*2 source channels/,
+  });
+  await expect(svgWaveform).toHaveAttribute("data-renderer", "svg");
+  await expect(svgWaveform).toHaveAttribute("data-svg-render-status", "ready");
+  await expect(page.getByRole("slider", { name: "Playhead handle" })).toHaveAttribute(
+    "aria-valuenow",
+    "0.63",
+  );
+  await expect(page.getByText(epoch ?? "Epoch 1")).toBeVisible();
+  await expect.poll(() => rendererObserverStat(page, "active")).toBe(observerBaseline);
+  const vectorWaveform = await stage.screenshot();
+  expect(canvasWaveform.equals(vectorWaveform)).toBe(false);
+  if (evidence) await stage.screenshot({ path: `${evidence}/svg-waveform.png` });
+
+  await page.getByRole("button", { name: "Spectrum" }).click();
+  await page.getByRole("combobox", { name: /^Layout/ }).selectOption("radial");
+  await page.getByRole("combobox", { name: /Color mode/ }).selectOption("gradient");
+  const svgSpectrum = page.getByRole("img", { name: /Broadcast ordered spectrum preview/ });
+  await expect(svgSpectrum).toHaveAttribute("data-svg-render-status", "ready");
+  await expect(page.getByText(/SVG samples spectrum geometry to 512 points/)).toBeVisible();
+  const firstGradientId = await svgSpectrum.locator("radialGradient").getAttribute("id");
+  expect(firstGradientId).toBeTruthy();
+  await page.getByRole("slider", { name: "Rotation" }).fill("315");
+  await expect(svgSpectrum.locator("radialGradient")).toHaveAttribute("id", firstGradientId ?? "");
+  const svgIntegrity = await svgSpectrum.evaluate((svg) => {
+    const ids = [...svg.querySelectorAll("[id]")].map((node) => node.id);
+    const references = [...svg.querySelectorAll("[fill^='url'], [stroke^='url']")]
+      .flatMap((node) => [node.getAttribute("fill"), node.getAttribute("stroke")])
+      .filter((value): value is string => Boolean(value?.startsWith("url(#")))
+      .map((value) => value.slice(5, -1));
+    return {
+      ids,
+      nodeCount: Number(svg.getAttribute("data-svg-node-count")),
+      references,
+    };
+  });
+  expect(new Set(svgIntegrity.ids).size).toBe(svgIntegrity.ids.length);
+  expect(svgIntegrity.references.every((reference) => svgIntegrity.ids.includes(reference))).toBe(
+    true,
+  );
+  expect(svgIntegrity.nodeCount).toBeLessThanOrEqual(4096);
+  if (evidence) await stage.screenshot({ path: `${evidence}/svg-spectrum-radial.png` });
+
+  await page.getByRole("button", { name: "Stepped meter" }).click();
+  await page.getByRole("combobox", { name: /Meter layout/ }).selectOption("radial");
+  const svgMeter = page.getByRole("img", { name: /stepped-meter preview.*RMS display/i });
+  await expect(svgMeter).toHaveAttribute("data-svg-render-status", "ready");
+  expect(Number(await svgMeter.getAttribute("data-svg-node-count"))).toBeLessThanOrEqual(4096);
+  if (evidence) await stage.screenshot({ path: `${evidence}/svg-meter-radial.png` });
+
+  await engine.selectOption("canvas2d");
+  await expect(
+    page.getByRole("img", { name: /stepped-meter preview.*RMS display/i }),
+  ).toHaveJSProperty("tagName", "CANVAS");
+  await expect(page.getByText(epoch ?? "Epoch 1")).toBeVisible();
+  await expect.poll(() => rendererObserverStat(page, "active")).toBe(observerBaseline);
+
+  await page.getByLabel("Load local audio").setInputFiles({
+    buffer: createWavFixture(),
+    mimeType: "audio/wav",
+    name: "renderer-state.wav",
+  });
+  await expect(page.getByLabel("Signal status")).toContainText("RECORDED-AUDIO / READY");
+  const seek = page.getByRole("slider", { name: "Seek renderer-state.wav" });
+  await seek.fill("0.4");
+  await expect(seek).toHaveValue("0.4");
+  await engine.selectOption("svg");
+  await expect(page.getByRole("region", { name: "renderer-state.wav player" })).toBeVisible();
+  await expect(seek).toHaveValue("0.4");
+  await expect(
+    page.getByRole("img", { name: /renderer-state.wav local waveform preview/ }),
+  ).toHaveAttribute("data-renderer", "svg");
+  await expect.poll(() => rendererObserverStat(page, "active")).toBe(observerBaseline);
+  expect(browserErrors).toEqual([]);
+
+  if (evidence) {
+    await stage.screenshot({ path: `${evidence}/svg-recorded-state.png` });
+    await writeFile(
+      `${evidence}/browser-report.json`,
+      `${JSON.stringify(
+        {
+          browserErrors,
+          observerBaseline,
+          observerStats: await page.evaluate(() => Reflect.get(window, "__rendererObserverStats")),
+          svgIntegrity,
+        },
+        null,
+        2,
+      )}\n`,
+    );
+  }
+});
+
+test("keeps SVG responsive, theme-aware, reduced-motion static, and forced-color legible", async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  const browserErrors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") browserErrors.push(`console: ${message.text()}`);
+  });
+  page.on("pageerror", (error) => browserErrors.push(`pageerror: ${error.message}`));
+  const evidence = process.env.CAPTURE_SVG_EVIDENCE ? ".scratch/evidence/011-svg-renderer" : null;
+  if (evidence) await mkdir(evidence, { recursive: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await expect(page.getByLabel("Signal status")).toContainText("DEMO / READY");
+  await page.getByRole("combobox", { name: /Rendering engine/ }).selectOption("svg");
+
+  const stage = page.locator(".signal-stage");
+  const waveform = page.getByRole("img", { name: /Broadcast deterministic waveform preview/ });
+  await expect(waveform).toHaveAttribute("data-svg-render-status", "ready");
+  const seek = page.getByRole("slider", { name: "Seek deterministic signal", exact: true });
+  await seek.focus();
+  await seek.press("ArrowRight");
+  await expect(seek).toHaveAttribute("aria-valuenow", "0.33");
+
+  await page.getByRole("button", { name: "Spectrum" }).click();
+  await page.getByRole("combobox", { name: /Color mode/ }).selectOption("gradient");
+  const spectrum = page.getByRole("img", { name: /Broadcast ordered spectrum preview/ });
+  const firstViewBox = await spectrum.getAttribute("viewBox");
+  const themedBefore = await stage.screenshot();
+  await page.evaluate(() => {
+    document.documentElement.style.setProperty("--waveform-color-base", "#ff2f92");
+    document.documentElement.style.setProperty("--waveform-color-crest", "#35ff79");
+  });
+  const themedAfter = await stage.screenshot();
+  expect(themedBefore.equals(themedAfter)).toBe(false);
+  if (evidence) await stage.screenshot({ path: `${evidence}/svg-narrow-theme.png` });
+
+  await page.emulateMedia({ forcedColors: "active", reducedMotion: "reduce" });
+  await expect
+    .poll(() =>
+      spectrum.evaluate((svg) =>
+        [...svg.querySelectorAll("rect")].some((node) => node.getAttribute("fill") === "Canvas"),
+      ),
+    )
+    .toBe(true);
+  expect(
+    await spectrum.evaluate(
+      (svg) => svg.querySelectorAll("animate, animateMotion, animateTransform").length,
+    ),
+  ).toBe(0);
+  await page.setViewportSize({ width: 320, height: 780 });
+  await expect.poll(() => spectrum.getAttribute("viewBox")).not.toBe(firstViewBox);
+  const horizontalOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - window.innerWidth,
+  );
+  expect(horizontalOverflow).toBeLessThanOrEqual(0);
+  if (evidence) await stage.screenshot({ path: `${evidence}/svg-narrow-forced-colors.png` });
+  expect(browserErrors).toEqual([]);
+});
+
 test("renders ordered spectrum controls through the public Canvas path", async ({ page }) => {
   test.setTimeout(60_000);
   await page.goto("/", { waitUntil: "domcontentloaded" });
@@ -545,7 +748,7 @@ test("renders radial geometry and every reactive color role through Canvas", asy
   const range = await stage.screenshot();
   expect(pulse.equals(range)).toBe(false);
   await expect(spectrum).toHaveAttribute("data-spectrum-color-mode", "range");
-  await expect(page.getByText(/PROCESSED · VISUAL ONLY · RADIAL\/RANGE/)).toBeVisible();
+  await expect(page.getByText(/PROCESSED · CANVAS 2D · RADIAL\/RANGE/)).toBeVisible();
 
   const horizontalOverflow = await page.evaluate(
     () => document.documentElement.scrollWidth - window.innerWidth,
@@ -574,7 +777,7 @@ test("applies spectrum normalization and filtering through the public dynamics s
   await page.getByRole("slider", { name: "Roll-off attenuation" }).fill("18");
 
   await expect(page.getByText(/PEAK .* dBFS/)).toBeVisible();
-  await expect(page.getByText("PROCESSED · VISUAL ONLY")).toBeVisible();
+  await expect(page.getByText(/PROCESSED · CANVAS 2D/)).toBeVisible();
   const after = await spectrum.screenshot();
   expect(before.equals(after)).toBe(false);
 });
@@ -743,6 +946,10 @@ async function installMicrophoneMock(page: Page, mode: "denied" | "live") {
 
 async function microphoneStat(page: Page, key: "closes" | "requests" | "stops") {
   return page.evaluate((property) => Reflect.get(window, "__waveformMicMock")[property], key);
+}
+
+async function rendererObserverStat(page: Page, key: "active" | "created" | "disconnected") {
+  return page.evaluate((property) => Reflect.get(window, "__rendererObserverStats")[property], key);
 }
 
 function createWavFixture(): Buffer {

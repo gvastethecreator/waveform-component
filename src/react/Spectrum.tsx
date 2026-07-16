@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { CSSProperties, HTMLAttributes } from "react";
 import { renderCanvasSpectrum } from "../renderers/canvasSpectrum";
+import { renderSvgSpectrum } from "../renderers/svgSpectrum";
 import { syncCanvasSize } from "../renderers/canvas2d";
 import { resolveSpectrumConfig } from "../spectrumConfig";
-import type { CanvasSpectrumConfigInput, SpectrumFrame } from "../types";
+import type { SpectrumConfigInput, SpectrumFrame } from "../types";
+import { SvgSurface } from "./SvgSurface";
 
 export interface SpectrumProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "color"> {
   readonly ariaLabel?: string;
-  readonly config?: CanvasSpectrumConfigInput;
+  readonly config?: SpectrumConfigInput;
   readonly data: SpectrumFrame;
   readonly height?: number | string;
 }
@@ -58,11 +60,33 @@ export function Spectrum({
     ...style,
   };
   const binLabel = `${data.bins.length} ordered ${data.bins.length === 1 ? "bin" : "bins"}`;
+  const svgLabel = `${ariaLabel}. ${binLabel}, ${data.sampleRate} Hz sample rate.`;
+  const buildSvgScene = useCallback(
+    (
+      viewport: Parameters<typeof renderSvgSpectrum>[1],
+      options: Parameters<typeof renderSvgSpectrum>[3],
+    ) => renderSvgSpectrum(data, viewport, resolvedConfig, options),
+    [data, resolvedConfig],
+  );
+  if (config?.renderer === "svg")
+    return (
+      <SvgSurface
+        {...containerProps}
+        ariaLabel={svgLabel}
+        buildScene={buildSvgScene}
+        className={className}
+        data-spectrum-color-mode={resolvedConfig.colorMode}
+        data-spectrum-layout={resolvedConfig.layout}
+        data-spectrum-state={data.state}
+        height={height}
+        style={style}
+      />
+    );
   return (
     <div {...containerProps} className={className} style={containerStyle}>
       <canvas
         ref={canvasRef}
-        aria-label={`${ariaLabel}. ${binLabel}, ${data.sampleRate} Hz sample rate.`}
+        aria-label={svgLabel}
         data-spectrum-color-mode={resolvedConfig.colorMode}
         data-spectrum-layout={resolvedConfig.layout}
         data-spectrum-state={data.state}

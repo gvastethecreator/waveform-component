@@ -13,7 +13,7 @@ The package has no browser side effects at module scope. Rendering and media wor
 - `createStaticWaveformFrame` copies and validates caller data so later mutations cannot change a published frame.
 - `selectTimeDomainChannels` keeps source/stereo/single identity or performs a documented finite mono average before layout.
 - `buildTimeDomainSegments` is pure orientation-neutral geometry. It bins extrema per primary-axis pixel, retains source/display channel indices, applies only valid waveform/envelope amplitude placement, and lays out stacked/split/overlay channels without reading DOM or Canvas state.
-- `CanvasWaveformConfig` is discriminated by data mode and channel selection. Runtime frame-count/layout constraints raise `WaveformConfigError`; the React layer surfaces that structured failure without unmounting the semantic canvas.
+- `WaveformConfigInput` is discriminated by data mode and channel selection; its renderer is an orthogonal `canvas2d | svg` choice. Runtime frame-count/layout constraints raise `WaveformConfigError`; either React adapter surfaces that structured failure without replacing source/session state.
 - `renderCanvasTimeDomain` consumes a canonical frame/config/viewport, groups overlay strokes by channel color, and splits playback by normalized progress in either orientation.
 - Spectrum geometry keeps rectangular and polar coordinates pure. Full arcs close without duplicating radial bars; partial arcs include both frequency endpoints; deadzone/inversion never alter ordered-bin meaning.
 - The spectrum color grammar is renderer-independent at its decision seam: thresholds select named roles, pulse mapping produces a bounded factor, and Canvas resolves typed alpha/CSS variables only at the drawing boundary.
@@ -22,7 +22,8 @@ The package has no browser side effects at module scope. Rendering and media wor
 - Meter history is bounded twice: analysis capacity is derived from duration/interval under a 16,384-entry hard ceiling, while Canvas samples at most 64 compatible ghosts per draw. Geometry stays pure across continuous/stepped, rectangular/radial, mono/stereo, resize, and degenerate viewports.
 - `SignalOverlay` is a renderer-independent semantic layer above a positioned signal surface. A normalized coordinate seam maps pointer/touch and orientation-aware keyboard input, including LTR/RTL and explicitly reversed axes; React renders controlled seek, region, marker, and slider semantics while the host remains the only state authority. Handle coordinate domains are separate from their currently allowed ranges, so paired handles stay visually tethered while preventing crossings. Region fills are non-interactive while intersecting region controls, markers, and handles receive deterministic lanes and independent tab stops; canceled pointer gestures restore the pre-drag value.
 - `syncCanvasSize` assigns the backing-store dimensions and an absolute DPR transform, avoiding cumulative scale.
-- `Waveform` and `Envelope` are React convenience interfaces over one internal Canvas lifecycle. They create static frames when needed, observe fixed or responsive containers, and draw only after mount.
+- `Waveform` and `Envelope` are React convenience interfaces over one shared frame/config seam. Canvas owns DPR bitmap synchronization; SVG owns a responsive viewBox and immutable shape scene. Both observe only their mounted surface and release the observer on adapter change.
+- `CORE_RENDERER_CATALOG` is the source of truth for Canvas/SVG modes, shared semantic overlays, and practical budgets. SVG composes the same pure time-domain, spectrum, meter, and color decisions into stable-key scene descriptors; its React boundary assigns instance-unique gradient IDs and exposes every sampling or unsupported result. It never creates a renderer-specific source, clock, playback store, or editor interaction contract.
 
 ## Planned seams
 
@@ -42,7 +43,7 @@ Visual synchronization is also outside the renderer. Capability resolution rejec
 
 Meter analysis follows the same channel-selection seam as time-domain geometry. `analyzeMeterWindows` creates explicit measurement windows; `createMeterDynamicsProcessor` owns response and history; pure meter geometry maps configured dBFS to lanes, segments, or concentric arcs; Canvas owns only drawing and CSS/system-color resolution. The public capability catalog describes when stepped, radial, history, channel, and color controls apply.
 
-Later tickets add SVG/DOM/WebGL2 adapters, original clean-room VFX, and standalone code export without changing the dependency direction established here. Those renderers consume the same overlay coordinate/value contract instead of duplicating editor interaction inside SVG, DOM, or GPU code.
+Later tickets add DOM/WebGL2 adapters, original clean-room VFX, and standalone code export without changing the dependency direction established here. Those renderers consume the same overlay coordinate/value contract instead of duplicating editor interaction inside DOM or GPU code.
 
 ## Provenance
 

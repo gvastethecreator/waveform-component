@@ -46,6 +46,7 @@ export type SpectrumGeometry = "curve" | "bars";
 export type SpectrumLayout = "radial" | "rectangular";
 export type SpectrumColorMode = "gradient" | "line" | "pulse" | "range" | "solid";
 export type SpectrumPulseMode = "peak-frequency" | "peak-magnitude";
+export type CoreRendererId = "canvas2d" | "svg";
 
 export interface CanvasColorRole {
   readonly alpha: number;
@@ -72,7 +73,7 @@ export interface SpectrumAnalysisConfig {
 }
 
 export interface CanvasSpectrumConfig {
-  readonly renderer: "canvas2d";
+  readonly renderer: CoreRendererId;
   readonly mode: "spectrum";
   readonly backgroundColor: string;
   readonly barGap: number;
@@ -106,8 +107,9 @@ export interface CanvasSpectrumConfig {
 
 export interface CanvasSpectrumConfigInput extends Omit<
   Partial<CanvasSpectrumConfig>,
-  "colorRoles"
+  "colorRoles" | "renderer"
 > {
+  readonly renderer?: CoreRendererId;
   readonly colorRoles?: Partial<{
     readonly [Role in keyof SpectrumColorRoles]: Partial<SpectrumColorRole>;
   }>;
@@ -147,7 +149,7 @@ export type MeterGeometry = "meter" | "stepped-meter";
 export type MeterColorMode = "gradient" | "range" | "solid";
 
 export interface CanvasMeterConfig {
-  readonly renderer: "canvas2d";
+  readonly renderer: CoreRendererId;
   readonly mode: MeterGeometry;
   readonly backgroundColor: string;
   readonly barWidth: number;
@@ -178,7 +180,11 @@ export interface CanvasMeterConfig {
   readonly trackColor: string;
 }
 
-export interface CanvasMeterConfigInput extends Omit<Partial<CanvasMeterConfig>, "colorRoles"> {
+export interface CanvasMeterConfigInput extends Omit<
+  Partial<CanvasMeterConfig>,
+  "colorRoles" | "renderer"
+> {
+  readonly renderer?: CoreRendererId;
   readonly colorRoles?: Partial<{
     readonly [Role in keyof CanvasColorRoles]: Partial<CanvasColorRole>;
   }>;
@@ -243,7 +249,7 @@ export type WaveformAmplitudePlacement = "centered" | "negative-only" | "positiv
 export type EnvelopeAmplitudePlacement = "baseline" | "mirrored";
 
 interface CanvasTimeDomainBaseConfig {
-  readonly renderer: "canvas2d";
+  readonly renderer: CoreRendererId;
   readonly amplitude: number;
   readonly backgroundColor: string;
   readonly centerLineColor: string;
@@ -259,12 +265,23 @@ interface CanvasTimeDomainBaseConfig {
   readonly showCenterLine: boolean;
 }
 
-export interface CanvasWaveformConfigInput extends Partial<CanvasTimeDomainBaseConfig> {
+export interface CanvasWaveformConfigInput extends Partial<
+  Omit<CanvasTimeDomainBaseConfig, "renderer">
+> {
   readonly amplitudePlacement?: EnvelopeAmplitudePlacement | WaveformAmplitudePlacement;
   readonly channelIndex?: number;
   readonly channelMode?: WaveformChannelMode;
   readonly mode?: "envelope" | "waveform";
+  readonly renderer?: CoreRendererId;
 }
+
+export type WaveformConfigInput = CanvasWaveformConfigInput;
+export type SpectrumConfigInput = CanvasSpectrumConfigInput;
+export type MeterConfigInput = CanvasMeterConfigInput;
+export type CoreVisualizationConfigInput =
+  | WaveformConfigInput
+  | SpectrumConfigInput
+  | MeterConfigInput;
 
 export interface CanvasWaveformModeConfig extends CanvasTimeDomainBaseConfig {
   readonly amplitudePlacement: WaveformAmplitudePlacement;
@@ -284,6 +301,11 @@ export type WaveformChannelSelection =
 
 export type CanvasWaveformConfig = (CanvasEnvelopeModeConfig | CanvasWaveformModeConfig) &
   WaveformChannelSelection;
+
+export type WaveformConfig = CanvasWaveformConfig;
+export type SpectrumConfig = CanvasSpectrumConfig;
+export type MeterConfig = CanvasMeterConfig;
+export type CoreVisualizationConfig = CanvasVisualizationConfig;
 
 export interface WaveformPeakChannel {
   readonly maximums: Float32Array;

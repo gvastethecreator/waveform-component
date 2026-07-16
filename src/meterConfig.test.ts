@@ -41,5 +41,6 @@ describe("meter config", () => {
       stepGap: 0,
     });
     expect(resolved.colorRoles.base).toEqual({ alpha: 1, color: "#fff" });
+    expect(resolveMeterConfig({ renderer: "svg" }).renderer).toBe("svg");
   });
 });

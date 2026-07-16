@@ -84,5 +84,6 @@ describe("spectrum config", () => {
       base: { alpha: 0, color: "#123456" },
     });
     expect(Object.isFrozen(config.colorRoles)).toBe(true);
+    expect(resolveSpectrumConfig({ renderer: "svg" }).renderer).toBe("svg");
   });
 });

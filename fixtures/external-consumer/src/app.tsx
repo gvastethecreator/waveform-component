@@ -2,6 +2,8 @@ import {
   Envelope,
   Meter,
   SignalOverlay,
+  SVG_RENDERER_CAPABILITIES,
+  SVG_RENDERER_ADAPTER,
   SessionWaveform,
   Spectrum,
   RecordedWaveformPlayer,
@@ -16,6 +18,8 @@ import {
   createStaticWaveformFrame,
   createStaticWaveformSource,
   createWaveformSession,
+  renderSvgMeter,
+  renderSvgSpectrum,
   useMicrophoneSource,
   type MicrophoneSource,
   type WaveformFrame,
@@ -49,6 +53,24 @@ const responsiveSpectrum = dynamics.process(
 );
 const session = createWaveformSession<WaveformFrame>();
 void session.attach(createStaticWaveformSource(samples, { id: "external-static" }));
+const svgTimeScene = SVG_RENDERER_ADAPTER.render(
+  { config: { renderer: "svg" }, frame },
+  { height: 180, width: 640 },
+  { idPrefix: "external-time" },
+);
+const svgSpectrumScene = renderSvgSpectrum(
+  responsiveSpectrum.frame,
+  { height: 180, width: 640 },
+  { renderer: "svg" },
+  { idPrefix: "external-spectrum" },
+);
+const svgMeterScene = renderSvgMeter(
+  meter.frame,
+  { height: 180, width: 640 },
+  { renderer: "svg" },
+  meter.history,
+  { idPrefix: "external-meter" },
+);
 
 export function ExternalConsumerExample() {
   return (
@@ -62,6 +84,28 @@ export function ExternalConsumerExample() {
 
 export function SharedSessionExample() {
   return <SessionWaveform ariaLabel="Shared external session" session={session} />;
+}
+
+export function SvgConsumerExample() {
+  return (
+    <section
+      data-svg-budget={SVG_RENDERER_CAPABILITIES.limits.maximumNodes}
+      data-svg-scenes={`${svgTimeScene.status}/${svgSpectrumScene.status}/${svgMeterScene.status}`}
+    >
+      <Waveform ariaLabel="External SVG waveform" data={frame} config={{ renderer: "svg" }} />
+      <Spectrum
+        ariaLabel="External SVG spectrum"
+        data={responsiveSpectrum.frame}
+        config={{ renderer: "svg" }}
+      />
+      <Meter
+        ariaLabel="External SVG meter"
+        data={meter.frame}
+        history={meter.history}
+        config={{ renderer: "svg" }}
+      />
+    </section>
+  );
 }
 
 export function EnvelopeConsumerExample() {

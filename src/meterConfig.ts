@@ -82,7 +82,7 @@ export function resolveMeterConfig(
     Math.max(range.minimum, -12),
   );
   return Object.freeze({
-    renderer: "canvas2d",
+    renderer: candidate.renderer === "svg" ? "svg" : "canvas2d",
     mode: isGeometry(candidate.mode) ? candidate.mode : DEFAULT_METER_CONFIG.mode,
     backgroundColor: candidate.backgroundColor || DEFAULT_METER_CONFIG.backgroundColor,
     barWidth: clampFinite(candidate.barWidth, 1, 128, DEFAULT_METER_CONFIG.barWidth),

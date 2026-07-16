@@ -1,12 +1,13 @@
 import { useMemo } from "react";
 import type { HTMLAttributes } from "react";
 import { createStaticEnvelopeFrame } from "../core/staticFrame";
-import type { CanvasWaveformConfigInput, EnvelopeFrame, StaticWaveformInput } from "../types";
+import type { EnvelopeFrame, StaticWaveformInput, WaveformConfigInput } from "../types";
 import { TimeDomainCanvas } from "./TimeDomainCanvas";
+import { TimeDomainSvg } from "./TimeDomainSvg";
 
 export interface EnvelopeProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "color"> {
   readonly ariaLabel?: string;
-  readonly config?: CanvasWaveformConfigInput;
+  readonly config?: WaveformConfigInput;
   readonly data: EnvelopeFrame | StaticWaveformInput;
   readonly height?: number | string;
   readonly width?: number | string;
@@ -22,6 +23,10 @@ export function Envelope({
     () => (isEnvelopeFrame(data) ? data : createStaticEnvelopeFrame(data)),
     [data],
   );
+  if (config?.renderer === "svg")
+    return (
+      <TimeDomainSvg {...containerProps} ariaLabel={ariaLabel} config={config} frame={frame} />
+    );
   return (
     <TimeDomainCanvas {...containerProps} ariaLabel={ariaLabel} config={config} frame={frame} />
   );

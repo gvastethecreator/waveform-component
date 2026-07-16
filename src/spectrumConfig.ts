@@ -114,7 +114,7 @@ export function resolveSpectrumConfig(
   );
   const colorRoles = resolveColorRoles(config, candidate.color || DEFAULT_SPECTRUM_CONFIG.color);
   return Object.freeze({
-    renderer: "canvas2d",
+    renderer: candidate.renderer === "svg" ? "svg" : "canvas2d",
     mode: "spectrum",
     backgroundColor: candidate.backgroundColor || DEFAULT_SPECTRUM_CONFIG.backgroundColor,
     barGap: clampFinite(candidate.barGap, 0, 32, DEFAULT_SPECTRUM_CONFIG.barGap),

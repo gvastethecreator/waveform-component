@@ -2,12 +2,14 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { CSSProperties, HTMLAttributes } from "react";
 import { resolveMeterConfig } from "../meterConfig";
 import { renderCanvasMeter } from "../renderers/canvasMeter";
+import { renderSvgMeter } from "../renderers/svgMeter";
 import { syncCanvasSize } from "../renderers/canvas2d";
-import type { CanvasMeterConfigInput, MeterFrame, MeterHistoryPoint } from "../types";
+import type { MeterConfigInput, MeterFrame, MeterHistoryPoint } from "../types";
+import { SvgSurface } from "./SvgSurface";
 
 export interface MeterProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "color"> {
   readonly ariaLabel?: string;
-  readonly config?: CanvasMeterConfigInput;
+  readonly config?: MeterConfigInput;
   readonly data: MeterFrame;
   readonly height?: number | string;
   readonly history?: readonly MeterHistoryPoint[];
@@ -60,11 +62,34 @@ export function Meter({
     width: "100%",
     ...style,
   };
+  const label = meterAriaLabel(ariaLabel, data, resolvedConfig.measurement);
+  const buildSvgScene = useCallback(
+    (
+      viewport: Parameters<typeof renderSvgMeter>[1],
+      options: Parameters<typeof renderSvgMeter>[4],
+    ) => renderSvgMeter(data, viewport, resolvedConfig, history, options),
+    [data, history, resolvedConfig],
+  );
+  if (config?.renderer === "svg")
+    return (
+      <SvgSurface
+        {...containerProps}
+        ariaLabel={label}
+        buildScene={buildSvgScene}
+        className={className}
+        data-meter-layout={resolvedConfig.layout}
+        data-meter-measurement={resolvedConfig.measurement}
+        data-meter-mode={resolvedConfig.mode}
+        data-meter-state={data.state}
+        height={height}
+        style={style}
+      />
+    );
   return (
     <div {...containerProps} className={className} style={containerStyle}>
       <canvas
         ref={canvasRef}
-        aria-label={meterAriaLabel(ariaLabel, data, resolvedConfig.measurement)}
+        aria-label={label}
         data-meter-layout={resolvedConfig.layout}
         data-meter-measurement={resolvedConfig.measurement}
         data-meter-mode={resolvedConfig.mode}
