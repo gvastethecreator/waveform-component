@@ -1,6 +1,6 @@
 # 006 — Tune dynamics, filtering, normalization, and synchronization
 
-Status: ready-for-agent
+Status: ready-for-human
 
 Type: AFK  
 Blocked by: 005  
