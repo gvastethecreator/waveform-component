@@ -279,6 +279,31 @@ Ticket 010 is implemented, verified, documented, and committed. SVG renderer par
 - Closing proof: 139/139 tests, full package/build/SSR/fresh-consumer gate, 13/13 installed-Chrome E2E, and inspected normal/RTL/vertical/forced-colors/200%-page-scale artifacts.
 - Unresolved severity: closed.
 
+## Loops 61–65
+
+|   N | Source finding                                                            | Artifact/proof delta                                                                                                                                                                                    | Verdict  | Next                            |
+| --: | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------- |
+|  61 | Renderer choice must not become a second config or ownership model        | Widened canonical config inputs/resolved types to Canvas/SVG, published typed capabilities, and kept source/session/editor ownership above the adapter.                                                 | continue | Build pure bounded SVG scenes   |
+|  62 | SVG parity needs grouped semantic geometry, not one node per sample       | Added immutable time-domain, rectangular/radial spectrum, continuous/stepped meter scenes with channel/path grouping, bounded sampling, and explicit source/render counts.                              | continue | Prove IDs, limits, and errors   |
+|  63 | Stable logical IDs alone collide when multiple component instances render | Added per-instance prefixes, stable logical suffixes, resolvable local paint references, hard channel/history/shape budgets, and visible unsupported states instead of silent config loss.              | continue | Pressure live adapter switching |
+|  64 | A renderer toggle can be visually correct while leaking lifecycle work    | Switched Canvas/SVG inside existing public components, retained session epoch/playback/editor values, and proved active ResizeObserver count returns to baseline across repeated transitions.           | continue | Pressure constrained surfaces   |
+|  65 | Contained boundary targets exposed a separate point/range hit overlap     | Reserved range lanes before marker/handle lanes, regenerated narrow theme/forced-colors proof, passed 158 tests plus 15 Chrome E2E, and confirmed no overflow, duplicate IDs, console errors, or leaks. | continue | Open DOM/CSS renderer 012       |
+
+## Loop 65 verdict
+
+`continue`
+
+Ticket 011 is implemented, verified, documented, and committed. DOM/CSS renderer parity 012 is next because it must reuse the same canonical frames, capability honesty, controlled overlays, and resource-neutral switching while enforcing a stricter node budget.
+
+## SVG-renderer pressure record
+
+- Strongest observed defect: containing marker and handle hit targets at the clipped 0%/100% boundaries increased overlap with a range control, allowing the higher point target to intercept the region's pointer activation.
+- User harm: every control remained keyboard reachable, but a pointer user could no longer activate the loop region at its center when a transient marker occupied the same cross-axis lane.
+- Root cause: collision lanes modeled point-to-point and range-to-range conflicts independently, then painted both families starting at lane zero.
+- Repair: range controls reserve their occupied cross-axis lanes first; marker and handle collision lanes start after that reserved range count, preserving 24 px targets and deterministic focus order without pointer masking.
+- Closing proof: focused semantic-overlay unit coverage, repaired failing Chrome trace, final 15/15 E2E matrix, 158/158 tests, build/SSR/fresh packed consumer, unique SVG references, bounded node counts, and inspected final narrow/forced-colors evidence.
+- Unresolved severity: closed.
+
 ## Pressure record
 
 Strongest current objection: the proposed package can become so broad that “super customizable” turns into a huge shallow config object and a playground parameter dump.  
