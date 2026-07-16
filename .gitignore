@@ -1,0 +1,21 @@
+node_modules/
+dist/
+dist-playground/
+coverage/
+test-results/
+playwright-report/
+logs/*
+!logs/.gitkeep
+*.log
+*.tsbuildinfo
+.DS_Store
+.env*
+.local/
+
+# Local research inputs and rendered evidence are intentionally not source.
+.scratch/references/
+.scratch/evidence/
+.scratch/design/**/*.png
+fixtures/external-consumer/bun.lock
+fixtures/external-consumer/node_modules/
+fixtures/external-consumer/waveform-component.tgz

@@ -1,0 +1,72 @@
+{
+  "name": "waveform-component",
+  "version": "0.1.0",
+  "description": "A headless-first, deeply customizable audio waveform component and Signal Workbench.",
+  "license": "MIT",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "dev": "vite --port 3000 --host localhost",
+    "clean": "bun run scripts/clean.ts",
+    "build:lib": "vite build --config vite.lib.config.ts",
+    "build:types": "tsc -p tsconfig.lib.json",
+    "build:playground": "vite build",
+    "build": "bun run clean && bun run build:lib && bun run build:types && bun run build:playground",
+    "preview": "vite preview --outDir dist-playground --host localhost",
+    "typecheck": "tsc --noEmit",
+    "typecheck:consumer": "tsc -p fixtures/external-consumer/tsconfig.json",
+    "lint": "oxlint .",
+    "lint:fix": "oxlint --fix .",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check .",
+    "test": "vitest run src playground",
+    "test:watch": "vitest src playground",
+    "test:coverage": "vitest run src playground --coverage",
+    "test:ssr-import": "bun -e \"await import('./dist/index.js')\"",
+    "test:consumer": "bun pm pack --filename fixtures/external-consumer/waveform-component.tgz --quiet && bun install --cwd fixtures/external-consumer --force && bun run typecheck:consumer",
+    "test:e2e": "playwright test",
+    "test:e2e:install": "playwright install chromium",
+    "verify:tracer": "bun run typecheck && bun run lint && bun run format:check && bun run test && bun run build && bun run test:ssr-import && bun run test:consumer"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.61.1",
+    "@tabler/icons-react": "^3.44.0",
+    "@tailwindcss/vite": "^4.3.2",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/node": "26.1.1",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.3",
+    "@vitest/coverage-istanbul": "^4.1.10",
+    "jsdom": "^29.1.1",
+    "oxfmt": "0.59.0",
+    "oxlint": "1.74.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "tailwindcss": "^4.3.2",
+    "typescript": "7.0.2",
+    "vite": "^8.1.4",
+    "vitest": "^4.1.10"
+  },
+  "peerDependencies": {
+    "react": ">=19.0.0",
+    "react-dom": ">=19.0.0"
+  },
+  "engines": {
+    "bun": "1.3.14"
+  },
+  "packageManager": "bun@1.3.14"
+}

@@ -1,0 +1,14 @@
+{
+  "name": "waveform-component-external-consumer",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "waveform-component": "file:./waveform-component.tgz"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.17",
+    "typescript": "7.0.2"
+  }
+}
