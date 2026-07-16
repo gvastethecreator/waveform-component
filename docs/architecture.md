@@ -17,6 +17,9 @@ The package has no browser side effects at module scope. Rendering and media wor
 - `renderCanvasTimeDomain` consumes a canonical frame/config/viewport, groups overlay strokes by channel color, and splits playback by normalized progress in either orientation.
 - Spectrum geometry keeps rectangular and polar coordinates pure. Full arcs close without duplicating radial bars; partial arcs include both frequency endpoints; deadzone/inversion never alter ordered-bin meaning.
 - The spectrum color grammar is renderer-independent at its decision seam: thresholds select named roles, pulse mapping produces a bounded factor, and Canvas resolves typed alpha/CSS variables only at the drawing boundary.
+- `MeterFrame` stores linear and dBFS peak/RMS values together with its amplitude-1 reference, so measurement units and meaning cannot be inferred from a generic array.
+- Meter ballistics is a stateful stage between analysis and geometry. Timestamp-derived attack/release remains cadence-independent; fast peak bypass is narrower than RMS response; source epoch/channel/sample-rate/backwards-time incompatibility resets smoothing and history.
+- Meter history is bounded twice: analysis capacity is derived from duration/interval under a 16,384-entry hard ceiling, while Canvas samples at most 64 compatible ghosts per draw. Geometry stays pure across continuous/stepped, rectangular/radial, mono/stereo, resize, and degenerate viewports.
 - `syncCanvasSize` assigns the backing-store dimensions and an absolute DPR transform, avoiding cumulative scale.
 - `Waveform` and `Envelope` are React convenience interfaces over one internal Canvas lifecycle. They create static frames when needed, observe fixed or responsive containers, and draw only after mount.
 
@@ -36,7 +39,9 @@ Spectrum dynamics is a separate stateful stage after analysis and before geometr
 
 Visual synchronization is also outside the renderer. Capability resolution rejects look-ahead for live sources, while a bounded frame queue supports positive visual delay without claiming ownership of the audio clock or output. The playground enables temporal/source/sync controls only for clocked live input and explains why static previews cannot demonstrate them.
 
-Later tickets add meters/history, SVG/DOM/WebGL2 adapters, original clean-room VFX, and standalone code export without changing the dependency direction established here.
+Meter analysis follows the same channel-selection seam as time-domain geometry. `analyzeMeterWindows` creates explicit measurement windows; `createMeterDynamicsProcessor` owns response and history; pure meter geometry maps configured dBFS to lanes, segments, or concentric arcs; Canvas owns only drawing and CSS/system-color resolution. The public capability catalog describes when stepped, radial, history, channel, and color controls apply.
+
+Later tickets add SVG/DOM/WebGL2 adapters, original clean-room VFX, and standalone code export without changing the dependency direction established here.
 
 ## Provenance
 

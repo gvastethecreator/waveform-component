@@ -99,6 +99,55 @@ describe("Signal Workbench tracer", () => {
     expect(screen.getByText(/PROCESSED · VISUAL ONLY/)).toBeInTheDocument();
   });
 
+  it("keeps RMS, peak, continuous, and stepped meters as distinct public modes", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole("button", { name: "Meter" }));
+    expect(screen.getByRole("heading", { name: "Broadcast meter" })).toBeInTheDocument();
+    const meter = screen.getByRole("img", { name: /Broadcast rms meter preview.*RMS display/i });
+    expect(meter).toHaveAttribute("data-meter-mode", "meter");
+    expect(meter).toHaveAttribute("data-meter-measurement", "rms");
+    expect(screen.getByRole("slider", { name: "Step width" })).toBeDisabled();
+    expect(screen.getByText(/hard ceiling 16,384/i)).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByRole("combobox", { name: /Meter preset/ }), "fast-peak");
+    expect(screen.getByRole("img", { name: /PEAK display/i })).toHaveAttribute(
+      "data-meter-measurement",
+      "peak",
+    );
+    expect(screen.getByRole("checkbox", { name: /Fast meter peaks/ })).toBeChecked();
+
+    await user.click(screen.getByRole("button", { name: "Stepped meter" }));
+    expect(screen.getByRole("img", { name: /stepped-meter preview/i })).toHaveAttribute(
+      "data-meter-mode",
+      "stepped-meter",
+    );
+    expect(screen.getByRole("slider", { name: "Step width" })).toBeEnabled();
+  });
+
+  it("gates radial meter geometry and bounded-history presentation controls", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole("button", { name: "Meter" }));
+
+    expect(screen.getByRole("slider", { name: "Meter arc" })).toBeDisabled();
+    await user.selectOptions(screen.getByRole("combobox", { name: /Meter layout/ }), "radial");
+    expect(screen.getByRole("slider", { name: "Meter arc" })).toBeEnabled();
+    expect(screen.getByRole("combobox", { name: /Meter orientation/ })).toBeDisabled();
+    expect(screen.getByRole("img", { name: /RMS display/i })).toHaveAttribute(
+      "data-meter-layout",
+      "radial",
+    );
+
+    await user.click(screen.getByRole("checkbox", { name: /Show meter history/ }));
+    expect(screen.getByRole("slider", { name: "History opacity" })).toBeDisabled();
+    fireEvent.change(screen.getByRole("slider", { name: "History duration" }), {
+      target: { value: "1000" },
+    });
+    expect(screen.getByText(/Capacity 21 frames/i)).toBeInTheDocument();
+  });
+
   it("loads a deterministic preset and restores public defaults", async () => {
     const user = userEvent.setup();
     render(<App />);

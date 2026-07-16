@@ -1,5 +1,6 @@
 import {
   Envelope,
+  Meter,
   SessionWaveform,
   Spectrum,
   RecordedWaveformPlayer,
@@ -7,7 +8,9 @@ import {
   createDemoWaveform,
   createEnvelopeFrameFromWaveform,
   analyzeSpectrum,
+  analyzeMeter,
   createMicrophoneSource,
+  createMeterDynamicsProcessor,
   createSpectrumDynamicsProcessor,
   createStaticWaveformFrame,
   createStaticWaveformSource,
@@ -27,6 +30,11 @@ const spectrum = analyzeSpectrum(samples, {
   window: "blackman-harris",
 });
 const dynamics = createSpectrumDynamicsProcessor();
+const meterDynamics = createMeterDynamicsProcessor();
+const meter = meterDynamics.process(analyzeMeter(frame, { minimumDecibels: -60 }), undefined, {
+  sourceEpoch: 1,
+  timestampMs: 0,
+});
 const responsiveSpectrum = dynamics.process(
   spectrum,
   {
@@ -95,6 +103,23 @@ export function SpectrumConsumerExample() {
         radialDeadzone: 0.24,
         radialRotation: 300,
         roundedCaps: true,
+      }}
+    />
+  );
+}
+
+export function MeterConsumerExample() {
+  return (
+    <Meter
+      ariaLabel="External RMS meter"
+      data={meter.frame}
+      history={meter.history}
+      config={{
+        colorMode: "range",
+        measurement: "rms",
+        mode: "stepped-meter",
+        stepGap: 3,
+        stepWidth: 8,
       }}
     />
   );

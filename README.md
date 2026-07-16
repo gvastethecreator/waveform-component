@@ -212,6 +212,47 @@ The result reports `reacting`, `peakActive`, `peakDb`, `visible`, and a named `p
 
 Visual sync remains separate from audio ownership. `resolveVisualSyncOffset` rejects negative look-ahead when the source cannot supply future frames. `SpectrumFrameDelay` can buffer positive visual offsets, but it never delays or controls host audio.
 
+## RMS, peak, and bounded meters
+
+`analyzeMeter` computes linear peak, linear RMS, peak dBFS, and RMS dBFS independently for every selected channel. dBFS values explicitly use linear amplitude `1` as the `0 dBFS` reference. An impulse therefore has a higher peak than RMS; a full-scale sine is approximately `0 dBFS` peak and `-3.01 dBFS` RMS.
+
+```tsx
+const processor = createMeterDynamicsProcessor();
+const result = processor.process(
+  analyzeMeter(samples, {
+    channelMode: "stereo", // source | mono | stereo | single
+    minimumDecibels: -60,
+    sampleRate: 48_000,
+  }),
+  {
+    attackMs: 80,
+    releaseMs: 420,
+    fastPeaks: true,
+    historyDurationMs: 2_000,
+    historyIntervalMs: 50,
+  },
+  { sourceEpoch, timestampMs: performance.now() },
+);
+
+<Meter
+  data={result.frame}
+  history={result.history}
+  config={{
+    mode: "stepped-meter", // or meter
+    measurement: "rms", // or peak
+    layout: "rectangular", // or radial
+    stepWidth: 8,
+    stepGap: 3,
+    minimumSize: 2,
+    roundedCaps: true,
+  }}
+/>;
+```
+
+Attack/release uses elapsed timestamps rather than frame count. `fastPeaks` bypasses attack only for a rising peak; RMS retains its configured ballistics. `METER_PRESETS` provides `Broadcast RMS`, `Fast peak`, and `Slow RMS` starting points without hiding their values.
+
+History capacity is `min(maximumHistoryEntries, floor(duration / interval) + 1)`. Public inputs clamp to at most 600 seconds and 16,384 entries. The processor drops expired frames and resets smoothing/history when the source epoch, channel count, sample rate, or timestamp direction changes. Canvas samples at most 64 compatible history frames for drawing, so a long analysis history cannot create an unbounded render pass. `METER_CONTROL_DEFINITIONS` and `getMeterControlAvailability` expose the inspector's named controls and disabled reasons.
+
 ## Development
 
 Requires Bun 1.3.14.
@@ -223,7 +264,7 @@ bun run verify:tracer
 bun run test:e2e
 ```
 
-The playground imports `waveform-component` through the public entry point and drives its main artifact through a shared session. `fixtures/external-consumer` installs a freshly packed tarball and typechecks waveform/envelope layout, session, recorded-player, microphone, analyzer, spectrum-dynamics, and spectrum-renderer interfaces against generated declarations exactly as an external consumer would.
+The playground imports `waveform-component` through the public entry point and drives its main artifact through a shared session. `fixtures/external-consumer` installs a freshly packed tarball and typechecks waveform/envelope layout, session, recorded-player, microphone, analyzer, spectrum-dynamics, spectrum-renderer, meter-analysis, meter-history, and meter-renderer interfaces against generated declarations exactly as an external consumer would.
 
 ## Project records
 

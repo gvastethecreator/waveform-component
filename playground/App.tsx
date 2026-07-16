@@ -12,27 +12,36 @@ import {
   DEFAULT_SPECTRUM_ANALYSIS_CONFIG,
   DEFAULT_SPECTRUM_CONFIG,
   DEFAULT_SPECTRUM_DYNAMICS_CONFIG,
+  DEFAULT_METER_CONFIG,
+  DEFAULT_METER_DYNAMICS_CONFIG,
   DEFAULT_ENVELOPE_CONFIG,
   DEFAULT_WAVEFORM_CONFIG,
   Envelope,
   GUARDED_SPECTRUM_FFT_SIZE,
+  METER_PRESETS,
+  Meter,
   RecordedWaveformPlayer,
   SessionWaveform,
   Spectrum,
   SpectrumFrameDelay,
   SPECTRUM_CONTROL_DEFINITIONS,
   Waveform,
+  analyzeMeter,
+  analyzeMeterWindows,
   analyzeSpectrum,
   createDemoWaveform,
   createDemoWaveformSource,
   createEnvelopeFrameFromWaveform,
   createMicrophoneSource,
+  createMeterDynamicsProcessor,
   createRecordedAudioSource,
   createSpectrumFrame,
   createSpectrumDynamicsProcessor,
   createWaveformSession,
   getSpectrumControlAvailability,
   resolveSpectrumAnalysisConfig,
+  resolveMeterConfig,
+  resolveMeterDynamicsConfig,
   resolveSpectrumConfig,
   resolveSpectrumDynamicsConfig,
   resolveSpectrumFrequencyRange,
@@ -40,11 +49,16 @@ import {
   useWaveformSession,
   useMicrophoneSource,
   type CanvasSpectrumConfigInput,
+  type CanvasMeterConfigInput,
   type CanvasWaveformConfigInput,
   type EnvelopeAmplitudePlacement,
   type EnvelopeFrame,
   type RecordedAudioSource,
   type MicrophoneSource,
+  type MeterColorMode,
+  type MeterDynamicsConfig,
+  type MeterDynamicsResult,
+  type MeterMeasurement,
   type SpectrumControlDefinition,
   type SpectrumControlId,
   type SpectrumDynamicsConfig,
@@ -79,7 +93,9 @@ type Preset = (typeof PRESETS)[number];
 
 export default function App() {
   const [view, setView] = useState<"overview" | "focus">("overview");
-  const [visualMode, setVisualMode] = useState<"envelope" | "spectrum" | "waveform">("waveform");
+  const [visualMode, setVisualMode] = useState<
+    "envelope" | "meter" | "spectrum" | "stepped-meter" | "waveform"
+  >("waveform");
   const [presetId, setPresetId] = useState<Preset["id"]>("broadcast");
   const [signalColor, setSignalColor] = useState<string>(PRESETS[0].color);
   const [sampleCount, setSampleCount] = useState(2048);
@@ -153,8 +169,37 @@ export default function App() {
     DEFAULT_SPECTRUM_DYNAMICS_CONFIG,
   );
   const [visualSyncOffsetMs, setVisualSyncOffsetMs] = useState(0);
+  const [meterMeasurement, setMeterMeasurement] = useState<MeterMeasurement>(
+    DEFAULT_METER_CONFIG.measurement,
+  );
+  const [meterPresetId, setMeterPresetId] = useState<(typeof METER_PRESETS)[number]["id"]>(
+    METER_PRESETS[0].id,
+  );
+  const [meterDynamicsSettings, setMeterDynamicsSettings] = useState<MeterDynamicsConfig>(
+    DEFAULT_METER_DYNAMICS_CONFIG,
+  );
+  const [meterLayout, setMeterLayout] = useState<SpectrumLayout>(DEFAULT_METER_CONFIG.layout);
+  const [meterColorMode, setMeterColorMode] = useState<MeterColorMode>(
+    DEFAULT_METER_CONFIG.colorMode,
+  );
+  const [meterMinimumDecibels, setMeterMinimumDecibels] = useState(
+    DEFAULT_METER_CONFIG.minimumDecibels,
+  );
+  const [meterMaximumDecibels, setMeterMaximumDecibels] = useState(
+    DEFAULT_METER_CONFIG.maximumDecibels,
+  );
+  const [meterBarWidth, setMeterBarWidth] = useState(DEFAULT_METER_CONFIG.barWidth);
+  const [meterChannelGap, setMeterChannelGap] = useState(DEFAULT_METER_CONFIG.channelGap);
+  const [meterMinimumSize, setMeterMinimumSize] = useState(DEFAULT_METER_CONFIG.minimumSize);
+  const [meterStepWidth, setMeterStepWidth] = useState(DEFAULT_METER_CONFIG.stepWidth);
+  const [meterStepGap, setMeterStepGap] = useState(DEFAULT_METER_CONFIG.stepGap);
+  const [showMeterHistory, setShowMeterHistory] = useState(DEFAULT_METER_CONFIG.showHistory);
+  const [meterHistoryOpacity, setMeterHistoryOpacity] = useState(
+    DEFAULT_METER_CONFIG.historyOpacity,
+  );
   const session = useMemo(() => createWaveformSession<WaveformFrame>(), []);
   const preset = PRESETS.find((candidate) => candidate.id === presetId) ?? PRESETS[0];
+  const isMeterMode = visualMode === "meter" || visualMode === "stepped-meter";
   const sessionSnapshot = useWaveformSession(session);
   const demoSource = useMemo(
     () =>
@@ -353,6 +398,126 @@ export default function App() {
     () => resolveSpectrumFrequencyRange(spectrumFrame, resolvedSpectrumConfig),
     [resolvedSpectrumConfig, spectrumFrame],
   );
+  const meterFrame = useMemo(
+    () =>
+      analyzeMeter(sessionSnapshot.frame ?? new Float32Array(), {
+        ...(channelMode === "single" ? { channelIndex } : {}),
+        channelMode,
+        minimumDecibels: meterMinimumDecibels,
+        sampleRate,
+      }),
+    [channelIndex, channelMode, meterMinimumDecibels, sampleRate, sessionSnapshot.frame],
+  );
+  const resolvedMeterDynamics = useMemo(
+    () => resolveMeterDynamicsConfig(meterDynamicsSettings, meterFrame),
+    [meterDynamicsSettings, meterFrame],
+  );
+  const meterPresentation = useMemo<MeterDynamicsResult>(() => {
+    const processor = createMeterDynamicsProcessor();
+    const frames = analyzeMeterWindows(sessionSnapshot.frame ?? new Float32Array(), {
+      ...(channelMode === "single" ? { channelIndex } : {}),
+      channelMode,
+      minimumDecibels: meterMinimumDecibels,
+      sampleRate,
+      windowSize: 256,
+    });
+    if (frames.length === 0)
+      return processor.process(meterFrame, resolvedMeterDynamics, {
+        sourceEpoch: sessionSnapshot.epoch,
+        timestampMs: 0,
+      });
+    let result = processor.process(frames[0], resolvedMeterDynamics, {
+      sourceEpoch: sessionSnapshot.epoch,
+      timestampMs: 0,
+    });
+    for (let index = 1; index < frames.length; index += 1)
+      result = processor.process(frames[index], resolvedMeterDynamics, {
+        sourceEpoch: sessionSnapshot.epoch,
+        timestampMs: (index * 256 * 1000) / sampleRate,
+      });
+    return result;
+  }, [
+    channelIndex,
+    channelMode,
+    meterFrame,
+    meterMinimumDecibels,
+    resolvedMeterDynamics,
+    sampleRate,
+    sessionSnapshot.epoch,
+    sessionSnapshot.frame,
+  ]);
+  const meterConfig = useMemo<CanvasMeterConfigInput>(
+    () => ({
+      barWidth: meterBarWidth,
+      channelGap: meterChannelGap,
+      colorMode: meterColorMode,
+      colorRoles: {
+        accent: { alpha: accentAlpha, color: `var(--waveform-color-accent, ${accentColor})` },
+        base: { alpha: baseAlpha, color: `var(--waveform-color-base, ${signalColor})` },
+        crest: { alpha: crestAlpha, color: `var(--waveform-color-crest, ${crestColor})` },
+        middle: { alpha: middleAlpha, color: `var(--waveform-color-middle, ${middleColor})` },
+      },
+      cornerRadius,
+      crestDecibels,
+      historyOpacity: meterHistoryOpacity,
+      layout: meterLayout,
+      maximumDecibels: meterMaximumDecibels,
+      measurement: meterMeasurement,
+      middleDecibels,
+      minimumDecibels: meterMinimumDecibels,
+      minimumSize: meterMinimumSize,
+      mode: visualMode === "stepped-meter" ? "stepped-meter" : "meter",
+      orientation,
+      peakThresholdDb: resolvedMeterDynamics.peakThresholdDb,
+      radialArc,
+      radialDeadzone,
+      radialInvert,
+      radialRotation,
+      reactThresholdDb: resolvedMeterDynamics.reactThresholdDb,
+      roundedCaps,
+      showHistory: showMeterHistory,
+      stepGap: meterStepGap,
+      stepWidth: meterStepWidth,
+    }),
+    [
+      accentAlpha,
+      accentColor,
+      baseAlpha,
+      cornerRadius,
+      crestAlpha,
+      crestColor,
+      crestDecibels,
+      meterBarWidth,
+      meterChannelGap,
+      meterColorMode,
+      meterHistoryOpacity,
+      meterLayout,
+      meterMaximumDecibels,
+      meterMeasurement,
+      meterMinimumDecibels,
+      meterMinimumSize,
+      meterStepGap,
+      meterStepWidth,
+      middleAlpha,
+      middleColor,
+      middleDecibels,
+      orientation,
+      radialArc,
+      radialDeadzone,
+      radialInvert,
+      radialRotation,
+      resolvedMeterDynamics.peakThresholdDb,
+      resolvedMeterDynamics.reactThresholdDb,
+      roundedCaps,
+      showMeterHistory,
+      signalColor,
+      visualMode,
+    ],
+  );
+  const resolvedMeterConfig = useMemo(
+    () => resolveMeterConfig(meterConfig, meterPresentation.frame),
+    [meterConfig, meterPresentation.frame],
+  );
 
   useEffect(() => {
     void session.attach(activeSource);
@@ -415,6 +580,20 @@ export default function App() {
     setShowSpectrumGrid(DEFAULT_SPECTRUM_CONFIG.showGrid);
     setDynamicsSettings(DEFAULT_SPECTRUM_DYNAMICS_CONFIG);
     setVisualSyncOffsetMs(0);
+    setMeterMeasurement(DEFAULT_METER_CONFIG.measurement);
+    setMeterPresetId(METER_PRESETS[0].id);
+    setMeterDynamicsSettings(DEFAULT_METER_DYNAMICS_CONFIG);
+    setMeterLayout(DEFAULT_METER_CONFIG.layout);
+    setMeterColorMode(DEFAULT_METER_CONFIG.colorMode);
+    setMeterMinimumDecibels(DEFAULT_METER_CONFIG.minimumDecibels);
+    setMeterMaximumDecibels(DEFAULT_METER_CONFIG.maximumDecibels);
+    setMeterBarWidth(DEFAULT_METER_CONFIG.barWidth);
+    setMeterChannelGap(DEFAULT_METER_CONFIG.channelGap);
+    setMeterMinimumSize(DEFAULT_METER_CONFIG.minimumSize);
+    setMeterStepWidth(DEFAULT_METER_CONFIG.stepWidth);
+    setMeterStepGap(DEFAULT_METER_CONFIG.stepGap);
+    setShowMeterHistory(DEFAULT_METER_CONFIG.showHistory);
+    setMeterHistoryOpacity(DEFAULT_METER_CONFIG.historyOpacity);
     setCopyState("idle");
   };
 
@@ -422,9 +601,62 @@ export default function App() {
     setDynamicsSettings((current) => resolveSpectrumDynamicsConfig({ ...current, ...patch }));
   };
 
+  const updateMeterDynamics = (patch: Partial<MeterDynamicsConfig>) => {
+    setMeterDynamicsSettings((current) =>
+      resolveMeterDynamicsConfig({ ...current, ...patch }, meterFrame),
+    );
+  };
+
+  const loadMeterPreset = (id: (typeof METER_PRESETS)[number]["id"]) => {
+    const next = METER_PRESETS.find((candidate) => candidate.id === id) ?? METER_PRESETS[0];
+    setMeterPresetId(next.id);
+    setMeterMeasurement(next.measurement);
+    setMeterDynamicsSettings(
+      resolveMeterDynamicsConfig({ ...DEFAULT_METER_DYNAMICS_CONFIG, ...next.config }, meterFrame),
+    );
+  };
+
   const copyCode = async () => {
-    const code =
-      visualMode === "spectrum"
+    const code = isMeterMode
+      ? `const meter = createMeterDynamicsProcessor();
+const result = meter.process(
+  analyzeMeter(samples, {
+    channelMode: "${channelMode}",
+    minimumDecibels: ${meterMinimumDecibels},
+    sampleRate: ${sampleRate}
+  }),
+  {
+    attackMs: ${resolvedMeterDynamics.attackMs},
+    releaseMs: ${resolvedMeterDynamics.releaseMs},
+    inertiaMs: ${resolvedMeterDynamics.inertiaMs},
+    fastPeaks: ${resolvedMeterDynamics.fastPeaks},
+    historyDurationMs: ${resolvedMeterDynamics.historyDurationMs},
+    historyIntervalMs: ${resolvedMeterDynamics.historyIntervalMs}
+  },
+  { timestampMs: performance.now(), sourceEpoch: 0 }
+);
+
+<Meter
+  data={result.frame}
+  history={result.history}
+  config={{
+    mode: "${visualMode}",
+    measurement: "${meterMeasurement}",
+    layout: "${meterLayout}",
+    orientation: "${orientation}",
+    colorMode: "${meterColorMode}",
+    minimumDecibels: ${meterMinimumDecibels},
+    maximumDecibels: ${meterMaximumDecibels},
+    minimumSize: ${meterMinimumSize},
+    barWidth: ${meterBarWidth},
+    channelGap: ${meterChannelGap},
+    stepWidth: ${meterStepWidth},
+    stepGap: ${meterStepGap},
+    roundedCaps: ${roundedCaps},
+    showHistory: ${showMeterHistory}
+  }}
+/>`
+      : visualMode === "spectrum"
         ? `const dynamics = createSpectrumDynamicsProcessor();\n\n<Spectrum\n  data={dynamics.process(\n    analyzeSpectrum(samples, {\n      sampleRate: ${sampleRate},\n      fftSize: ${spectrumAnalysis.fftSize},\n      allowLargeFft: ${spectrumAnalysis.allowLargeFft},\n      window: "${spectrumAnalysis.window}",\n      powerOfSineExponent: ${spectrumAnalysis.powerOfSineExponent},\n      minimumDecibels: ${spectrumAnalysis.minimumDecibels},\n      maximumDecibels: ${spectrumAnalysis.maximumDecibels}\n    }),\n    {\n      smoothingMode: "${dynamicsSettings.smoothingMode}",\n      smoothingFactor: ${dynamicsSettings.smoothingFactor},\n      attackMs: ${dynamicsSettings.attackMs},\n      releaseMs: ${dynamicsSettings.releaseMs},\n      inertiaMs: ${dynamicsSettings.inertiaMs},\n      fastPeaks: ${dynamicsSettings.fastPeaks},\n      normalizationEnabled: ${dynamicsSettings.normalizationEnabled},\n      normalizationTargetDb: ${dynamicsSettings.normalizationTargetDb},\n      normalizationMaxGainDb: ${dynamicsSettings.normalizationMaxGainDb},\n      gaussianRadius: ${dynamicsSettings.gaussianRadius},\n      highFrequencySlopeDbPerOctave: ${dynamicsSettings.highFrequencySlopeDbPerOctave},\n      rolloffBandwidthHz: ${dynamicsSettings.rolloffBandwidthHz},\n      rolloffAttenuationDb: ${dynamicsSettings.rolloffAttenuationDb}\n    },\n    { timestampMs: performance.now(), sourceState: "ready" }\n  ).frame}\n  config={{\n    renderer: "canvas2d",\n    mode: "spectrum",\n    geometry: "${spectrumGeometry}",\n    layout: "${spectrumLayout}",\n    radialInvert: ${radialInvert},\n    radialDeadzone: ${radialDeadzone.toFixed(2)},\n    radialArc: ${radialArc},\n    radialRotation: ${radialRotation},\n    roundedCaps: ${roundedCaps},\n    cornerRadius: ${cornerRadius},\n    frequencyScale: "${frequencyScale}",\n    lowFrequency: ${lowFrequency},\n    highFrequency: ${highFrequency},\n    minimumDecibels: ${minimumDecibels},\n    maximumDecibels: ${maximumDecibels},\n    interpolation: "${spectrumInterpolation}",\n    lineWidth: ${lineWidth},\n    barWidth: ${barWidth},\n    barGap: ${barGap},\n    colorMode: "${spectrumColorMode}",\n    pulseMode: "${spectrumPulseMode}",\n    colorRoles: {\n      base: { color: "${signalColor}", alpha: ${baseAlpha.toFixed(2)} },\n      middle: { color: "${middleColor}", alpha: ${middleAlpha.toFixed(2)} },\n      crest: { color: "${crestColor}", alpha: ${crestAlpha.toFixed(2)} },\n      accent: { color: "${accentColor}", alpha: ${accentAlpha.toFixed(2)} }\n    },\n    gradientRatio: ${gradientRatio.toFixed(2)},\n    middleDecibels: ${middleDecibels},\n    crestDecibels: ${crestDecibels},\n    showGrid: ${showSpectrumGrid}\n  }}\n/>`
         : visualMode === "envelope"
           ? `<Envelope\n  data={magnitudes}\n  ${timeDomainSizing === "fixed" ? `width={${fixedTimeDomainWidth}}\n  ` : ""}config={{\n    renderer: "canvas2d",\n    mode: "envelope",\n    channelMode: "${channelMode}",${channelMode === "single" ? `\n    channelIndex: ${channelIndex},` : ""}\n    channelLayout: "${channelLayout}",\n    channelGap: ${channelGap},\n    amplitudePlacement: "${envelopePlacement}",\n    orientation: "${orientation}",\n    amplitude: ${amplitude.toFixed(2)},\n    lineWidth: ${lineWidth.toFixed(1)},\n    color: "${signalColor}",\n    showCenterLine: ${showCenterLine}\n  }}\n/>`
@@ -496,7 +728,7 @@ export default function App() {
     ? visualSyncResolution.reason
     : "Requires a clocked source. Static previews have no audio/visual timeline to offset.";
   const spectrumStageStyle =
-    visualMode === "spectrum"
+    visualMode === "spectrum" || isMeterMode
       ? ({
           "--waveform-color-accent": accentColor,
           "--waveform-color-base": signalColor,
@@ -561,7 +793,9 @@ export default function App() {
                 <span>
                   {visualMode === "spectrum"
                     ? `${spectrumLayout.toUpperCase()} · ${spectrumColorMode.toUpperCase()}`
-                    : `${selectedChannelCount} CH · ${channelLayout.toUpperCase()}`}
+                    : isMeterMode
+                      ? `${meterLayout.toUpperCase()} · ${meterMeasurement.toUpperCase()}`
+                      : `${selectedChannelCount} CH · ${channelLayout.toUpperCase()}`}
                 </span>
               </div>
             </div>
@@ -570,6 +804,8 @@ export default function App() {
               data-dynamics-policy={spectrumPresentation.result?.policy ?? "unprocessed"}
               data-spectrum-color-mode={visualMode === "spectrum" ? spectrumColorMode : undefined}
               data-spectrum-layout={visualMode === "spectrum" ? spectrumLayout : undefined}
+              data-meter-layout={isMeterMode ? meterLayout : undefined}
+              data-meter-mode={isMeterMode ? visualMode : undefined}
               style={spectrumStageStyle}
             >
               {recordedSource && !microphoneSource ? (
@@ -581,6 +817,35 @@ export default function App() {
                   session={session}
                   source={recordedSource}
                 />
+              ) : isMeterMode ? (
+                <>
+                  {meterLayout === "radial" ? (
+                    <div className="radial-level-key" aria-hidden="true">
+                      <span>
+                        {meterMeasurement.toUpperCase()} · {meterMinimumDecibels} dBFS FLOOR
+                      </span>
+                      <span>
+                        {Math.round(radialArc)}° ARC · {Math.round(radialRotation)}° START
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="signal-scale" data-orientation={orientation} aria-hidden="true">
+                      <span>{meterMaximumDecibels} dB</span>
+                      <span>
+                        {Math.round((meterMinimumDecibels + meterMaximumDecibels) / 2)} dB
+                      </span>
+                      <span>{meterMinimumDecibels} dB</span>
+                    </div>
+                  )}
+                  <Meter
+                    ariaLabel={`${microphoneSource ? "Live microphone" : preset.label} ${meterMeasurement} ${visualMode} preview`}
+                    className="primary-waveform"
+                    config={meterConfig}
+                    data={meterPresentation.frame}
+                    height="100%"
+                    history={meterPresentation.history}
+                  />
+                </>
               ) : visualMode === "spectrum" ? (
                 <>
                   {spectrumLayout === "radial" ? (
@@ -687,21 +952,27 @@ export default function App() {
               <span>
                 {visualMode === "spectrum"
                   ? `${spectrumFrame.bins.length.toLocaleString()} BINS · ${spectrumAnalysis.fftSize.toLocaleString()} FFT`
-                  : `${(sessionSnapshot.frame?.sampleCount ?? 0).toLocaleString()} DISPLAY SAMPLES`}
+                  : isMeterMode
+                    ? `${meterPresentation.frame.channels.length} CH · ${meterPresentation.history.length}/${meterPresentation.historyCapacity} HISTORY`
+                    : `${(sessionSnapshot.frame?.sampleCount ?? 0).toLocaleString()} DISPLAY SAMPLES`}
               </span>
               <span>
                 {visualMode === "spectrum"
                   ? spectrumPresentation.result
                     ? `PEAK ${spectrumPresentation.result.peakDb.toFixed(1)} dBFS · ${spectrumPresentation.result.reacting ? "REACTING" : "IDLE"}`
                     : "DYNAMICS INITIALIZING"
-                  : visualMode === "envelope"
-                    ? "MAGNITUDE 0…1 · POLARITY SEPARATE"
-                    : "SIGNED −1…+1 · POLARITY PRESERVED"}
+                  : isMeterMode
+                    ? `${meterMeasurement.toUpperCase()} ${meterPresentation.frame.channels[0]?.[meterMeasurement === "rms" ? "rmsDbfs" : "peakDbfs"].toFixed(1) ?? meterMinimumDecibels} dBFS · ${meterPresentation.peaking ? "PEAKING" : meterPresentation.reacting ? "REACTING" : "IDLE"}`
+                    : visualMode === "envelope"
+                      ? "MAGNITUDE 0…1 · POLARITY SEPARATE"
+                      : "SIGNED −1…+1 · POLARITY PRESERVED"}
               </span>
               <span>
                 {visualMode === "spectrum"
                   ? `${spectrumPresentation.result?.policy.toUpperCase() ?? "UNPROCESSED"} · VISUAL ONLY · ${spectrumLayout.toUpperCase()}/${spectrumColorMode.toUpperCase()}`
-                  : `${orientation.toUpperCase()} · ${timeDomainSizing.toUpperCase()}`}
+                  : isMeterMode
+                    ? `${resolvedMeterDynamics.attackMs}/${resolvedMeterDynamics.releaseMs} ms · ${meterLayout.toUpperCase()}/${meterColorMode.toUpperCase()}`
+                    : `${orientation.toUpperCase()} · ${timeDomainSizing.toUpperCase()}`}
               </span>
             </div>
           </div>
@@ -763,7 +1034,7 @@ export default function App() {
         <header className="inspector-header">
           <div>
             <span className="eyebrow">PLAYGROUND</span>
-            <h2>Signal 008</h2>
+            <h2>Signal 009</h2>
           </div>
           <span className="version-tag">v0.1 core</span>
         </header>
@@ -864,6 +1135,24 @@ export default function App() {
               >
                 Spectrum
               </button>
+              <button
+                type="button"
+                aria-describedby={recordedSource ? "time-domain-source-limit" : undefined}
+                aria-pressed={visualMode === "meter"}
+                disabled={Boolean(recordedSource)}
+                onClick={() => setVisualMode("meter")}
+              >
+                Meter
+              </button>
+              <button
+                type="button"
+                aria-describedby={recordedSource ? "time-domain-source-limit" : undefined}
+                aria-pressed={visualMode === "stepped-meter"}
+                disabled={Boolean(recordedSource)}
+                onClick={() => setVisualMode("stepped-meter")}
+              >
+                Stepped meter
+              </button>
             </div>
             <StaticRow label="Rendering engine" value="Canvas 2D" />
             <p
@@ -871,10 +1160,53 @@ export default function App() {
               id={recordedSource ? "time-domain-source-limit" : undefined}
             >
               {recordedSource
-                ? "Envelope and spectrum are disabled: this transport exposes bounded peaks, not raw PCM. Signed polarity remains in the player."
+                ? "Envelope, spectrum, and meters are disabled: this transport exposes bounded peaks, not raw PCM. Signed polarity remains in the player."
                 : "Mode and engine are separate public contracts."}
             </p>
           </ControlSection>
+
+          {isMeterMode ? (
+            <ControlSection title="Meter analysis">
+              <SelectControl
+                definition={{
+                  description: "Peak captures transients; RMS measures sustained signal energy.",
+                  label: "Measurement",
+                  options: [
+                    { label: "RMS", value: "rms" },
+                    { label: "Peak", value: "peak" },
+                  ],
+                }}
+                value={meterMeasurement}
+                onChange={(value) => setMeterMeasurement(value as MeterMeasurement)}
+              />
+              <RangeControl
+                label="Meter floor"
+                min={-120}
+                max={Math.min(-1, meterMaximumDecibels - 1)}
+                step={1}
+                value={meterMinimumDecibels}
+                valueLabel={`${meterMinimumDecibels} dBFS`}
+                onChange={(value) =>
+                  setMeterMinimumDecibels(Math.min(value, meterMaximumDecibels - 1))
+                }
+              />
+              <RangeControl
+                label="Meter ceiling"
+                min={Math.max(-60, meterMinimumDecibels + 1)}
+                max={12}
+                step={1}
+                value={meterMaximumDecibels}
+                valueLabel={`${meterMaximumDecibels} dBFS`}
+                onChange={(value) =>
+                  setMeterMaximumDecibels(Math.max(value, meterMinimumDecibels + 1))
+                }
+              />
+              <p className="control-note">
+                Values are dBFS referenced to linear amplitude 1. RMS and peak are computed
+                independently from the selected PCM channels.
+              </p>
+            </ControlSection>
+          ) : null}
 
           {visualMode === "spectrum" ? (
             <ControlSection title="Analysis">
@@ -1195,6 +1527,113 @@ export default function App() {
             </>
           ) : null}
 
+          {isMeterMode ? (
+            <ControlSection title="Meter ballistics & history">
+              <SelectControl
+                definition={{
+                  description: "Named response curves with explicit measurement semantics.",
+                  label: "Meter preset",
+                  options: METER_PRESETS.map((candidate) => ({
+                    label: candidate.label,
+                    value: candidate.id,
+                  })),
+                }}
+                value={meterPresetId}
+                onChange={(value) => loadMeterPreset(value as (typeof METER_PRESETS)[number]["id"])}
+              />
+              <RangeControl
+                label="Meter attack"
+                min={0}
+                max={2000}
+                step={5}
+                value={resolvedMeterDynamics.attackMs}
+                valueLabel={`${resolvedMeterDynamics.attackMs} ms`}
+                onChange={(attackMs) => updateMeterDynamics({ attackMs })}
+              />
+              <RangeControl
+                label="Meter release"
+                min={0}
+                max={4000}
+                step={10}
+                value={resolvedMeterDynamics.releaseMs}
+                valueLabel={`${resolvedMeterDynamics.releaseMs} ms`}
+                onChange={(releaseMs) => updateMeterDynamics({ releaseMs })}
+              />
+              <RangeControl
+                label="Meter inertia"
+                min={0}
+                max={2000}
+                step={5}
+                value={resolvedMeterDynamics.inertiaMs}
+                valueLabel={`${resolvedMeterDynamics.inertiaMs} ms`}
+                onChange={(inertiaMs) => updateMeterDynamics({ inertiaMs })}
+              />
+              <ToggleControl
+                checked={resolvedMeterDynamics.fastPeaks}
+                description="Peak rises immediately while RMS retains its configured attack."
+                label="Fast meter peaks"
+                onChange={(fastPeaks) => updateMeterDynamics({ fastPeaks })}
+              />
+              <RangeControl
+                label="React level"
+                min={meterMinimumDecibels}
+                max={resolvedMeterDynamics.peakThresholdDb}
+                step={1}
+                value={resolvedMeterDynamics.reactThresholdDb}
+                valueLabel={`${resolvedMeterDynamics.reactThresholdDb} dBFS`}
+                onChange={(reactThresholdDb) => updateMeterDynamics({ reactThresholdDb })}
+              />
+              <RangeControl
+                label="Peak level"
+                min={resolvedMeterDynamics.reactThresholdDb}
+                max={meterMaximumDecibels}
+                step={1}
+                value={resolvedMeterDynamics.peakThresholdDb}
+                valueLabel={`${resolvedMeterDynamics.peakThresholdDb} dBFS`}
+                onChange={(peakThresholdDb) => updateMeterDynamics({ peakThresholdDb })}
+              />
+              <RangeControl
+                label="History duration"
+                min={100}
+                max={10_000}
+                step={100}
+                value={resolvedMeterDynamics.historyDurationMs}
+                valueLabel={`${(resolvedMeterDynamics.historyDurationMs / 1000).toFixed(1)} s`}
+                onChange={(historyDurationMs) => updateMeterDynamics({ historyDurationMs })}
+              />
+              <RangeControl
+                label="History interval"
+                min={5}
+                max={500}
+                step={5}
+                value={resolvedMeterDynamics.historyIntervalMs}
+                valueLabel={`${resolvedMeterDynamics.historyIntervalMs} ms`}
+                onChange={(historyIntervalMs) => updateMeterDynamics({ historyIntervalMs })}
+              />
+              <ToggleControl
+                checked={showMeterHistory}
+                description="Draw recent response ghosts; analysis history remains bounded either way."
+                label="Show meter history"
+                onChange={setShowMeterHistory}
+              />
+              <RangeControl
+                label="History opacity"
+                min={0}
+                max={1}
+                step={0.01}
+                value={meterHistoryOpacity}
+                valueLabel={`${Math.round(meterHistoryOpacity * 100)}%`}
+                disabled={!showMeterHistory}
+                disabledReason="Enable meter history to tune its visual opacity."
+                onChange={setMeterHistoryOpacity}
+              />
+              <p className="control-note">
+                Capacity {meterPresentation.historyCapacity.toLocaleString()} frames · hard ceiling
+                16,384 · reset on source epoch, channel count, sample rate, or backwards time.
+              </p>
+            </ControlSection>
+          ) : null}
+
           <ControlSection title="Geometry">
             {visualMode === "spectrum" ? (
               <>
@@ -1304,6 +1743,177 @@ export default function App() {
                   valueLabel={`${cornerRadius} px`}
                   disabled={!cornerRadiusAvailability.enabled}
                   disabledReason={cornerRadiusAvailability.reason}
+                  onChange={setCornerRadius}
+                />
+              </>
+            ) : isMeterMode ? (
+              <>
+                <SelectControl
+                  definition={{
+                    description: "Select PCM channels before RMS or peak analysis.",
+                    label: "Meter channels",
+                    options: [
+                      { label: "Source channels", value: "source" },
+                      { label: "Mono mix", value: "mono" },
+                      {
+                        disabled: sourceChannelCount < 2,
+                        label: "Stereo pair",
+                        value: "stereo",
+                      },
+                      { label: "Single channel", value: "single" },
+                    ],
+                  }}
+                  value={channelMode}
+                  onChange={(value) => setChannelMode(value as WaveformChannelMode)}
+                />
+                {channelMode === "single" ? (
+                  <RangeControl
+                    label="Meter channel index"
+                    min={0}
+                    max={Math.max(0, sourceChannelCount - 1)}
+                    step={1}
+                    value={Math.min(channelIndex, Math.max(0, sourceChannelCount - 1))}
+                    valueLabel={`${Math.min(channelIndex, Math.max(0, sourceChannelCount - 1)) + 1} / ${sourceChannelCount}`}
+                    onChange={setChannelIndex}
+                  />
+                ) : null}
+                <SelectControl
+                  definition={{
+                    description: "Use linear lanes or concentric radial tracks.",
+                    label: "Meter layout",
+                    options: [
+                      { label: "Rectangular", value: "rectangular" },
+                      { label: "Radial", value: "radial" },
+                    ],
+                  }}
+                  value={meterLayout}
+                  onChange={(value) => setMeterLayout(value as SpectrumLayout)}
+                />
+                <SelectControl
+                  definition={{
+                    description: "Choose the dB progression direction for rectangular meters.",
+                    label: "Meter orientation",
+                    options: [
+                      { label: "Horizontal", value: "horizontal" },
+                      { label: "Vertical", value: "vertical" },
+                    ],
+                  }}
+                  disabled={meterLayout === "radial"}
+                  disabledReason="Radial meters progress around their configured arc."
+                  value={orientation}
+                  onChange={(value) => setOrientation(value as WaveformOrientation)}
+                />
+                <RangeControl
+                  label="Meter width"
+                  min={1}
+                  max={64}
+                  step={1}
+                  value={meterBarWidth}
+                  valueLabel={`${meterBarWidth} px`}
+                  onChange={setMeterBarWidth}
+                />
+                <RangeControl
+                  label="Meter channel gap"
+                  min={0}
+                  max={64}
+                  step={1}
+                  value={meterChannelGap}
+                  valueLabel={`${meterChannelGap} px`}
+                  disabled={meterPresentation.frame.channels.length < 2}
+                  disabledReason="Channel spacing requires at least two selected channels."
+                  onChange={setMeterChannelGap}
+                />
+                <RangeControl
+                  label="Minimum meter size"
+                  min={0}
+                  max={32}
+                  step={1}
+                  value={meterMinimumSize}
+                  valueLabel={`${meterMinimumSize} px`}
+                  onChange={setMeterMinimumSize}
+                />
+                <RangeControl
+                  label="Step width"
+                  min={1}
+                  max={32}
+                  step={1}
+                  value={meterStepWidth}
+                  valueLabel={`${meterStepWidth} px`}
+                  disabled={visualMode !== "stepped-meter"}
+                  disabledReason="Step width applies only to stepped-meter geometry."
+                  onChange={setMeterStepWidth}
+                />
+                <RangeControl
+                  label="Step gap"
+                  min={0}
+                  max={16}
+                  step={1}
+                  value={meterStepGap}
+                  valueLabel={`${meterStepGap} px`}
+                  disabled={visualMode !== "stepped-meter"}
+                  disabledReason="Step gap applies only to stepped-meter geometry."
+                  onChange={setMeterStepGap}
+                />
+                <ToggleControl
+                  checked={radialInvert}
+                  description="Reverse meter progression around the arc."
+                  disabled={meterLayout !== "radial"}
+                  disabledReason="Select radial meter layout to invert its arc."
+                  label="Invert meter arc"
+                  onChange={setRadialInvert}
+                />
+                <RangeControl
+                  label="Meter deadzone"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={radialDeadzone * 100}
+                  valueLabel={`${Math.round(radialDeadzone * 100)}%`}
+                  disabled={meterLayout !== "radial"}
+                  disabledReason="Deadzone applies only to radial meter layout."
+                  onChange={(value) => setRadialDeadzone(value / 100)}
+                />
+                <RangeControl
+                  label="Meter arc"
+                  min={0}
+                  max={360}
+                  step={1}
+                  value={radialArc}
+                  valueLabel={`${Math.round(radialArc)}°`}
+                  disabled={meterLayout !== "radial"}
+                  disabledReason="Arc applies only to radial meter layout."
+                  onChange={setRadialArc}
+                />
+                <RangeControl
+                  label="Meter rotation"
+                  min={0}
+                  max={360}
+                  step={1}
+                  value={radialRotation}
+                  valueLabel={`${Math.round(radialRotation)}°`}
+                  disabled={meterLayout !== "radial"}
+                  disabledReason="Rotation applies only to radial meter layout."
+                  onChange={setRadialRotation}
+                />
+                <ToggleControl
+                  checked={roundedCaps}
+                  description="Round bar ends and stepped segments."
+                  label="Rounded meter caps"
+                  onChange={setRoundedCaps}
+                />
+                <RangeControl
+                  label="Meter corner radius"
+                  min={0}
+                  max={32}
+                  step={1}
+                  value={cornerRadius}
+                  valueLabel={`${cornerRadius} px`}
+                  disabled={!roundedCaps || meterLayout === "radial"}
+                  disabledReason={
+                    meterLayout === "radial"
+                      ? "Radial geometry uses line caps instead of corner radius."
+                      : "Enable rounded meter caps to use corner radius."
+                  }
                   onChange={setCornerRadius}
                 />
               </>
@@ -1569,6 +2179,87 @@ export default function App() {
                   onChange={setShowSpectrumGrid}
                 />
               </>
+            ) : isMeterMode ? (
+              <>
+                <SelectControl
+                  definition={{
+                    description:
+                      "Use one role, a continuous threshold gradient, or discrete ranges.",
+                    label: "Meter color mode",
+                    options: [
+                      { label: "Gradient", value: "gradient" },
+                      { label: "Ranges", value: "range" },
+                      { label: "Solid", value: "solid" },
+                    ],
+                  }}
+                  value={meterColorMode}
+                  onChange={(value) => setMeterColorMode(value as MeterColorMode)}
+                />
+                <ColorRoleControl
+                  alpha={baseAlpha}
+                  color={signalColor}
+                  description="Nominal meter level and solid fill role."
+                  label="Meter base"
+                  onAlpha={setBaseAlpha}
+                  onColor={setSignalColor}
+                />
+                <ColorRoleControl
+                  alpha={middleAlpha}
+                  color={middleColor}
+                  description="Intermediate dB range role."
+                  disabled={meterColorMode === "solid"}
+                  disabledReason="Solid meters use only the base role."
+                  label="Meter middle"
+                  onAlpha={setMiddleAlpha}
+                  onColor={setMiddleColor}
+                />
+                <ColorRoleControl
+                  alpha={crestAlpha}
+                  color={crestColor}
+                  description="High-energy range role before peaking."
+                  disabled={meterColorMode === "solid"}
+                  disabledReason="Solid meters use only the base role."
+                  label="Meter crest"
+                  onAlpha={setCrestAlpha}
+                  onColor={setCrestColor}
+                />
+                <ColorRoleControl
+                  alpha={accentAlpha}
+                  color={accentColor}
+                  description="Peak threshold and ceiling role."
+                  disabled={meterColorMode === "solid"}
+                  disabledReason="Solid meters use only the base role."
+                  label="Meter peak"
+                  onAlpha={setAccentAlpha}
+                  onColor={setAccentColor}
+                />
+                <RangeControl
+                  label="Meter middle threshold"
+                  min={meterMinimumDecibels}
+                  max={meterMaximumDecibels}
+                  step={1}
+                  value={resolvedMeterConfig.middleDecibels}
+                  valueLabel={`${resolvedMeterConfig.middleDecibels} dBFS`}
+                  disabled={meterColorMode === "solid"}
+                  disabledReason="Thresholds apply to gradient and range color modes."
+                  onChange={(value) =>
+                    setMiddleDecibels(Math.min(value, resolvedMeterConfig.crestDecibels))
+                  }
+                />
+                <RangeControl
+                  label="Meter crest threshold"
+                  min={meterMinimumDecibels}
+                  max={meterMaximumDecibels}
+                  step={1}
+                  value={resolvedMeterConfig.crestDecibels}
+                  valueLabel={`${resolvedMeterConfig.crestDecibels} dBFS`}
+                  disabled={meterColorMode === "solid"}
+                  disabledReason="Thresholds apply to gradient and range color modes."
+                  onChange={(value) =>
+                    setCrestDecibels(Math.max(value, resolvedMeterConfig.middleDecibels))
+                  }
+                />
+              </>
             ) : (
               <>
                 <label className="color-control">
@@ -1604,9 +2295,11 @@ export default function App() {
                 <dd>
                   {visualMode === "spectrum"
                     ? "ordered dB bins"
-                    : visualMode === "envelope"
-                      ? "magnitude channels"
-                      : "signed PCM channels"}
+                    : isMeterMode
+                      ? `independent ${meterMeasurement.toUpperCase()} + peak channels`
+                      : visualMode === "envelope"
+                        ? "magnitude channels"
+                        : "signed PCM channels"}
                 </dd>
               </div>
               <div>
@@ -1614,9 +2307,11 @@ export default function App() {
                 <dd>
                   {visualMode === "spectrum"
                     ? `${minimumDecibels}…${maximumDecibels} dBFS`
-                    : visualMode === "envelope"
-                      ? "0…1 magnitude"
-                      : "−1…+1 signed"}
+                    : isMeterMode
+                      ? `${meterMinimumDecibels}…${meterMaximumDecibels} dBFS · ref 1`
+                      : visualMode === "envelope"
+                        ? "0…1 magnitude"
+                        : "−1…+1 signed"}
                 </dd>
               </div>
               <div>

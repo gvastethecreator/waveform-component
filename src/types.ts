@@ -47,17 +47,20 @@ export type SpectrumLayout = "radial" | "rectangular";
 export type SpectrumColorMode = "gradient" | "line" | "pulse" | "range" | "solid";
 export type SpectrumPulseMode = "peak-frequency" | "peak-magnitude";
 
-export interface SpectrumColorRole {
+export interface CanvasColorRole {
   readonly alpha: number;
   readonly color: string;
 }
 
-export interface SpectrumColorRoles {
-  readonly accent: SpectrumColorRole;
-  readonly base: SpectrumColorRole;
-  readonly crest: SpectrumColorRole;
-  readonly middle: SpectrumColorRole;
+export interface CanvasColorRoles {
+  readonly accent: CanvasColorRole;
+  readonly base: CanvasColorRole;
+  readonly crest: CanvasColorRole;
+  readonly middle: CanvasColorRole;
 }
+
+export type SpectrumColorRole = CanvasColorRole;
+export type SpectrumColorRoles = CanvasColorRoles;
 
 export interface SpectrumAnalysisConfig {
   readonly allowLargeFft: boolean;
@@ -110,17 +113,107 @@ export interface CanvasSpectrumConfigInput extends Omit<
   }>;
 }
 
-export type CanvasVisualizationConfig = CanvasWaveformConfig | CanvasSpectrumConfig;
+export type CanvasVisualizationConfig =
+  | CanvasWaveformConfig
+  | CanvasSpectrumConfig
+  | CanvasMeterConfig;
 
 export interface MeterChannel {
-  readonly peak: number;
-  readonly rms: number;
+  readonly linearPeak: number;
+  readonly linearRms: number;
+  readonly peakDbfs: number;
+  readonly rmsDbfs: number;
+  readonly sourceChannelIndex: number;
 }
 
 export interface MeterFrame {
   readonly kind: "meter";
   readonly state: "empty" | "ready";
   readonly channels: readonly MeterChannel[];
+  readonly maximumDecibels: number;
+  readonly minimumDecibels: number;
+  readonly referenceAmplitude: 1;
+  readonly sampleCount: number;
+  readonly sampleRate: number;
+}
+
+export interface MeterHistoryPoint {
+  readonly frame: MeterFrame;
+  readonly timestampMs: number;
+}
+
+export type MeterMeasurement = "peak" | "rms";
+export type MeterGeometry = "meter" | "stepped-meter";
+export type MeterColorMode = "gradient" | "range" | "solid";
+
+export interface CanvasMeterConfig {
+  readonly renderer: "canvas2d";
+  readonly mode: MeterGeometry;
+  readonly backgroundColor: string;
+  readonly barWidth: number;
+  readonly channelGap: number;
+  readonly colorMode: MeterColorMode;
+  readonly colorRoles: CanvasColorRoles;
+  readonly cornerRadius: number;
+  readonly crestDecibels: number;
+  readonly historyOpacity: number;
+  readonly layout: SpectrumLayout;
+  readonly maximumDecibels: number;
+  readonly measurement: MeterMeasurement;
+  readonly middleDecibels: number;
+  readonly minimumDecibels: number;
+  readonly minimumSize: number;
+  readonly orientation: WaveformOrientation;
+  readonly padding: number;
+  readonly peakThresholdDb: number;
+  readonly radialArc: number;
+  readonly radialDeadzone: number;
+  readonly radialInvert: boolean;
+  readonly radialRotation: number;
+  readonly reactThresholdDb: number;
+  readonly roundedCaps: boolean;
+  readonly showHistory: boolean;
+  readonly stepGap: number;
+  readonly stepWidth: number;
+  readonly trackColor: string;
+}
+
+export interface CanvasMeterConfigInput extends Omit<Partial<CanvasMeterConfig>, "colorRoles"> {
+  readonly colorRoles?: Partial<{
+    readonly [Role in keyof CanvasColorRoles]: Partial<CanvasColorRole>;
+  }>;
+}
+
+export interface MeterRect {
+  readonly channelIndex: number;
+  readonly decibels: number;
+  readonly height: number;
+  readonly level: number;
+  readonly width: number;
+  readonly x: number;
+  readonly y: number;
+}
+
+export interface MeterSegment extends MeterRect {
+  readonly active: boolean;
+  readonly segmentIndex: number;
+}
+
+export interface MeterArc {
+  readonly channelIndex: number;
+  readonly decibels: number;
+  readonly endAngle: number;
+  readonly level: number;
+  readonly radius: number;
+  readonly startAngle: number;
+  readonly width: number;
+  readonly x: number;
+  readonly y: number;
+}
+
+export interface MeterArcSegment extends MeterArc {
+  readonly active: boolean;
+  readonly segmentIndex: number;
 }
 
 export interface EnergyBand {

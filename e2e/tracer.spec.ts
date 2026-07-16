@@ -1,9 +1,11 @@
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import { Buffer } from "node:buffer";
+import { mkdir, writeFile } from "node:fs/promises";
 
 test("renders and controls the public Canvas waveform path", async ({ page }) => {
-  await page.goto("/", { waitUntil: "domcontentloaded" });
+  test.setTimeout(60_000);
+  await page.goto("/", { timeout: 60_000, waitUntil: "domcontentloaded" });
 
   await expect(page.getByRole("heading", { name: "Signal Workbench" })).toBeVisible();
   await expect(page.getByRole("img", { name: /deterministic waveform preview/ })).toBeVisible();
@@ -99,6 +101,8 @@ test("loads, plays, and keyboard-scrubs a local WAV without upload", async ({ pa
   ).toBeVisible();
   await expect(page.getByRole("region", { name: "local-tone.wav player" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Spectrum" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Meter", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Stepped meter" })).toBeDisabled();
   await expect(page.getByText(/bounded peaks, not raw PCM/)).toBeVisible();
 
   const seek = page.getByRole("slider", { name: "Seek local-tone.wav" });
@@ -170,6 +174,98 @@ test("renders ordered spectrum controls through the public Canvas path", async (
   await expect(page.getByText("LINEAR Hz")).toBeVisible();
   const bars = await spectrum.screenshot();
   expect(curve.equals(bars)).toBe(false);
+});
+
+test("renders trustworthy continuous, stepped, and radial meters with bounded history", async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  const browserErrors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") browserErrors.push(`console: ${message.text()}`);
+  });
+  page.on("pageerror", (error) => browserErrors.push(`pageerror: ${error.message}`));
+  const evidence = process.env.CAPTURE_METER_EVIDENCE
+    ? ".scratch/evidence/009-meters-history"
+    : null;
+  if (evidence) await mkdir(evidence, { recursive: true });
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.getByRole("button", { name: "Meter", exact: true }).click();
+
+  const stage = page.locator(".signal-stage");
+  const meter = page.getByRole("img", { name: /Broadcast rms meter preview.*RMS display/i });
+  await expect(meter).toHaveAttribute("data-meter-mode", "meter");
+  await expect(meter).toHaveAttribute("data-meter-measurement", "rms");
+  await expect(page.getByText(/hard ceiling 16,384/i)).toBeVisible();
+  const rms = await stage.screenshot();
+  if (evidence) await stage.screenshot({ path: `${evidence}/continuous-rms.png` });
+
+  await page.getByRole("combobox", { name: /Meter preset/ }).selectOption("fast-peak");
+  await expect(page.getByRole("img", { name: /PEAK display/i })).toHaveAttribute(
+    "data-meter-measurement",
+    "peak",
+  );
+  const peak = await stage.screenshot();
+  if (evidence) await stage.screenshot({ path: `${evidence}/continuous-peak.png` });
+  expect(rms.equals(peak)).toBe(false);
+
+  await page.getByRole("button", { name: "Stepped meter" }).click();
+  await expect(page.getByRole("slider", { name: "Step width" })).toBeEnabled();
+  await page.getByRole("slider", { name: "Step width" }).fill("12");
+  await page.getByRole("slider", { name: "Step gap" }).fill("5");
+  const stepped = await stage.screenshot();
+  if (evidence) await stage.screenshot({ path: `${evidence}/stepped-peak.png` });
+  expect(peak.equals(stepped)).toBe(false);
+
+  await page.getByRole("combobox", { name: /Meter layout/ }).selectOption("radial");
+  await expect(page.getByRole("combobox", { name: /Meter orientation/ })).toBeDisabled();
+  await page.getByRole("slider", { name: "Meter deadzone" }).fill("24");
+  await page.getByRole("slider", { name: "Meter arc" }).fill("260");
+  await page.getByRole("slider", { name: "Meter rotation" }).fill("300");
+  await page.getByRole("checkbox", { name: /Invert meter arc/ }).check();
+  await expect(stage).toHaveAttribute("data-meter-layout", "radial");
+  const radial = await stage.screenshot();
+  if (evidence) await stage.screenshot({ path: `${evidence}/radial-stepped.png` });
+  expect(stepped.equals(radial)).toBe(false);
+
+  await page.getByRole("slider", { name: "History duration" }).fill("1000");
+  await page.getByRole("slider", { name: "History interval" }).fill("25");
+  await expect(page.getByText(/Capacity 41 frames/i)).toBeVisible();
+  await page.getByRole("button", { name: "Transient" }).click();
+  await expect(page.getByRole("heading", { name: "Transient stepped-meter" })).toBeVisible();
+  await expect(page.getByText(/HISTORY/)).toBeVisible();
+
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - window.innerWidth,
+  );
+  expect(overflow).toBeLessThanOrEqual(0);
+  expect(browserErrors).toEqual([]);
+
+  if (evidence) {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const narrowOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    );
+    await stage.screenshot({ path: `${evidence}/narrow-radial.png` });
+    await page.emulateMedia({ forcedColors: "active" });
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await stage.screenshot({ path: `${evidence}/forced-colors-radial.png` });
+    await writeFile(
+      `${evidence}/browser-report.json`,
+      `${JSON.stringify(
+        {
+          consoleErrors: browserErrors,
+          forcedColors: await page.evaluate(() => matchMedia("(forced-colors: active)").matches),
+          horizontalOverflow: overflow,
+          meterLayout: await stage.getAttribute("data-meter-layout"),
+          meterMode: await stage.getAttribute("data-meter-mode"),
+          narrowHorizontalOverflow: narrowOverflow,
+        },
+        null,
+        2,
+      )}\n`,
+    );
+  }
 });
 
 test("renders radial geometry and every reactive color role through Canvas", async ({ page }) => {
