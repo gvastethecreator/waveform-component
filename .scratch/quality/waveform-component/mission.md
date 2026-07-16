@@ -231,13 +231,13 @@ Ticket 008 is implemented, verified, and committed. Trustworthy meters/history 0
 
 ## Loops 51–55
 
-|   N | Source finding                                                         | Artifact/proof delta                                                                                                                                                  | Verdict  | Next                              |
-| --: | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | --------------------------------- |
-|  51 | A meter needs explicit measurement units, not a generic level          | Added immutable per-channel linear peak/RMS and peak/RMS dBFS fields, amplitude-1 reference metadata, mono/stereo selection, windows, and steady/sine/impulse/silence fixtures. | continue | Prove temporal response/history   |
-|  52 | Ballistics and history must remain stable under host cadence and time  | Added timestamp-derived attack/release/inertia, narrow fast-peak bypass, three named presets, duration/interval capacity, hard 16,384 ceiling, expiry, and incompatibility resets. | continue | Build pure geometry/rendering     |
-|  53 | Meter and stepped-meter must differ geometrically across layouts      | Added finite continuous/stepped horizontal/vertical and concentric radial geometry, minimum visible size, tracks, range/gradient/solid color, rounded caps, and 64-frame draw sampling. | continue | Integrate the public workbench    |
-|  54 | Capability reasons must follow real mode/layout/channel/history state | Added typed public meter control definitions/reasons, keyboard-native inspector controls, public React `Meter`, semantic RMS/peak dBFS canvas labels, external packed consumer, and deterministic presets. | continue | Pressure real browser output      |
-|  55 | Round Canvas caps closed small polar gaps and erased stepped meaning  | Rebased polar segment centerlines on visible width/gap, added a numeric visible-gap fixture, captured continuous/stepped/radial/narrow/forced-colors proof, and reran 122 tests plus 11 E2E. | continue | Open accessible overlays 010      |
+|   N | Source finding                                                        | Artifact/proof delta                                                                                                                                                                                       | Verdict  | Next                            |
+| --: | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------- |
+|  51 | A meter needs explicit measurement units, not a generic level         | Added immutable per-channel linear peak/RMS and peak/RMS dBFS fields, amplitude-1 reference metadata, mono/stereo selection, windows, and steady/sine/impulse/silence fixtures.                            | continue | Prove temporal response/history |
+|  52 | Ballistics and history must remain stable under host cadence and time | Added timestamp-derived attack/release/inertia, narrow fast-peak bypass, three named presets, duration/interval capacity, hard 16,384 ceiling, expiry, and incompatibility resets.                         | continue | Build pure geometry/rendering   |
+|  53 | Meter and stepped-meter must differ geometrically across layouts      | Added finite continuous/stepped horizontal/vertical and concentric radial geometry, minimum visible size, tracks, range/gradient/solid color, rounded caps, and 64-frame draw sampling.                    | continue | Integrate the public workbench  |
+|  54 | Capability reasons must follow real mode/layout/channel/history state | Added typed public meter control definitions/reasons, keyboard-native inspector controls, public React `Meter`, semantic RMS/peak dBFS canvas labels, external packed consumer, and deterministic presets. | continue | Pressure real browser output    |
+|  55 | Round Canvas caps closed small polar gaps and erased stepped meaning  | Rebased polar segment centerlines on visible width/gap, added a numeric visible-gap fixture, captured continuous/stepped/radial/narrow/forced-colors proof, and reran 122 tests plus 11 E2E.               | continue | Open accessible overlays 010    |
 
 ## Loop 55 verdict
 
@@ -252,6 +252,31 @@ Ticket 009 is implemented, verified, documented, and committed. Accessible overl
 - Root cause: polar geometry interpreted `stepWidth` and `stepGap` as centerline lengths while rectangular geometry interpreted them as visible extents; Canvas round caps exposed the mismatch.
 - Repair: radial stepped geometry subtracts cap allowance from the centerline, preserves visible step/gap extents, limits stroke width to the requested step, and proves the resulting physical gap numerically.
 - Closing proof: 122/122 tests, verify:tracer build/SSR/fresh packed consumer, 11/11 installed-Chrome E2E, and inspected normal/narrow/forced-colors evidence with zero overflow or console errors.
+- Unresolved severity: closed.
+
+## Loops 56–60
+
+|   N | Source finding                                                      | Artifact/proof delta                                                                                                                                                                           | Verdict  | Next                              |
+| --: | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | --------------------------------- |
+|  56 | Overlay state must remain controlled across every input modality    | Added one normalized coordinate/value contract with explicit preview/commit metadata for pointer, touch, keyboard, RTL, reversed axes, linear/log scales, and cancellation recovery.           | continue | Add semantic editor layers        |
+|  57 | Dynamic allowed ranges cannot also define visual coordinates        | Split stable display domain from current `aria`/interaction bounds, preventing selection and loop handles from jumping when paired constraints change.                                         | continue | Prove overlaps and focus          |
+|  58 | Full region fills and operable overlaps need different layers       | Added semantic descriptions, noninteractive fills/guides, 24 px collision-laned marker/region/handle targets, explicit tab stops, focus elevation, status announcements, and pointer capture.  | continue | Integrate direct signal controls  |
+|  59 | Renderer direction and page direction are not interchangeable       | Kept rectangular frequency low-to-high, enabled RTL for time overlays, reversed vertical meter coordinates, corrected dBFS scale labels, and gated radial controls with exact reasons.         | continue | Pressure constrained environments |
+|  60 | Source checks cannot substitute for real zoom and contrast pressure | Passed 139 tests and 13 Chrome E2E paths; captured desktop, narrow, forced-colors, reduced-motion, RTL, vertical, and actual 200% page-scale proof with zero reported overflow/console errors. | continue | Open SVG renderer 011             |
+
+## Loop 60 verdict
+
+`continue`
+
+Ticket 010 is implemented, verified, documented, and committed. SVG renderer parity 011 is next because it must consume the canonical analysis/geometry/color/overlay seams without inventing a second behavior or lifecycle contract.
+
+## Accessible-overlay pressure record
+
+- Strongest observed defect: the first direct handles reused their dynamic permitted minimum/maximum as the visual coordinate domain, so changing a paired range moved a handle on screen without changing its controlled value.
+- User harm: selection, loop, cutoff, and threshold controls could visually disagree with their announced value and guide line, making precise editing untrustworthy.
+- Root cause: interaction constraints and rendered coordinates were modeled as one pair of bounds even though they evolve independently.
+- Repair: `domainMinimum`/`domainMaximum` now define stable placement while `minimum`/`maximum` define the current semantic and interactive limits; alignment and paired-range fixtures cover the distinction.
+- Closing proof: 139/139 tests, full package/build/SSR/fresh-consumer gate, 13/13 installed-Chrome E2E, and inspected normal/RTL/vertical/forced-colors/200%-page-scale artifacts.
 - Unresolved severity: closed.
 
 ## Pressure record

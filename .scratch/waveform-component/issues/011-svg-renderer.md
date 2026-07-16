@@ -1,6 +1,6 @@
 # 011 — Deliver SVG renderer parity through the shared contract
 
-Status: blocked
+Status: ready-for-agent
 
 Type: AFK  
 Blocked by: 007, 008, 009, 010  
