@@ -17,6 +17,16 @@ export {
   useRecordedAudioSource,
 } from "./react/RecordedWaveformPlayer";
 export type { RecordedWaveformPlayerProps } from "./react/RecordedWaveformPlayer";
+export { createLiveMediaStreamSource, createMicrophoneSource } from "./live/MicrophoneSource";
+export type {
+  LiveAudioContext,
+  MicrophoneEnvironment,
+  MicrophoneSnapshot,
+  MicrophoneSource,
+  MicrophoneSourceOptions,
+  MicrophoneState,
+} from "./live/MicrophoneSource";
+export { useMicrophoneSource } from "./react/useMicrophoneSource";
 export { createRecordedAudioSource } from "./recorded/RecordedAudioSource";
 export type {
   RecordedAudioEnvironment,

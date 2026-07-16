@@ -66,6 +66,22 @@ await session.attach(source);
 <RecordedWaveformPlayer source={source} session={session} />;
 ```
 
+## Live microphone and host streams
+
+`createMicrophoneSource` is intentionally inert until its source is attached to a session, so importing the package, rendering the playground, or creating the adapter never opens a permission prompt. The adapter reports requesting, live, muted, silent, ended, denied, unavailable, and recoverable-error states through `useMicrophoneSource`.
+
+```tsx
+const microphone = createMicrophoneSource();
+
+// Call from an explicit user action.
+await session.attach(microphone);
+
+// Stops package-owned tracks and releases its analyser/context.
+await session.detach();
+```
+
+Use `createLiveMediaStreamSource(stream)` for a host-owned stream. It disconnects its own analyser/context but leaves borrowed tracks running; pass `{ ownership: "owned" }` only when the package should stop them. Permission denial and device loss remain visible, recoverable session states while the waveform surface stays mounted.
+
 ## Development
 
 Requires Bun 1.3.14.
@@ -77,7 +93,7 @@ bun run verify:tracer
 bun run test:e2e
 ```
 
-The playground imports `waveform-component` through the public entry point and drives its main artifact through a shared session. `fixtures/external-consumer` installs a freshly packed tarball and typechecks convenience, session, and recorded-player interfaces against generated declarations exactly as an external consumer would.
+The playground imports `waveform-component` through the public entry point and drives its main artifact through a shared session. `fixtures/external-consumer` installs a freshly packed tarball and typechecks convenience, session, recorded-player, and microphone interfaces against generated declarations exactly as an external consumer would.
 
 ## Project records
 

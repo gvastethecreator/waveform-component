@@ -15,11 +15,14 @@ import {
   Waveform,
   createDemoWaveform,
   createDemoWaveformSource,
+  createMicrophoneSource,
   createRecordedAudioSource,
   createWaveformSession,
   useWaveformSession,
+  useMicrophoneSource,
   type CanvasWaveformConfig,
   type RecordedAudioSource,
+  type MicrophoneSource,
   type WaveformFrame,
 } from "waveform-component";
 
@@ -41,6 +44,7 @@ export default function App() {
   const [showCenterLine, setShowCenterLine] = useState(true);
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
   const [recordedSource, setRecordedSource] = useState<RecordedAudioSource | null>(null);
+  const [microphoneSource, setMicrophoneSource] = useState<MicrophoneSource | null>(null);
   const session = useMemo(() => createWaveformSession<WaveformFrame>(), []);
   const preset = PRESETS.find((candidate) => candidate.id === presetId) ?? PRESETS[0];
   const sessionSnapshot = useWaveformSession(session);
@@ -53,7 +57,7 @@ export default function App() {
       }),
     [preset.id, preset.phase, sampleCount],
   );
-  const activeSource = recordedSource ?? demoSource;
+  const activeSource = microphoneSource ?? recordedSource ?? demoSource;
   const config = useMemo<Partial<CanvasWaveformConfig>>(
     () => ({ amplitude, color: preset.color, lineWidth, showCenterLine }),
     [amplitude, lineWidth, preset.color, showCenterLine],
@@ -73,6 +77,7 @@ export default function App() {
     setLineWidth(DEFAULT_WAVEFORM_CONFIG.lineWidth);
     setShowCenterLine(true);
     setRecordedSource(null);
+    setMicrophoneSource(null);
     setCopyState("idle");
   };
 
@@ -130,7 +135,10 @@ export default function App() {
               <div>
                 <span className="eyebrow">LIVE ARTIFACT</span>
                 <h2 id="artifact-title">
-                  {recordedSource?.getTransportSnapshot().name ?? preset.label} waveform
+                  {microphoneSource
+                    ? "Microphone"
+                    : (recordedSource?.getTransportSnapshot().name ?? preset.label)}{" "}
+                  waveform
                 </h2>
               </div>
               <div className="artifact-badges" aria-label="Active visualization">
@@ -140,7 +148,7 @@ export default function App() {
               </div>
             </div>
             <div className="signal-stage">
-              {recordedSource ? (
+              {recordedSource && !microphoneSource ? (
                 <RecordedWaveformPlayer
                   ariaLabel={`${recordedSource.getTransportSnapshot().name} local waveform preview`}
                   className="primary-waveform"
@@ -157,16 +165,22 @@ export default function App() {
                     <span>−1.0</span>
                   </div>
                   <SessionWaveform
-                    ariaLabel={`${preset.label} deterministic waveform preview`}
+                    ariaLabel={
+                      microphoneSource
+                        ? "Live microphone waveform preview"
+                        : `${preset.label} deterministic waveform preview`
+                    }
                     className="primary-waveform"
                     config={config}
                     height="100%"
                     session={session}
                   />
-                  <div className="transient-guide" aria-hidden="true">
-                    <span>TRANSIENT</span>
-                    <i />
-                  </div>
+                  {!microphoneSource ? (
+                    <div className="transient-guide" aria-hidden="true">
+                      <span>TRANSIENT</span>
+                      <i />
+                    </div>
+                  ) : null}
                 </>
               )}
             </div>
@@ -237,16 +251,42 @@ export default function App() {
           <ControlSection title="Source & transport">
             <StaticRow
               label="Source"
-              value={recordedSource ? "Local recorded audio" : "Deterministic demo · session"}
+              value={
+                microphoneSource
+                  ? "Live microphone"
+                  : recordedSource
+                    ? "Local recorded audio"
+                    : "Deterministic demo · session"
+              }
             />
+            {microphoneSource ? (
+              <MicrophoneControl
+                source={microphoneSource}
+                onDisconnect={() => setMicrophoneSource(null)}
+              />
+            ) : (
+              <button
+                type="button"
+                className="source-action"
+                onClick={() => {
+                  setRecordedSource(null);
+                  setMicrophoneSource(createMicrophoneSource());
+                }}
+              >
+                Connect microphone
+              </button>
+            )}
             <label className="file-control">
-              <span>Load local audio</span>
+              <span>Local audio</span>
+              <span className="file-control-action">Choose file</span>
               <input
+                aria-label="Load local audio"
                 type="file"
                 accept="audio/*"
                 onChange={(event) => {
                   const file = event.currentTarget.files?.[0];
                   if (!file) return;
+                  setMicrophoneSource(null);
                   setRecordedSource(
                     createRecordedAudioSource(file, {
                       id: `local-${file.name}-${file.lastModified}`,
@@ -259,7 +299,9 @@ export default function App() {
             <p className="control-note">
               {recordedSource
                 ? "Decoded and played locally. The file never leaves this browser."
-                : "No permission, network, or audio device required."}
+                : microphoneSource
+                  ? "Capture started only after your action. Disconnect releases package-owned tracks."
+                  : "No permission, network, or audio device required."}
             </p>
           </ControlSection>
 
@@ -400,6 +442,38 @@ function StaticRow({ label, value }: { readonly label: string; readonly value: s
     <div className="static-row">
       <span>{label}</span>
       <strong>{value}</strong>
+    </div>
+  );
+}
+
+function MicrophoneControl({
+  onDisconnect,
+  source,
+}: {
+  readonly onDisconnect: () => void;
+  readonly source: MicrophoneSource;
+}) {
+  const snapshot = useMicrophoneSource(source);
+  const recovery =
+    snapshot.state === "denied"
+      ? "Permission denied. Allow microphone access in the browser, then reconnect."
+      : snapshot.state === "unavailable"
+        ? "No usable microphone. Check the device, then reconnect."
+        : snapshot.state === "ended"
+          ? "Microphone disconnected. Check the device, then disconnect and reconnect."
+          : snapshot.state === "muted"
+            ? "The microphone input is muted. Unmute the device to continue."
+            : snapshot.error?.message;
+  return (
+    <div className="microphone-control">
+      <div role="status" aria-label="Microphone status" aria-live="polite">
+        <span className="microphone-dot" data-state={snapshot.state} aria-hidden="true" />
+        Microphone · {snapshot.state}
+      </div>
+      {recovery ? <p>{recovery}</p> : null}
+      <button type="button" className="source-action" onClick={onDisconnect}>
+        Disconnect microphone
+      </button>
     </div>
   );
 }

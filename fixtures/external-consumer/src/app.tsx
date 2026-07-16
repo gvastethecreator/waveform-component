@@ -3,9 +3,12 @@ import {
   RecordedWaveformPlayer,
   Waveform,
   createDemoWaveform,
+  createMicrophoneSource,
   createStaticWaveformFrame,
   createStaticWaveformSource,
   createWaveformSession,
+  useMicrophoneSource,
+  type MicrophoneSource,
   type WaveformFrame,
   type RecordedAudioSource,
 } from "waveform-component";
@@ -31,4 +34,13 @@ export function SharedSessionExample() {
 
 export function RecordedConsumerExample({ source }: { readonly source: RecordedAudioSource }) {
   return <RecordedWaveformPlayer ariaLabel="Local recording" session={session} source={source} />;
+}
+
+export function createExternalMicrophone() {
+  return createMicrophoneSource({ id: "external-microphone" });
+}
+
+export function MicrophoneStatus({ source }: { readonly source: MicrophoneSource }) {
+  const snapshot = useMicrophoneSource(source);
+  return <output>{snapshot.state}</output>;
 }

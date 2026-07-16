@@ -500,21 +500,88 @@ input:focus-visible {
   color: var(--muted);
 }
 
-.file-control input {
-  min-width: 0;
-  max-width: 9.5rem;
-  color: var(--text);
-  font-size: 0.52rem;
+.file-control {
+  position: relative;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
 }
 
-.file-control input::file-selector-button {
+.file-control > .file-control-action {
   min-height: 1.75rem;
-  margin-right: 0.4rem;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.6rem;
   border: 1px solid var(--border-strong);
   border-radius: 0.25rem;
   background: var(--surface-active);
   color: var(--text);
+}
+
+.file-control:has(input:focus-visible) {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+.file-control input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
   cursor: pointer;
+}
+
+.source-action {
+  min-height: 2.35rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 0.35rem;
+  background: var(--surface-active);
+  color: var(--text);
+  font-size: 0.6rem;
+  cursor: pointer;
+}
+
+.microphone-control {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 0.35rem;
+  background: var(--surface-raised);
+}
+
+.microphone-control > div {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: var(--font-mono);
+  font-size: 0.54rem;
+  text-transform: uppercase;
+}
+
+.microphone-control p {
+  margin: 0;
+  color: #ffb2bd;
+  font-size: 0.54rem;
+  line-height: 1.45;
+}
+
+.microphone-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--yellow);
+}
+
+.microphone-dot[data-state="live"] {
+  background: #74e3a6;
+}
+
+.microphone-dot[data-state="denied"],
+.microphone-dot[data-state="error"],
+.microphone-dot[data-state="unavailable"] {
+  background: #ff7892;
 }
 
 .static-row strong {

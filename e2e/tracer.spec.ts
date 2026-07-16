@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import type { Page } from "@playwright/test";
 import { Buffer } from "node:buffer";
 
 test("renders and controls the public Canvas waveform path", async ({ page }) => {
@@ -83,6 +84,158 @@ test("explains a corrupt local file and recovers with a replacement", async ({ p
   await expect(page.getByLabel("Signal status")).toContainText("RECORDED-AUDIO / READY");
   await expect(page.getByRole("region", { name: "replacement.wav player" })).toBeVisible();
 });
+
+test("connects microphone only on action and releases every owned cycle", async ({ page }) => {
+  await installMicrophoneMock(page, "live");
+  await page.goto("/");
+
+  await expect.poll(() => microphoneStat(page, "requests")).toBe(0);
+  await page.getByRole("button", { name: "Connect microphone" }).click();
+  await expect(page.getByRole("status", { name: "Microphone status" })).toContainText(
+    "Microphone · live",
+  );
+  await expect(page.getByLabel("Signal status")).toContainText("MICROPHONE / READY");
+  await expect(page.getByRole("img", { name: "Live microphone waveform preview" })).toBeVisible();
+  await expect(page.getByText("Live microphone", { exact: true })).toBeVisible();
+  await expect.poll(() => microphoneStat(page, "requests")).toBe(1);
+
+  await page.evaluate(() => {
+    const mock = Reflect.get(window, "__waveformMicMock");
+    mock.track.muted = true;
+    mock.track.dispatchEvent(new Event("mute"));
+  });
+  await expect(page.getByRole("status", { name: "Microphone status" })).toContainText(
+    "Microphone · muted",
+  );
+  await expect(page.getByLabel("Signal status")).toContainText("MICROPHONE / MUTED");
+
+  await page.evaluate(() => {
+    const mock = Reflect.get(window, "__waveformMicMock");
+    mock.track.muted = false;
+    mock.track.dispatchEvent(new Event("unmute"));
+  });
+  await expect(page.getByRole("status", { name: "Microphone status" })).toContainText(
+    "Microphone · live",
+  );
+
+  await page.evaluate(() => {
+    const mock = Reflect.get(window, "__waveformMicMock");
+    mock.track.readyState = "ended";
+    mock.track.dispatchEvent(new Event("ended"));
+  });
+  await expect(page.getByRole("status", { name: "Microphone status" })).toContainText(
+    "Microphone · ended",
+  );
+  await expect(page.getByLabel("Signal status")).toContainText("MICROPHONE / ENDED");
+  await expect(page.getByText(/Check the device, then disconnect and reconnect/)).toBeVisible();
+  await expect.poll(() => microphoneStat(page, "closes")).toBe(1);
+  await expect.poll(() => microphoneStat(page, "stops")).toBe(1);
+
+  await page.getByRole("button", { name: "Disconnect microphone" }).click();
+  await expect(page.getByLabel("Signal status")).toContainText("DEMO / READY");
+  await page.getByRole("button", { name: "Connect microphone" }).click();
+  await expect(page.getByRole("status", { name: "Microphone status" })).toContainText(
+    "Microphone · live",
+  );
+  await page.getByRole("button", { name: "Disconnect microphone" }).click();
+  await expect.poll(() => microphoneStat(page, "requests")).toBe(2);
+  await expect.poll(() => microphoneStat(page, "closes")).toBe(2);
+  await expect.poll(() => microphoneStat(page, "stops")).toBe(2);
+});
+
+test("explains denied microphone permission and remains recoverable", async ({ page }) => {
+  await installMicrophoneMock(page, "denied");
+  await page.goto("/");
+
+  await expect.poll(() => microphoneStat(page, "requests")).toBe(0);
+  await page.getByRole("button", { name: "Connect microphone" }).click();
+  await expect(page.getByRole("status", { name: "Microphone status" })).toContainText(
+    "Microphone · denied",
+  );
+  await expect(page.getByLabel("Signal status")).toContainText("MICROPHONE / ERROR");
+  await expect(
+    page.getByText(/Allow microphone access in the browser, then reconnect/),
+  ).toBeVisible();
+  await expect(page.getByRole("img", { name: "Live microphone waveform preview" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Disconnect microphone" }).click();
+  await expect(page.getByLabel("Signal status")).toContainText("DEMO / READY");
+  await expect(page.getByRole("button", { name: "Connect microphone" })).toBeVisible();
+});
+
+async function installMicrophoneMock(page: Page, mode: "denied" | "live") {
+  await page.addInitScript((initialMode) => {
+    const mock = {
+      closes: 0,
+      mode: initialMode,
+      requests: 0,
+      stops: 0,
+      track: null as FakeTrack | null,
+    };
+
+    class FakeTrack extends EventTarget {
+      enabled = true;
+      muted = false;
+      readyState: MediaStreamTrackState = "live";
+
+      stop() {
+        if (this.readyState !== "ended") this.readyState = "ended";
+        mock.stops += 1;
+      }
+    }
+
+    class FakeAudioContext {
+      readonly sampleRate = 48_000;
+      readonly state = "running";
+
+      async close() {
+        mock.closes += 1;
+      }
+
+      createAnalyser() {
+        return {
+          disconnect() {},
+          fftSize: 2048,
+          getFloatTimeDomainData(output: Float32Array) {
+            for (let index = 0; index < output.length; index += 1)
+              output[index] = Math.sin(index * 0.14) * 0.35;
+          },
+        };
+      }
+
+      createMediaStreamSource() {
+        return { connect() {}, disconnect() {} };
+      }
+
+      async resume() {}
+    }
+
+    Object.defineProperty(navigator, "mediaDevices", {
+      configurable: true,
+      value: {
+        async getUserMedia() {
+          mock.requests += 1;
+          if (mock.mode === "denied") throw new DOMException("blocked", "NotAllowedError");
+          const track = new FakeTrack();
+          mock.track = track;
+          return {
+            getAudioTracks: () => [track],
+            getTracks: () => [track],
+          };
+        },
+      },
+    });
+    Object.defineProperty(window, "AudioContext", {
+      configurable: true,
+      value: FakeAudioContext,
+    });
+    Reflect.set(window, "__waveformMicMock", mock);
+  }, mode);
+}
+
+async function microphoneStat(page: Page, key: "closes" | "requests" | "stops") {
+  return page.evaluate((property) => Reflect.get(window, "__waveformMicMock")[property], key);
+}
 
 function createWavFixture(): Buffer {
   const sampleRate = 8_000;
