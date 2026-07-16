@@ -25,13 +25,17 @@ describe("SessionWaveform", () => {
     );
 
     expect(connect).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole("img", { name: "Primary. 1 channel, 3 samples." })).toBeVisible();
-    expect(screen.getByRole("img", { name: "Mirror. 1 channel, 3 samples." })).toBeVisible();
+    expect(
+      screen.getByRole("img", { name: "Primary. 1 source channel, 3 samples." }),
+    ).toBeVisible();
+    expect(screen.getByRole("img", { name: "Mirror. 1 source channel, 3 samples." })).toBeVisible();
     expect(screen.getByText("fixture:ready:1")).toBeInTheDocument();
 
     await act(() => session.attach(createStaticWaveformSource([-1, -0.5, 0, 0.5, 1])));
-    expect(screen.getByRole("img", { name: "Primary. 1 channel, 5 samples." })).toBeVisible();
-    expect(screen.getByRole("img", { name: "Mirror. 1 channel, 5 samples." })).toBeVisible();
+    expect(
+      screen.getByRole("img", { name: "Primary. 1 source channel, 5 samples." }),
+    ).toBeVisible();
+    expect(screen.getByRole("img", { name: "Mirror. 1 source channel, 5 samples." })).toBeVisible();
   });
 });
 

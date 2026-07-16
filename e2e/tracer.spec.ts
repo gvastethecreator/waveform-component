@@ -29,6 +29,50 @@ test("renders and controls the public Canvas waveform path", async ({ page }) =>
   await expect(page.getByRole("heading", { name: "Signal studies" })).toBeHidden();
 });
 
+test("preserves stereo identity across layouts, envelope placement, and orientation", async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+
+  const stage = page.locator(".signal-stage");
+  const waveform = page.getByRole("img", { name: /Broadcast deterministic waveform preview/ });
+  await expect(waveform).toHaveAttribute("data-time-domain-mode", "waveform");
+  await expect(page.getByText("2 CH · STACKED")).toBeVisible();
+  const stacked = await stage.screenshot();
+
+  await page.getByRole("combobox", { name: /Channel layout/ }).selectOption("overlay");
+  await expect(page.getByText("2 CH · OVERLAY")).toBeVisible();
+  await expect(page.getByRole("slider", { name: "Channel spacing" })).toBeDisabled();
+  const overlay = await stage.screenshot();
+  expect(stacked.equals(overlay)).toBe(false);
+
+  await page.getByRole("combobox", { name: /Channel mode/ }).selectOption("mono");
+  await expect(page.getByText("1 CH · STACKED")).toBeVisible();
+  await expect(
+    page.getByRole("combobox", { name: /Channel layout/ }).locator('option[value="overlay"]'),
+  ).toHaveAttribute("disabled", "");
+  await page.getByRole("combobox", { name: /Channel mode/ }).selectOption("stereo");
+  await page.getByRole("combobox", { name: /Channel layout/ }).selectOption("split");
+
+  await page.getByRole("button", { name: "Envelope" }).click();
+  const envelope = page.getByRole("img", { name: /Broadcast magnitude envelope preview/ });
+  await expect(envelope).toHaveAttribute("data-time-domain-mode", "envelope");
+  await page.getByRole("combobox", { name: /Amplitude placement/ }).selectOption("mirrored");
+  await page.getByRole("combobox", { name: /Orientation/ }).selectOption("vertical");
+  await page.getByRole("combobox", { name: /Sizing/ }).selectOption("fixed");
+  await page.getByRole("slider", { name: "Component width" }).fill("480");
+  await expect(page.getByText("VERTICAL · FIXED")).toBeVisible();
+  await expect(envelope).not.toHaveAttribute("data-render-error");
+  const verticalEnvelope = await stage.screenshot();
+  expect(overlay.equals(verticalEnvelope)).toBe(false);
+
+  const horizontalOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - window.innerWidth,
+  );
+  expect(horizontalOverflow).toBeLessThanOrEqual(0);
+});
+
 test("keeps the narrow workbench reachable without horizontal overflow", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/", { waitUntil: "domcontentloaded" });

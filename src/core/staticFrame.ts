@@ -1,4 +1,9 @@
-import type { StaticWaveformInput, WaveformChannelInput, WaveformFrame } from "../types";
+import type {
+  EnvelopeFrame,
+  StaticWaveformInput,
+  WaveformChannelInput,
+  WaveformFrame,
+} from "../types";
 import { WaveformInputError } from "../types";
 
 export interface StaticWaveformOptions {
@@ -17,7 +22,7 @@ export function createStaticWaveformFrame(
 ): WaveformFrame {
   const channelInputs = toChannelInputs(input);
   const channels = channelInputs.map((channel, channelIndex) =>
-    validateAndCopyChannel(channel, channelIndex),
+    validateAndCopyChannel(channel, channelIndex, -1, 1, "Waveform"),
   );
   const sampleCount = channels.reduce((maximum, channel) => Math.max(maximum, channel.length), 0);
 
@@ -29,6 +34,33 @@ export function createStaticWaveformFrame(
     ...(isPositiveFinite(options.sampleRate) ? { sampleRate: options.sampleRate } : {}),
     ...(isNonNegativeFinite(options.duration) ? { duration: options.duration } : {}),
   });
+}
+
+export function createStaticEnvelopeFrame(
+  input: StaticWaveformInput,
+  options: StaticWaveformOptions = {},
+): EnvelopeFrame {
+  const channelInputs = toChannelInputs(input);
+  const channels = channelInputs.map((channel, channelIndex) =>
+    validateAndCopyChannel(channel, channelIndex, 0, 1, "Envelope"),
+  );
+  const sampleCount = channels.reduce((maximum, channel) => Math.max(maximum, channel.length), 0);
+
+  return Object.freeze({
+    kind: "envelope",
+    state: sampleCount === 0 ? "empty" : "ready",
+    channels: Object.freeze(channels),
+    sampleCount,
+    ...(isPositiveFinite(options.sampleRate) ? { sampleRate: options.sampleRate } : {}),
+    ...(isNonNegativeFinite(options.duration) ? { duration: options.duration } : {}),
+  });
+}
+
+export function createEnvelopeFrameFromWaveform(frame: WaveformFrame): EnvelopeFrame {
+  return createStaticEnvelopeFrame(
+    frame.channels.map((channel) => Float32Array.from(channel, (sample) => Math.abs(sample))),
+    { duration: frame.duration, sampleRate: frame.sampleRate },
+  );
 }
 
 export function createDemoWaveform(options: DemoWaveformOptions = {}): Float32Array {
@@ -72,14 +104,20 @@ function toChannelInputs(input: StaticWaveformInput): readonly WaveformChannelIn
   throw new WaveformInputError("INVALID_SAMPLE", "Waveform data must contain numeric samples.");
 }
 
-function validateAndCopyChannel(input: WaveformChannelInput, channelIndex: number): Float32Array {
+function validateAndCopyChannel(
+  input: WaveformChannelInput,
+  channelIndex: number,
+  minimum: number,
+  maximum: number,
+  label: string,
+): Float32Array {
   const output = new Float32Array(input.length);
   for (let sampleIndex = 0; sampleIndex < input.length; sampleIndex += 1) {
     const value = input[sampleIndex];
-    if (!Number.isFinite(value) || value < -1 || value > 1) {
+    if (!Number.isFinite(value) || value < minimum || value > maximum) {
       throw new WaveformInputError(
         "INVALID_SAMPLE",
-        `Channel ${channelIndex} sample ${sampleIndex} must be finite and between -1 and 1.`,
+        `${label} channel ${channelIndex} sample ${sampleIndex} must be finite and between ${minimum} and ${maximum}.`,
       );
     }
     output[sampleIndex] = value;

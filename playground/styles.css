@@ -336,6 +336,14 @@ input:focus-visible {
   pointer-events: none;
 }
 
+.signal-scale[data-orientation="vertical"] {
+  top: auto;
+  right: 0.75rem;
+  bottom: 0.35rem;
+  left: 0.75rem;
+  flex-direction: row;
+}
+
 .frequency-axis {
   position: absolute;
   z-index: 2;
@@ -580,7 +588,7 @@ input:focus-visible {
 
 .mode-control {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.35rem;
   padding: 0.25rem;
   border: 1px solid var(--border);

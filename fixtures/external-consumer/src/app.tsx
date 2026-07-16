@@ -1,9 +1,11 @@
 import {
+  Envelope,
   SessionWaveform,
   Spectrum,
   RecordedWaveformPlayer,
   Waveform,
   createDemoWaveform,
+  createEnvelopeFrameFromWaveform,
   analyzeSpectrum,
   createMicrophoneSource,
   createSpectrumDynamicsProcessor,
@@ -18,6 +20,7 @@ import {
 
 const samples = createDemoWaveform({ sampleCount: 512 });
 const frame = createStaticWaveformFrame(samples, { sampleRate: 48_000 });
+const envelope = createEnvelopeFrameFromWaveform(frame);
 const spectrum = analyzeSpectrum(samples, {
   fftSize: 512,
   sampleRate: 48_000,
@@ -50,6 +53,24 @@ export function ExternalConsumerExample() {
 
 export function SharedSessionExample() {
   return <SessionWaveform ariaLabel="Shared external session" session={session} />;
+}
+
+export function EnvelopeConsumerExample() {
+  return (
+    <Envelope
+      ariaLabel="External magnitude envelope"
+      data={envelope}
+      config={{
+        amplitudePlacement: "mirrored",
+        channelLayout: "stacked",
+        channelMode: "source",
+        mode: "envelope",
+        orientation: "vertical",
+      }}
+      height={320}
+      width={160}
+    />
+  );
 }
 
 export function SpectrumConsumerExample() {

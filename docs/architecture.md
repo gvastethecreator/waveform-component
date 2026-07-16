@@ -9,11 +9,14 @@ The package has no browser side effects at module scope. Rendering and media wor
 ## Tracer contracts
 
 - `WaveformFrame` preserves signed normalized channels and explicitly distinguishes empty and ready data.
+- `EnvelopeFrame` preserves non-negative magnitudes as a different canonical kind; conversion from signed PCM is explicit rather than hidden in geometry.
 - `createStaticWaveformFrame` copies and validates caller data so later mutations cannot change a published frame.
-- `buildWaveformColumns` is pure geometry. It bins min/max values per horizontal pixel, retains polarity, and stacks channels without reading DOM or Canvas state.
-- `renderCanvasWaveform` consumes a canonical frame/config/viewport.
+- `selectTimeDomainChannels` keeps source/stereo/single identity or performs a documented finite mono average before layout.
+- `buildTimeDomainSegments` is pure orientation-neutral geometry. It bins extrema per primary-axis pixel, retains source/display channel indices, applies only valid waveform/envelope amplitude placement, and lays out stacked/split/overlay channels without reading DOM or Canvas state.
+- `CanvasWaveformConfig` is discriminated by data mode and channel selection. Runtime frame-count/layout constraints raise `WaveformConfigError`; the React layer surfaces that structured failure without unmounting the semantic canvas.
+- `renderCanvasTimeDomain` consumes a canonical frame/config/viewport, groups overlay strokes by channel color, and splits playback by normalized progress in either orientation.
 - `syncCanvasSize` assigns the backing-store dimensions and an absolute DPR transform, avoiding cumulative scale.
-- `Waveform` is the React convenience interface. It creates a static frame when needed, observes its container, and draws only after mount.
+- `Waveform` and `Envelope` are React convenience interfaces over one internal Canvas lifecycle. They create static frames when needed, observe fixed or responsive containers, and draw only after mount.
 
 ## Planned seams
 

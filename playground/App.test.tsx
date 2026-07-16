@@ -81,6 +81,44 @@ describe("Signal Workbench tracer", () => {
     expect(screen.getByText("0.86×")).toBeInTheDocument();
   });
 
+  it("preserves channel meaning across waveform and envelope layouts", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<App />);
+
+    expect(
+      await screen.findByRole("img", {
+        name: /Broadcast deterministic waveform preview.*2 source channels/,
+      }),
+    ).toHaveAttribute("data-time-domain-mode", "waveform");
+    expect(screen.getByText("2 CH · STACKED")).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByRole("combobox", { name: /Channel layout/ }), "overlay");
+    expect(screen.getByText("2 CH · OVERLAY")).toBeInTheDocument();
+    expect(screen.getByRole("slider", { name: "Channel spacing" })).toBeDisabled();
+
+    await user.selectOptions(screen.getByRole("combobox", { name: /Channel mode/ }), "mono");
+    expect(screen.getByText("1 CH · STACKED")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Envelope" }));
+    expect(screen.getByRole("heading", { name: "Broadcast envelope" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", { name: /Broadcast magnitude envelope preview/ }),
+    ).toHaveAttribute("data-time-domain-mode", "envelope");
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: /Amplitude placement/ }),
+      "mirrored",
+    );
+    await user.selectOptions(screen.getByRole("combobox", { name: /Orientation/ }), "vertical");
+    await user.selectOptions(screen.getByRole("combobox", { name: /Sizing/ }), "fixed");
+    expect(screen.getByRole("slider", { name: "Component width" })).toBeEnabled();
+    expect(screen.getByText("VERTICAL · FIXED")).toBeInTheDocument();
+    const amplitudeScale = container.querySelector(".signal-scale");
+    expect(amplitudeScale).toHaveAttribute("data-orientation", "vertical");
+    expect(
+      [...(amplitudeScale?.querySelectorAll("span") ?? [])].map((label) => label.textContent),
+    ).toEqual(["1.0", "0.0", "1.0"]);
+  });
+
   it("surfaces the shared session lifecycle and owned demo source", async () => {
     render(<App />);
 

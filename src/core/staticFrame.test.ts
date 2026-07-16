@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { createDemoWaveform, createStaticWaveformFrame } from "./staticFrame";
+import {
+  createDemoWaveform,
+  createEnvelopeFrameFromWaveform,
+  createStaticEnvelopeFrame,
+  createStaticWaveformFrame,
+} from "./staticFrame";
 import { WaveformInputError } from "../types";
 
 describe("createStaticWaveformFrame", () => {
@@ -54,5 +59,28 @@ describe("createDemoWaveform", () => {
     expect(first).toHaveLength(128);
     expect(Math.max(...first)).toBeLessThanOrEqual(1);
     expect(Math.min(...first)).toBeGreaterThanOrEqual(-1);
+  });
+});
+
+describe("static envelope frames", () => {
+  it("keeps magnitude separate from signed waveform polarity", () => {
+    const waveform = createStaticWaveformFrame([-1, -0.25, 0, 0.5, 1], {
+      duration: 1,
+      sampleRate: 48_000,
+    });
+    const envelope = createEnvelopeFrameFromWaveform(waveform);
+
+    expect(envelope).toMatchObject({
+      duration: 1,
+      kind: "envelope",
+      sampleRate: 48_000,
+      state: "ready",
+    });
+    expect(Array.from(envelope.channels[0])).toEqual([1, 0.25, 0, 0.5, 1]);
+  });
+
+  it("rejects signed or over-range envelope magnitudes", () => {
+    expect(() => createStaticEnvelopeFrame([-0.01, 0.5])).toThrow(WaveformInputError);
+    expect(() => createStaticEnvelopeFrame([0.5, 1.01])).toThrow(WaveformInputError);
   });
 });

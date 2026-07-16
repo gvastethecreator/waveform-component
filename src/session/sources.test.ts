@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import type { WaveformFrame } from "../types";
 import { createWaveformSession } from "./WaveformSession";
 import {
   createAudioBufferWaveformSource,
@@ -43,6 +44,20 @@ describe("source adapters", () => {
     });
     const frame = bufferSession.getSnapshot().frame;
     expect(frame?.kind === "waveform" && frame.channels[0][0]).toBe(-1);
+  });
+
+  it("can publish deterministic multichannel demo frames without changing source identity", async () => {
+    const session = createWaveformSession<WaveformFrame>();
+    await session.attach(
+      createDemoWaveformSource({ channelCount: 2, phase: 0.2, sampleCount: 64 }),
+    );
+
+    const snapshot = session.getSnapshot();
+    expect(snapshot.source).toMatchObject({ kind: "demo", ownership: "owned" });
+    expect(snapshot.frame?.channels).toHaveLength(2);
+    expect(Array.from(snapshot.frame!.channels[0])).not.toEqual(
+      Array.from(snapshot.frame!.channels[1]),
+    );
   });
 
   it("never stops borrowed tracks and stops owned tracks exactly once", async () => {

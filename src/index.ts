@@ -1,4 +1,11 @@
-export { DEFAULT_WAVEFORM_CONFIG, resolveWaveformConfig } from "./config";
+export {
+  DEFAULT_ENVELOPE_CONFIG,
+  DEFAULT_WAVEFORM_CONFIG,
+  resolveWaveformConfig,
+  WaveformConfigError,
+} from "./config";
+export { mixChannels, selectTimeDomainChannels } from "./analysis/channels";
+export type { SelectedTimeDomainChannels } from "./analysis/channels";
 export {
   analyzeSpectrum,
   createSpectrumFrame,
@@ -37,17 +44,24 @@ export type {
   SpectrumControlDefinition,
   SpectrumControlId,
 } from "./capabilities/spectrumControls";
-export { createDemoWaveform, createStaticWaveformFrame } from "./core/staticFrame";
+export {
+  createDemoWaveform,
+  createEnvelopeFrameFromWaveform,
+  createStaticEnvelopeFrame,
+  createStaticWaveformFrame,
+} from "./core/staticFrame";
 export type { DemoWaveformOptions, StaticWaveformOptions } from "./core/staticFrame";
-export { buildWaveformColumns } from "./core/waveformGeometry";
+export { buildTimeDomainSegments, buildWaveformColumns } from "./core/waveformGeometry";
 export { buildSpectrumBars, buildSpectrumPoints, resampleSpectrum } from "./core/spectrumGeometry";
 export { createWaveformFrameFromPeakLevel, extractWaveformPeakPyramid } from "./core/waveformPeaks";
 export type { WaveformPeakOptions } from "./core/waveformPeaks";
-export { renderCanvasWaveform, syncCanvasSize } from "./renderers/canvas2d";
+export { renderCanvasTimeDomain, renderCanvasWaveform, syncCanvasSize } from "./renderers/canvas2d";
 export { renderCanvasSpectrum } from "./renderers/canvasSpectrum";
 export type { CanvasSize } from "./renderers/canvas2d";
 export { Waveform } from "./react/Waveform";
 export type { WaveformProps } from "./react/Waveform";
+export { Envelope } from "./react/Envelope";
+export type { EnvelopeProps } from "./react/Envelope";
 export { Spectrum } from "./react/Spectrum";
 export type { SpectrumProps } from "./react/Spectrum";
 export {
@@ -98,7 +112,11 @@ export {
   createPcmWaveformSource,
   createStaticWaveformSource,
 } from "./session/sources";
-export type { MediaStreamSourceOptions, SourceOptions } from "./session/sources";
+export type {
+  DemoWaveformSourceOptions,
+  MediaStreamSourceOptions,
+  SourceOptions,
+} from "./session/sources";
 export type {
   SourceOwnership,
   WaveformSession,
@@ -117,8 +135,12 @@ export type {
   BandEnergyFrame,
   CanvasSpectrumConfig,
   CanvasVisualizationConfig,
+  CanvasEnvelopeModeConfig,
   CanvasWaveformConfig,
+  CanvasWaveformConfigInput,
+  CanvasWaveformModeConfig,
   EnergyBand,
+  EnvelopeAmplitudePlacement,
   EnvelopeFrame,
   MeterChannel,
   MeterFrame,
@@ -131,9 +153,15 @@ export type {
   SpectrumPoint,
   SpectrumWindow,
   StaticWaveformInput,
+  TimeDomainFrame,
   WaveformChannelInput,
+  WaveformChannelLayout,
+  WaveformChannelMode,
+  WaveformChannelSelection,
   WaveformColumn,
   WaveformFrame,
+  WaveformOrientation,
+  WaveformAmplitudePlacement,
   WaveformPeakChannel,
   WaveformPeakLevel,
   WaveformPeakPyramid,

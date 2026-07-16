@@ -26,6 +26,44 @@ export function Example() {
 
 Static values must be finite and normalized to `[-1, 1]`. Empty input produces an explicit empty frame. The package does not access `window`, `document`, Web Audio, or media devices at module scope.
 
+## Channels, layouts, and magnitude envelopes
+
+Signed waveform channels remain distinct from non-negative envelope magnitudes. `Waveform` accepts mono or nested channel arrays in `[-1, 1]`; `Envelope` accepts magnitudes in `[0, 1]`. `createEnvelopeFrameFromWaveform` performs an explicit absolute-magnitude conversion when that is the intended view.
+
+```tsx
+const stereo = [leftPcm, rightPcm];
+
+<Waveform
+  data={stereo}
+  config={{
+    channelMode: "stereo", // source | mono | stereo | single
+    channelLayout: "split", // stacked | split | overlay
+    channelGap: 12,
+    amplitudePlacement: "centered", // positive-only | negative-only
+    orientation: "horizontal", // or vertical
+    channelColors: ["#62dcf5", "#f8d65c"],
+  }}
+/>;
+
+<Envelope
+  data={createEnvelopeFrameFromWaveform(frame)}
+  config={{
+    mode: "envelope",
+    amplitudePlacement: "mirrored", // or baseline
+    channelMode: "source",
+    channelLayout: "stacked",
+  }}
+  width={320}
+  height={160}
+/>;
+```
+
+Mono mixing averages only channels that contain the current sample, so uneven tails remain finite and phase-inverted stereo can cancel correctly. Stereo requires two source channels; single-channel mode requires a valid `channelIndex`; split requires exactly two selected channels; overlay requires at least two. Pure geometry APIs throw a structured `WaveformConfigError` for invalid combinations, while React surfaces the same code and recovery message over the mounted canvas instead of leaving an unexplained blank artifact.
+
+The layouts are deliberately distinct: `stacked` partitions the amplitude axis into lanes, `split` gives a stereo pair separate panels along the time axis, and `overlay` draws channels in one shared lane without mixing their samples.
+
+`buildTimeDomainSegments` is orientation-neutral and keeps source/display channel indices on every segment. Numeric width and height request fixed internal sizing; percentage/string sizing remains responsive, and a fixed width clamps to its container on narrow layouts. Canvas backing stores are recreated from current CSS bounds and DPR with an absolute transform.
+
 ## Shared headless session
 
 `WaveformSession` separates source ownership and frame publication from React. One source connection can feed several views, and source epochs prevent stale async work from publishing after replacement.
@@ -151,7 +189,7 @@ bun run verify:tracer
 bun run test:e2e
 ```
 
-The playground imports `waveform-component` through the public entry point and drives its main artifact through a shared session. `fixtures/external-consumer` installs a freshly packed tarball and typechecks convenience, session, recorded-player, microphone, analyzer, spectrum-dynamics, and spectrum-renderer interfaces against generated declarations exactly as an external consumer would.
+The playground imports `waveform-component` through the public entry point and drives its main artifact through a shared session. `fixtures/external-consumer` installs a freshly packed tarball and typechecks waveform/envelope layout, session, recorded-player, microphone, analyzer, spectrum-dynamics, and spectrum-renderer interfaces against generated declarations exactly as an external consumer would.
 
 ## Project records
 

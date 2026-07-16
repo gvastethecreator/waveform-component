@@ -17,6 +17,10 @@ export interface MediaStreamSourceOptions extends SourceOptions {
   readonly ownership?: SourceOwnership;
 }
 
+export interface DemoWaveformSourceOptions extends SourceOptions, DemoWaveformOptions {
+  readonly channelCount?: number;
+}
+
 export function createStaticWaveformSource(
   input: StaticWaveformInput,
   options: SourceOptions & StaticWaveformOptions = {},
@@ -26,11 +30,23 @@ export function createStaticWaveformSource(
 }
 
 export function createDemoWaveformSource(
-  options: SourceOptions & DemoWaveformOptions = {},
+  options: DemoWaveformSourceOptions = {},
 ): WaveformSource<WaveformFrame> {
-  const samples = createDemoWaveform(options);
-  const frame = createStaticWaveformFrame(samples);
+  const channelCount = clampInteger(options.channelCount ?? 1, 1, 8);
+  const basePhase = Number.isFinite(options.phase) ? (options.phase ?? 0) : 0;
+  const channels = Array.from({ length: channelCount }, (_, channelIndex) =>
+    createDemoWaveform({
+      phase: basePhase + channelIndex * 0.137,
+      sampleCount: options.sampleCount,
+    }),
+  );
+  const frame = createStaticWaveformFrame(channelCount === 1 ? channels[0] : channels);
   return createFrameSource("demo", options.id ?? "demo", frame, "owned");
+}
+
+function clampInteger(value: number, minimum: number, maximum: number): number {
+  if (!Number.isFinite(value)) return minimum;
+  return Math.round(Math.min(maximum, Math.max(minimum, value)));
 }
 
 export function createPcmWaveformSource(

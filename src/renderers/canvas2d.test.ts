@@ -14,6 +14,11 @@ describe("syncCanvasSize", () => {
     expect(canvas.width).toBe(400);
     expect(canvas.height).toBe(160);
     expect(setTransform).toHaveBeenLastCalledWith(2, 0, 0, 2, 0, 0);
+
+    syncCanvasSize(canvas, 200, 80, 1.5);
+    expect(canvas.width).toBe(300);
+    expect(canvas.height).toBe(120);
+    expect(setTransform).toHaveBeenLastCalledWith(1.5, 0, 0, 1.5, 0, 0);
   });
 });
 
@@ -44,5 +49,28 @@ describe("renderCanvasWaveform", () => {
 
     expect(context.stroke).toHaveBeenCalledTimes(5);
     expect(context.strokeStyle).toBe("#ffffff");
+  });
+
+  it("keeps overlaid stereo channels distinguishable with channel colors", () => {
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d")!;
+    const frame = createStaticWaveformFrame([
+      [-1, 0, 1],
+      [1, 0, -1],
+    ]);
+
+    renderCanvasWaveform(
+      context,
+      frame,
+      { width: 120, height: 60 },
+      {
+        channelColors: ["#00ffff", "#ffff00"],
+        channelLayout: "overlay",
+        channelMode: "stereo",
+      },
+    );
+
+    expect(context.stroke).toHaveBeenCalledTimes(5);
+    expect(context.strokeStyle).toBe("#ffff00");
   });
 });

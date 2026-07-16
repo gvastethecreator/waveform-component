@@ -20,6 +20,8 @@ export interface EnvelopeFrame {
   readonly duration?: number;
 }
 
+export type TimeDomainFrame = WaveformFrame | EnvelopeFrame;
+
 export interface SpectrumFrame {
   readonly kind: "spectrum";
   readonly state: "empty" | "ready";
@@ -104,20 +106,54 @@ export type AnalysisFrame =
   | MeterFrame
   | BandEnergyFrame;
 
-export interface CanvasWaveformConfig {
+export type WaveformChannelMode = "mono" | "single" | "source" | "stereo";
+export type WaveformChannelLayout = "overlay" | "split" | "stacked";
+export type WaveformOrientation = "horizontal" | "vertical";
+export type WaveformAmplitudePlacement = "centered" | "negative-only" | "positive-only";
+export type EnvelopeAmplitudePlacement = "baseline" | "mirrored";
+
+interface CanvasTimeDomainBaseConfig {
   readonly renderer: "canvas2d";
-  readonly mode: "waveform";
   readonly amplitude: number;
   readonly backgroundColor: string;
   readonly centerLineColor: string;
+  readonly channelColors: readonly string[];
   readonly channelGap: number;
+  readonly channelLayout: WaveformChannelLayout;
   readonly color: string;
   readonly lineWidth: number;
+  readonly orientation: WaveformOrientation;
   readonly padding: number;
   readonly playbackProgress: number;
   readonly playedColor: string;
   readonly showCenterLine: boolean;
 }
+
+export interface CanvasWaveformConfigInput extends Partial<CanvasTimeDomainBaseConfig> {
+  readonly amplitudePlacement?: EnvelopeAmplitudePlacement | WaveformAmplitudePlacement;
+  readonly channelIndex?: number;
+  readonly channelMode?: WaveformChannelMode;
+  readonly mode?: "envelope" | "waveform";
+}
+
+export interface CanvasWaveformModeConfig extends CanvasTimeDomainBaseConfig {
+  readonly amplitudePlacement: WaveformAmplitudePlacement;
+  readonly mode: "waveform";
+}
+
+export interface CanvasEnvelopeModeConfig extends CanvasTimeDomainBaseConfig {
+  readonly amplitudePlacement: EnvelopeAmplitudePlacement;
+  readonly mode: "envelope";
+}
+
+export type WaveformChannelSelection =
+  | { readonly channelMode: "mono"; readonly channelIndex?: never }
+  | { readonly channelMode: "single"; readonly channelIndex: number }
+  | { readonly channelMode: "source"; readonly channelIndex?: never }
+  | { readonly channelMode: "stereo"; readonly channelIndex?: never };
+
+export type CanvasWaveformConfig = (CanvasEnvelopeModeConfig | CanvasWaveformModeConfig) &
+  WaveformChannelSelection;
 
 export interface WaveformPeakChannel {
   readonly maximums: Float32Array;
@@ -142,10 +178,14 @@ export interface WaveformViewport {
 
 export interface WaveformColumn {
   readonly channelIndex: number;
+  readonly sourceChannelIndex: number;
+  readonly centerX: number;
   readonly centerY: number;
-  readonly x: number;
-  readonly yMax: number;
-  readonly yMin: number;
+  readonly progress: number;
+  readonly x1: number;
+  readonly x2: number;
+  readonly y1: number;
+  readonly y2: number;
 }
 
 export interface SpectrumPoint {

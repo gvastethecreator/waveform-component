@@ -1,6 +1,13 @@
 import { resolveWaveformConfig } from "../config";
-import { buildWaveformColumns } from "../core/waveformGeometry";
-import type { CanvasWaveformConfig, WaveformFrame, WaveformViewport } from "../types";
+import { buildTimeDomainSegments } from "../core/waveformGeometry";
+import type {
+  CanvasWaveformConfig,
+  CanvasWaveformConfigInput,
+  TimeDomainFrame,
+  WaveformColumn,
+  WaveformFrame,
+  WaveformViewport,
+} from "../types";
 
 export interface CanvasSize {
   readonly cssHeight: number;
@@ -34,10 +41,19 @@ export function renderCanvasWaveform(
   context: CanvasRenderingContext2D,
   frame: WaveformFrame,
   viewport: WaveformViewport,
-  config?: Partial<CanvasWaveformConfig>,
+  config?: CanvasWaveformConfigInput,
 ): void {
-  const resolved = resolveWaveformConfig(config);
-  const columns = buildWaveformColumns(frame, viewport, resolved);
+  renderCanvasTimeDomain(context, frame, viewport, config);
+}
+
+export function renderCanvasTimeDomain(
+  context: CanvasRenderingContext2D,
+  frame: TimeDomainFrame,
+  viewport: WaveformViewport,
+  config?: CanvasWaveformConfigInput,
+): void {
+  const resolved = resolveWaveformConfig(config, frame.kind);
+  const columns = buildTimeDomainSegments(frame, viewport, resolved);
   const width = finiteDimension(viewport.width);
   const height = finiteDimension(viewport.height);
 
@@ -45,71 +61,85 @@ export function renderCanvasWaveform(
   context.fillStyle = resolved.backgroundColor;
   context.fillRect(0, 0, width, height);
 
-  const centers = new Set(columns.map((column) => column.centerY));
-  if (resolved.showCenterLine) {
-    context.beginPath();
-    context.strokeStyle = resolved.centerLineColor;
-    context.lineWidth = 1;
-    for (const centerY of centers) {
-      context.moveTo(resolved.padding, centerY);
-      context.lineTo(Math.max(resolved.padding, width - resolved.padding), centerY);
-    }
-    context.stroke();
-  }
-
+  if (resolved.showCenterLine) drawGuides(context, columns, viewport, resolved);
   if (columns.length === 0) return;
   context.lineCap = "round";
-  const progressX = resolved.padding + (width - resolved.padding * 2) * resolved.playbackProgress;
-  strokeColumns(
-    context,
-    columns,
-    resolved.color,
-    resolved.lineWidth,
-    (column) => column.x > progressX,
+  strokeColumns(context, columns, resolved, false);
+  strokeColumns(context, columns, resolved, true);
+}
+
+function drawGuides(
+  context: CanvasRenderingContext2D,
+  columns: readonly WaveformColumn[],
+  viewport: WaveformViewport,
+  config: CanvasWaveformConfig,
+): void {
+  const guides = new Set(
+    columns.map((column) =>
+      config.orientation === "horizontal" ? column.centerY : column.centerX,
+    ),
   );
-  strokeColumns(
-    context,
-    columns,
-    resolved.playedColor,
-    resolved.lineWidth,
-    (column) => column.x <= progressX,
+  if (guides.size === 0) return;
+  const padding = Math.min(
+    config.padding,
+    finiteDimension(viewport.width) / 2,
+    finiteDimension(viewport.height) / 2,
   );
+  context.beginPath();
+  context.strokeStyle = config.centerLineColor;
+  context.lineWidth = 1;
+  for (const guide of guides) {
+    if (config.orientation === "horizontal") {
+      context.moveTo(padding, guide);
+      context.lineTo(Math.max(padding, viewport.width - padding), guide);
+    } else {
+      context.moveTo(guide, padding);
+      context.lineTo(guide, Math.max(padding, viewport.height - padding));
+    }
+  }
+  context.stroke();
 }
 
 function strokeColumns(
   context: CanvasRenderingContext2D,
-  columns: readonly ReturnType<typeof buildWaveformColumns>[number][],
-  color: string,
-  lineWidth: number,
-  include: (column: ReturnType<typeof buildWaveformColumns>[number]) => boolean,
+  columns: readonly WaveformColumn[],
+  config: CanvasWaveformConfig,
+  played: boolean,
 ): void {
-  const selected = columns
-    .map((column, index) => ({ column, index }))
-    .filter(({ column }) => include(column));
-  if (selected.length === 0) return;
-  context.strokeStyle = color;
-  context.lineWidth = lineWidth;
-  context.beginPath();
-  for (const { column } of selected) {
-    context.moveTo(column.x, column.yMin);
-    context.lineTo(column.x, column.yMax);
+  const byChannel = new Map<number, WaveformColumn[]>();
+  for (const column of columns) {
+    if (
+      played
+        ? column.progress > config.playbackProgress
+        : column.progress <= config.playbackProgress
+    )
+      continue;
+    const group = byChannel.get(column.channelIndex) ?? [];
+    group.push(column);
+    byChannel.set(column.channelIndex, group);
   }
-  context.stroke();
-
-  context.beginPath();
-  let previousChannel = -1;
-  let previousIndex = -2;
-  for (const { column, index } of selected) {
-    const midpoint = (column.yMin + column.yMax) / 2;
-    if (column.channelIndex !== previousChannel || index !== previousIndex + 1) {
-      context.moveTo(column.x, midpoint);
-    } else {
-      context.lineTo(column.x, midpoint);
+  for (const [channelIndex, group] of byChannel) {
+    const color = played
+      ? config.playedColor
+      : (config.channelColors[channelIndex] ?? config.color);
+    context.strokeStyle = color;
+    context.lineWidth = config.lineWidth;
+    context.beginPath();
+    for (const column of group) {
+      context.moveTo(column.x1, column.y1);
+      context.lineTo(column.x2, column.y2);
     }
-    previousChannel = column.channelIndex;
-    previousIndex = index;
+    context.stroke();
+
+    context.beginPath();
+    group.forEach((column, index) => {
+      const x = (column.x1 + column.x2) / 2;
+      const y = (column.y1 + column.y2) / 2;
+      if (index === 0) context.moveTo(x, y);
+      else context.lineTo(x, y);
+    });
+    context.stroke();
   }
-  context.stroke();
 }
 
 function finiteDimension(value: number): number {

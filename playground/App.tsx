@@ -12,7 +12,9 @@ import {
   DEFAULT_SPECTRUM_ANALYSIS_CONFIG,
   DEFAULT_SPECTRUM_CONFIG,
   DEFAULT_SPECTRUM_DYNAMICS_CONFIG,
+  DEFAULT_ENVELOPE_CONFIG,
   DEFAULT_WAVEFORM_CONFIG,
+  Envelope,
   GUARDED_SPECTRUM_FFT_SIZE,
   RecordedWaveformPlayer,
   SessionWaveform,
@@ -23,6 +25,7 @@ import {
   analyzeSpectrum,
   createDemoWaveform,
   createDemoWaveformSource,
+  createEnvelopeFrameFromWaveform,
   createMicrophoneSource,
   createRecordedAudioSource,
   createSpectrumFrame,
@@ -37,7 +40,9 @@ import {
   useWaveformSession,
   useMicrophoneSource,
   type CanvasSpectrumConfig,
-  type CanvasWaveformConfig,
+  type CanvasWaveformConfigInput,
+  type EnvelopeAmplitudePlacement,
+  type EnvelopeFrame,
   type RecordedAudioSource,
   type MicrophoneSource,
   type SpectrumControlDefinition,
@@ -54,6 +59,10 @@ import {
   type WaveformSessionStatus,
   type SpectrumWindow,
   type WaveformFrame,
+  type WaveformAmplitudePlacement,
+  type WaveformChannelLayout,
+  type WaveformChannelMode,
+  type WaveformOrientation,
 } from "waveform-component";
 
 const PRESETS = [
@@ -67,13 +76,24 @@ type Preset = (typeof PRESETS)[number];
 
 export default function App() {
   const [view, setView] = useState<"overview" | "focus">("overview");
-  const [visualMode, setVisualMode] = useState<"spectrum" | "waveform">("waveform");
+  const [visualMode, setVisualMode] = useState<"envelope" | "spectrum" | "waveform">("waveform");
   const [presetId, setPresetId] = useState<Preset["id"]>("broadcast");
   const [signalColor, setSignalColor] = useState<string>(PRESETS[0].color);
   const [sampleCount, setSampleCount] = useState(2048);
   const [amplitude, setAmplitude] = useState(DEFAULT_WAVEFORM_CONFIG.amplitude);
   const [lineWidth, setLineWidth] = useState(DEFAULT_WAVEFORM_CONFIG.lineWidth);
   const [showCenterLine, setShowCenterLine] = useState(true);
+  const [channelMode, setChannelMode] = useState<WaveformChannelMode>("source");
+  const [channelIndex, setChannelIndex] = useState(0);
+  const [channelLayout, setChannelLayout] = useState<WaveformChannelLayout>("stacked");
+  const [channelGap, setChannelGap] = useState(DEFAULT_WAVEFORM_CONFIG.channelGap);
+  const [orientation, setOrientation] = useState<WaveformOrientation>("horizontal");
+  const [waveformPlacement, setWaveformPlacement] =
+    useState<WaveformAmplitudePlacement>("centered");
+  const [envelopePlacement, setEnvelopePlacement] =
+    useState<EnvelopeAmplitudePlacement>("baseline");
+  const [timeDomainSizing, setTimeDomainSizing] = useState<"fixed" | "responsive">("responsive");
+  const [fixedTimeDomainWidth, setFixedTimeDomainWidth] = useState(640);
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
   const [recordedSource, setRecordedSource] = useState<RecordedAudioSource | null>(null);
   const [microphoneSource, setMicrophoneSource] = useState<MicrophoneSource | null>(null);
@@ -111,6 +131,7 @@ export default function App() {
   const demoSource = useMemo(
     () =>
       createDemoWaveformSource({
+        channelCount: 2,
         id: `${preset.id}-${sampleCount}`,
         phase: preset.phase,
         sampleCount,
@@ -118,10 +139,55 @@ export default function App() {
     [preset.id, preset.phase, sampleCount],
   );
   const activeSource = microphoneSource ?? recordedSource ?? demoSource;
-  const config = useMemo<Partial<CanvasWaveformConfig>>(
-    () => ({ amplitude, color: signalColor, lineWidth, showCenterLine }),
-    [amplitude, lineWidth, showCenterLine, signalColor],
+  const timeDomainConfig = useMemo<CanvasWaveformConfigInput>(
+    () => ({
+      amplitude,
+      amplitudePlacement: visualMode === "envelope" ? envelopePlacement : waveformPlacement,
+      channelColors: [signalColor, "#f8d65c"],
+      channelGap,
+      channelLayout,
+      ...(channelMode === "single" ? { channelIndex } : {}),
+      channelMode,
+      color: signalColor,
+      lineWidth,
+      mode: visualMode === "envelope" ? "envelope" : "waveform",
+      orientation,
+      showCenterLine,
+    }),
+    [
+      amplitude,
+      channelGap,
+      channelIndex,
+      channelLayout,
+      channelMode,
+      envelopePlacement,
+      lineWidth,
+      orientation,
+      showCenterLine,
+      signalColor,
+      visualMode,
+      waveformPlacement,
+    ],
   );
+  const envelopeFrame = useMemo<EnvelopeFrame>(
+    () =>
+      sessionSnapshot.frame
+        ? createEnvelopeFrameFromWaveform(sessionSnapshot.frame)
+        : ({
+            channels: Object.freeze([new Float32Array()]),
+            kind: "envelope",
+            sampleCount: 0,
+            state: "empty",
+          } as const),
+    [sessionSnapshot.frame],
+  );
+  const sourceChannelCount = sessionSnapshot.frame?.channels.length ?? 2;
+  const selectedChannelCount =
+    channelMode === "mono" || channelMode === "single"
+      ? 1
+      : channelMode === "stereo"
+        ? Math.min(2, sourceChannelCount)
+        : sourceChannelCount;
   const spectrumAnalysis = useMemo(
     () =>
       resolveSpectrumAnalysisConfig({
@@ -232,6 +298,15 @@ export default function App() {
     setAmplitude(DEFAULT_WAVEFORM_CONFIG.amplitude);
     setLineWidth(DEFAULT_WAVEFORM_CONFIG.lineWidth);
     setShowCenterLine(true);
+    setChannelMode(DEFAULT_WAVEFORM_CONFIG.channelMode);
+    setChannelIndex(0);
+    setChannelLayout(DEFAULT_WAVEFORM_CONFIG.channelLayout);
+    setChannelGap(DEFAULT_WAVEFORM_CONFIG.channelGap);
+    setOrientation(DEFAULT_WAVEFORM_CONFIG.orientation);
+    setWaveformPlacement(DEFAULT_WAVEFORM_CONFIG.amplitudePlacement);
+    setEnvelopePlacement(DEFAULT_ENVELOPE_CONFIG.amplitudePlacement);
+    setTimeDomainSizing("responsive");
+    setFixedTimeDomainWidth(640);
     setRecordedSource(null);
     setMicrophoneSource(null);
     setAllowLargeFft(DEFAULT_SPECTRUM_ANALYSIS_CONFIG.allowLargeFft);
@@ -261,7 +336,9 @@ export default function App() {
     const code =
       visualMode === "spectrum"
         ? `const dynamics = createSpectrumDynamicsProcessor();\n\n<Spectrum\n  data={dynamics.process(\n    analyzeSpectrum(samples, {\n      sampleRate: ${sampleRate},\n      fftSize: ${spectrumAnalysis.fftSize},\n      allowLargeFft: ${spectrumAnalysis.allowLargeFft},\n      window: "${spectrumAnalysis.window}",\n      powerOfSineExponent: ${spectrumAnalysis.powerOfSineExponent},\n      minimumDecibels: ${spectrumAnalysis.minimumDecibels},\n      maximumDecibels: ${spectrumAnalysis.maximumDecibels}\n    }),\n    {\n      smoothingMode: "${dynamicsSettings.smoothingMode}",\n      smoothingFactor: ${dynamicsSettings.smoothingFactor},\n      attackMs: ${dynamicsSettings.attackMs},\n      releaseMs: ${dynamicsSettings.releaseMs},\n      inertiaMs: ${dynamicsSettings.inertiaMs},\n      fastPeaks: ${dynamicsSettings.fastPeaks},\n      normalizationEnabled: ${dynamicsSettings.normalizationEnabled},\n      normalizationTargetDb: ${dynamicsSettings.normalizationTargetDb},\n      normalizationMaxGainDb: ${dynamicsSettings.normalizationMaxGainDb},\n      gaussianRadius: ${dynamicsSettings.gaussianRadius},\n      highFrequencySlopeDbPerOctave: ${dynamicsSettings.highFrequencySlopeDbPerOctave},\n      rolloffBandwidthHz: ${dynamicsSettings.rolloffBandwidthHz},\n      rolloffAttenuationDb: ${dynamicsSettings.rolloffAttenuationDb}\n    },\n    { timestampMs: performance.now(), sourceState: "ready" }\n  ).frame}\n  config={{\n    renderer: "canvas2d",\n    mode: "spectrum",\n    geometry: "${spectrumGeometry}",\n    frequencyScale: "${frequencyScale}",\n    lowFrequency: ${lowFrequency},\n    highFrequency: ${highFrequency},\n    minimumDecibels: ${minimumDecibels},\n    maximumDecibels: ${maximumDecibels},\n    interpolation: "${spectrumInterpolation}",\n    lineWidth: ${lineWidth},\n    barWidth: ${barWidth},\n    barGap: ${barGap},\n    showGrid: ${showSpectrumGrid},\n    color: "${signalColor}"\n  }}\n/>`
-        : `<Waveform\n  data={samples}\n  config={{\n    renderer: "canvas2d",\n    mode: "waveform",\n    amplitude: ${amplitude.toFixed(2)},\n    lineWidth: ${lineWidth.toFixed(1)},\n    color: "${signalColor}",\n    showCenterLine: ${showCenterLine}\n  }}\n/>`;
+        : visualMode === "envelope"
+          ? `<Envelope\n  data={magnitudes}\n  ${timeDomainSizing === "fixed" ? `width={${fixedTimeDomainWidth}}\n  ` : ""}config={{\n    renderer: "canvas2d",\n    mode: "envelope",\n    channelMode: "${channelMode}",${channelMode === "single" ? `\n    channelIndex: ${channelIndex},` : ""}\n    channelLayout: "${channelLayout}",\n    channelGap: ${channelGap},\n    amplitudePlacement: "${envelopePlacement}",\n    orientation: "${orientation}",\n    amplitude: ${amplitude.toFixed(2)},\n    lineWidth: ${lineWidth.toFixed(1)},\n    color: "${signalColor}",\n    showCenterLine: ${showCenterLine}\n  }}\n/>`
+          : `<Waveform\n  data={channels}\n  ${timeDomainSizing === "fixed" ? `width={${fixedTimeDomainWidth}}\n  ` : ""}config={{\n    renderer: "canvas2d",\n    mode: "waveform",\n    channelMode: "${channelMode}",${channelMode === "single" ? `\n    channelIndex: ${channelIndex},` : ""}\n    channelLayout: "${channelLayout}",\n    channelGap: ${channelGap},\n    amplitudePlacement: "${waveformPlacement}",\n    orientation: "${orientation}",\n    amplitude: ${amplitude.toFixed(2)},\n    lineWidth: ${lineWidth.toFixed(1)},\n    color: "${signalColor}",\n    showCenterLine: ${showCenterLine}\n  }}\n/>`;
     try {
       await navigator.clipboard.writeText(code);
       setCopyState("copied");
@@ -347,7 +424,11 @@ export default function App() {
               <div className="artifact-badges" aria-label="Active visualization">
                 <span>{visualMode.toUpperCase()}</span>
                 <span>CANVAS 2D</span>
-                <span>MONO</span>
+                <span>
+                  {visualMode === "spectrum"
+                    ? "MONO"
+                    : `${selectedChannelCount} CH · ${channelLayout.toUpperCase()}`}
+                </span>
               </div>
             </div>
             <div
@@ -358,7 +439,7 @@ export default function App() {
                 <RecordedWaveformPlayer
                   ariaLabel={`${recordedSource.getTransportSnapshot().name} local waveform preview`}
                   className="primary-waveform"
-                  config={config}
+                  config={timeDomainConfig}
                   height="100%"
                   session={session}
                   source={recordedSource}
@@ -393,12 +474,29 @@ export default function App() {
                     <span>{formatFrequency(spectrumFrequencyRange.highFrequency)}</span>
                   </div>
                 </>
+              ) : visualMode === "envelope" ? (
+                <>
+                  <div className="signal-scale" data-orientation={orientation} aria-hidden="true">
+                    {envelopeScale(envelopePlacement, orientation).map((label, index) => (
+                      <span key={`${label}-${index}`}>{label}</span>
+                    ))}
+                  </div>
+                  <Envelope
+                    ariaLabel={`${microphoneSource ? "Live microphone" : preset.label} magnitude envelope preview`}
+                    className="primary-waveform"
+                    config={timeDomainConfig}
+                    data={envelopeFrame}
+                    height="100%"
+                    width={timeDomainSizing === "fixed" ? fixedTimeDomainWidth : "100%"}
+                    style={{ marginInline: "auto" }}
+                  />
+                </>
               ) : (
                 <>
-                  <div className="signal-scale" aria-hidden="true">
-                    <span>+1.0</span>
-                    <span>0.0</span>
-                    <span>−1.0</span>
+                  <div className="signal-scale" data-orientation={orientation} aria-hidden="true">
+                    {waveformScale(waveformPlacement, orientation).map((label, index) => (
+                      <span key={`${label}-${index}`}>{label}</span>
+                    ))}
                   </div>
                   <SessionWaveform
                     ariaLabel={
@@ -407,11 +505,13 @@ export default function App() {
                         : `${preset.label} deterministic waveform preview`
                     }
                     className="primary-waveform"
-                    config={config}
+                    config={timeDomainConfig}
                     height="100%"
                     session={session}
+                    width={timeDomainSizing === "fixed" ? fixedTimeDomainWidth : "100%"}
+                    style={{ marginInline: "auto" }}
                   />
-                  {!microphoneSource ? (
+                  {!microphoneSource && orientation === "horizontal" ? (
                     <div className="transient-guide" aria-hidden="true">
                       <span>TRANSIENT</span>
                       <i />
@@ -431,12 +531,14 @@ export default function App() {
                   ? spectrumPresentation.result
                     ? `PEAK ${spectrumPresentation.result.peakDb.toFixed(1)} dBFS · ${spectrumPresentation.result.reacting ? "REACTING" : "IDLE"}`
                     : "DYNAMICS INITIALIZING"
-                  : "PEAK +0.91 / −0.74"}
+                  : visualMode === "envelope"
+                    ? "MAGNITUDE 0…1 · POLARITY SEPARATE"
+                    : "SIGNED −1…+1 · POLARITY PRESERVED"}
               </span>
               <span>
                 {visualMode === "spectrum"
                   ? `${spectrumPresentation.result?.policy.toUpperCase() ?? "UNPROCESSED"} · VISUAL ONLY`
-                  : "PUBLIC PACKAGE PATH"}
+                  : `${orientation.toUpperCase()} · ${timeDomainSizing.toUpperCase()}`}
               </span>
             </div>
           </div>
@@ -468,10 +570,15 @@ export default function App() {
                       ariaLabel={`${candidate.label} preset thumbnail`}
                       data={createDemoWaveform({ phase: candidate.phase, sampleCount: 384 })}
                       config={{
-                        ...config,
+                        ...timeDomainConfig,
+                        amplitudePlacement: "centered",
                         backgroundColor: "transparent",
+                        channelLayout: "stacked",
+                        channelMode: "source",
                         color: candidate.color,
                         lineWidth: 1,
+                        mode: "waveform",
+                        orientation: "horizontal",
                         padding: 4,
                         showCenterLine: false,
                       }}
@@ -493,9 +600,9 @@ export default function App() {
         <header className="inspector-header">
           <div>
             <span className="eyebrow">PLAYGROUND</span>
-            <h2>Waveform 001</h2>
+            <h2>Signal 007</h2>
           </div>
-          <span className="version-tag">v0.1 tracer</span>
+          <span className="version-tag">v0.1 core</span>
         </header>
 
         <div className="inspector-scroll">
@@ -521,6 +628,9 @@ export default function App() {
                 className="source-action"
                 onClick={() => {
                   setRecordedSource(null);
+                  setChannelMode("source");
+                  setChannelLayout("stacked");
+                  setChannelIndex(0);
                   if (fftSize === GUARDED_SPECTRUM_FFT_SIZE) {
                     setFftSize(32768);
                     setAllowLargeFft(false);
@@ -543,6 +653,9 @@ export default function App() {
                   if (!file) return;
                   setVisualMode("waveform");
                   setMicrophoneSource(null);
+                  setChannelMode("source");
+                  setChannelLayout("stacked");
+                  setChannelIndex(0);
                   setRecordedSource(
                     createRecordedAudioSource(file, {
                       id: `local-${file.name}-${file.lastModified}`,
@@ -572,7 +685,16 @@ export default function App() {
               </button>
               <button
                 type="button"
-                aria-describedby={recordedSource ? "spectrum-source-limit" : undefined}
+                aria-describedby={recordedSource ? "time-domain-source-limit" : undefined}
+                aria-pressed={visualMode === "envelope"}
+                disabled={Boolean(recordedSource)}
+                onClick={() => setVisualMode("envelope")}
+              >
+                Envelope
+              </button>
+              <button
+                type="button"
+                aria-describedby={recordedSource ? "time-domain-source-limit" : undefined}
                 aria-pressed={visualMode === "spectrum"}
                 disabled={Boolean(recordedSource)}
                 onClick={() => setVisualMode("spectrum")}
@@ -581,9 +703,12 @@ export default function App() {
               </button>
             </div>
             <StaticRow label="Rendering engine" value="Canvas 2D" />
-            <p className="control-note" id={recordedSource ? "spectrum-source-limit" : undefined}>
+            <p
+              className="control-note"
+              id={recordedSource ? "time-domain-source-limit" : undefined}
+            >
               {recordedSource
-                ? "Spectrum is disabled: the recorded preview exposes bounded peaks, not raw PCM."
+                ? "Envelope and spectrum are disabled: this transport exposes bounded peaks, not raw PCM. Signed polarity remains in the player."
                 : "Mode and engine are separate public contracts."}
             </p>
           </ControlSection>
@@ -956,6 +1081,138 @@ export default function App() {
               </>
             ) : (
               <>
+                <SelectControl
+                  definition={{
+                    description: "Select source channels before layout",
+                    label: "Channel mode",
+                    options: [
+                      { label: "Source channels", value: "source" },
+                      { label: "Mono mix", value: "mono" },
+                      {
+                        disabled: sourceChannelCount < 2,
+                        label: "Stereo pair",
+                        value: "stereo",
+                      },
+                      { label: "Single channel", value: "single" },
+                    ],
+                  }}
+                  value={channelMode}
+                  onChange={(value) => {
+                    const next = value as WaveformChannelMode;
+                    setChannelMode(next);
+                    if (next === "mono" || next === "single") setChannelLayout("stacked");
+                  }}
+                />
+                {channelMode === "single" ? (
+                  <RangeControl
+                    label="Channel index"
+                    min={0}
+                    max={Math.max(0, sourceChannelCount - 1)}
+                    step={1}
+                    value={Math.min(channelIndex, Math.max(0, sourceChannelCount - 1))}
+                    valueLabel={`${Math.min(channelIndex, Math.max(0, sourceChannelCount - 1)) + 1} / ${sourceChannelCount}`}
+                    onChange={setChannelIndex}
+                  />
+                ) : null}
+                <SelectControl
+                  definition={{
+                    description: "Arrange selected channels without changing their samples",
+                    label: "Channel layout",
+                    options: [
+                      { label: "Stacked lanes", value: "stacked" },
+                      {
+                        disabled: selectedChannelCount !== 2,
+                        label: "Split panels",
+                        value: "split",
+                      },
+                      {
+                        disabled: selectedChannelCount < 2,
+                        label: "Overlay channels",
+                        value: "overlay",
+                      },
+                    ],
+                  }}
+                  value={channelLayout}
+                  onChange={(value) => setChannelLayout(value as WaveformChannelLayout)}
+                />
+                <RangeControl
+                  label="Channel spacing"
+                  min={0}
+                  max={96}
+                  step={1}
+                  value={channelGap}
+                  valueLabel={`${channelGap} px`}
+                  disabled={channelLayout === "overlay" || selectedChannelCount < 2}
+                  disabledReason={
+                    channelLayout === "overlay"
+                      ? "Overlaid channels share one lane, so spacing does not apply."
+                      : selectedChannelCount < 2
+                        ? "Spacing requires more than one selected channel."
+                        : undefined
+                  }
+                  onChange={setChannelGap}
+                />
+                <SelectControl
+                  definition={{
+                    description:
+                      visualMode === "envelope"
+                        ? "Magnitude grows from a baseline or mirrors around center"
+                        : "Signed polarity or an explicit positive/negative half",
+                    label: "Amplitude placement",
+                    options:
+                      visualMode === "envelope"
+                        ? [
+                            { label: "Baseline", value: "baseline" },
+                            { label: "Mirrored", value: "mirrored" },
+                          ]
+                        : [
+                            { label: "Centered signed", value: "centered" },
+                            { label: "Positive only", value: "positive-only" },
+                            { label: "Negative only", value: "negative-only" },
+                          ],
+                  }}
+                  value={visualMode === "envelope" ? envelopePlacement : waveformPlacement}
+                  onChange={(value) =>
+                    visualMode === "envelope"
+                      ? setEnvelopePlacement(value as EnvelopeAmplitudePlacement)
+                      : setWaveformPlacement(value as WaveformAmplitudePlacement)
+                  }
+                />
+                <SelectControl
+                  definition={{
+                    description: "Time runs across or down the component",
+                    label: "Orientation",
+                    options: [
+                      { label: "Horizontal", value: "horizontal" },
+                      { label: "Vertical", value: "vertical" },
+                    ],
+                  }}
+                  value={orientation}
+                  onChange={(value) => setOrientation(value as WaveformOrientation)}
+                />
+                <SelectControl
+                  definition={{
+                    description: "Fill the stage or request a bounded internal width",
+                    label: "Sizing",
+                    options: [
+                      { label: "Responsive", value: "responsive" },
+                      { label: "Fixed width", value: "fixed" },
+                    ],
+                  }}
+                  value={timeDomainSizing}
+                  onChange={(value) => setTimeDomainSizing(value as "fixed" | "responsive")}
+                />
+                {timeDomainSizing === "fixed" ? (
+                  <RangeControl
+                    label="Component width"
+                    min={240}
+                    max={1200}
+                    step={20}
+                    value={fixedTimeDomainWidth}
+                    valueLabel={`${fixedTimeDomainWidth} px`}
+                    onChange={setFixedTimeDomainWidth}
+                  />
+                ) : null}
                 <RangeControl
                   label="Amplitude"
                   min={0.2}
@@ -1006,7 +1263,9 @@ export default function App() {
                 <small>
                   {visualMode === "spectrum"
                     ? "Floor, midpoint, and ceiling reference"
-                    : "Zero-amplitude reference"}
+                    : visualMode === "envelope"
+                      ? "Magnitude baseline reference"
+                      : "Zero-amplitude reference"}
                 </small>
               </span>
               <input
@@ -1025,14 +1284,22 @@ export default function App() {
             <dl className="contract-list">
               <div>
                 <dt>Input</dt>
-                <dd>{visualMode === "spectrum" ? "ordered dB bins" : "Float32Array"}</dd>
+                <dd>
+                  {visualMode === "spectrum"
+                    ? "ordered dB bins"
+                    : visualMode === "envelope"
+                      ? "magnitude channels"
+                      : "signed PCM channels"}
+                </dd>
               </div>
               <div>
                 <dt>Range</dt>
                 <dd>
                   {visualMode === "spectrum"
                     ? `${minimumDecibels}…${maximumDecibels} dBFS`
-                    : "−1…+1 signed"}
+                    : visualMode === "envelope"
+                      ? "0…1 magnitude"
+                      : "−1…+1 signed"}
                 </dd>
               </div>
               <div>
@@ -1353,4 +1620,26 @@ function formatFrequency(value: number): string {
 
 function formatSigned(value: number): string {
   return `${value > 0 ? "+" : ""}${value}`;
+}
+
+function envelopeScale(
+  placement: EnvelopeAmplitudePlacement,
+  orientation: WaveformOrientation,
+): readonly string[] {
+  if (placement === "mirrored") return ["1.0", "0.0", "1.0"];
+  return orientation === "horizontal" ? ["1.0", "0.5", "0.0"] : ["0.0", "0.5", "1.0"];
+}
+
+function waveformScale(
+  placement: WaveformAmplitudePlacement,
+  orientation: WaveformOrientation,
+): readonly string[] {
+  if (orientation === "vertical") {
+    if (placement === "positive-only") return ["0.0", "+0.5", "+1.0"];
+    if (placement === "negative-only") return ["−1.0", "−0.5", "0.0"];
+    return ["−1.0", "0.0", "+1.0"];
+  }
+  if (placement === "positive-only") return ["+1.0", "+0.5", "0.0"];
+  if (placement === "negative-only") return ["0.0", "−0.5", "−1.0"];
+  return ["+1.0", "0.0", "−1.0"];
 }
