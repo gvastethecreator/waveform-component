@@ -329,6 +329,31 @@ Ticket 012 is implemented, verified, documented, and committed. WebGL2 Pulse Rin
 - Closing proof: inspected forced-colors and actual 200% page-scale captures, computed system-role/background assertions, zero animations/errors, exact 94/94 spectrum node parity, 387-node meter bound, five-observer baseline after switching, 173/173 tests, and 17/17 Chrome E2E.
 - Unresolved severity: closed.
 
+## Loops 71–75
+
+|   N | Source finding                                                              | Artifact/proof delta                                                                                                                                                                                      | Verdict  | Next                              |
+| --: | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | --------------------------------- |
+|  71 | WebGL recovery needs a state machine, not a retry hidden inside React       | Added official-spec-grounded initializing/ready/lost/restoring/error/destroyed states, compiler/link logs, generation counters, cancelable loss, and full program/buffer/VAO recreation.                  | continue | Define canonical VFX input        |
+|  72 | A VFX renderer should not reinterpret ordered spectrum bins ad hoc          | Added immutable logarithmic RMS-amplitude `BandEnergyFrame` aggregation, 16-band ceiling, bounded config/uniform mapping, circular sampling, and an explicit `pulse-ring -> bands` capability contract.   | continue | Integrate public React/playground |
+|  73 | Selecting an unsupported GPU engine must not erase source or editor state   | Added public adapter/component/exports/consumer, separate mode/engine controls, copy/reset, Canvas core/recorded fallback, CSS non-ready states, one observer, and one motion-gated RAF chain.            | continue | Exercise the actual GPU lifecycle |
+|  74 | Synthetic loss and source inspection cannot prove GPU recovery or cleanup   | Used installed Chrome plus ratified `WEBGL_lose_context`, changed every named control, clamped invalid config, resized quality, rebuilt generation 2, and probed native resources/RAF/observer baselines. | continue | Pressure rendered accessibility   |
+|  75 | A live shader can still be visibly broken under wrap, fallback, or contrast | Removed the angular seam, bounded the CSS silhouette, replaced dark-only additive color with alpha composition, stabilized SVG repaint proof, and passed 194 tests plus all 20 Chrome paths.              | continue | Open Neon Lines/Grid VFX 014      |
+
+## Loop 75 verdict
+
+`continue`
+
+Ticket 013 is implemented, verified, documented, and committed. Neon Lines/Equalizer Grid 014 is next because it should reuse the now-proven canonical-band, allocation, fallback, and context-recovery seams while adding bounded multi-element VFX schemas.
+
+## WebGL2 Pulse Ring pressure record
+
+- Strongest observed defect: the initial additive fragment composition rendered an almost uniform white surface when forced colors selected a light background and a dark primary ring.
+- User harm: the adapter, resource counters, draw calls, and tests all reported success while a high-contrast user received an effectively blank visualization.
+- Root cause: additive color can brighten a dark target but black cannot subtract from a white target; the shader had encoded an unstated dark-background assumption.
+- Repair: halo, core, and sweep now alpha-compose over the configured background; circular band interpolation removes the angle seam, and the CSS fallback uses an independently bounded ring rather than shader-like percentage gradients.
+- Closing proof: inspected normal/high-reactivity/context-lost/unavailable/recorded/narrow-forced-colors captures; 48 files and 194/194 tests; typecheck/lint/format/build/SSR/fresh consumer; 20/20 Chrome E2E; observer baseline 5→5; zero active programs, buffers, VAOs, textures, or RAFs; zero textures created; clean browser console.
+- Unresolved severity: closed.
+
 ## Pressure record
 
 Strongest current objection: the proposed package can become so broad that “super customizable” turns into a huge shallow config object and a playground parameter dump.  

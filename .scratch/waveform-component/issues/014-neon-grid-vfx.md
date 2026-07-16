@@ -1,6 +1,6 @@
 # 014 — Add Neon Lines and Equalizer Grid as original VFX slices
 
-Status: blocked
+Status: ready-for-agent
 
 Type: AFK  
 Blocked by: 013  
