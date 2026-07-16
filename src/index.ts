@@ -9,6 +9,25 @@ export {
 } from "./analysis/spectrum";
 export type { AnalyzeSpectrumOptions, SpectrumFrameOptions } from "./analysis/spectrum";
 export {
+  DEFAULT_SPECTRUM_DYNAMICS_CONFIG,
+  SpectrumFrameDelay,
+  createSpectrumDynamicsProcessor,
+  gaussianFilterSpectrum,
+  resolveSpectrumDynamicsConfig,
+  resolveVisualSyncOffset,
+} from "./analysis/spectrumDynamics";
+export type {
+  SpectrumDynamicsConfig,
+  SpectrumDynamicsInput,
+  SpectrumDynamicsPolicy,
+  SpectrumDynamicsProcessor,
+  SpectrumDynamicsResult,
+  SpectrumInputState,
+  SpectrumSmoothingMode,
+  VisualSyncCapability,
+  VisualSyncResolution,
+} from "./analysis/spectrumDynamics";
+export {
   getSpectrumControlAvailability,
   SPECTRUM_CONTROL_DEFINITIONS,
 } from "./capabilities/spectrumControls";

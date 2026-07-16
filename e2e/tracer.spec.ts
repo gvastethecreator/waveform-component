@@ -126,6 +126,32 @@ test("renders ordered spectrum controls through the public Canvas path", async (
   expect(curve.equals(bars)).toBe(false);
 });
 
+test("applies spectrum normalization and filtering through the public dynamics stage", async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.getByRole("button", { name: "Spectrum" }).click();
+
+  const spectrum = page.getByRole("img", { name: /Broadcast ordered spectrum preview/ });
+  const before = await spectrum.screenshot();
+  await expect(page.getByRole("combobox", { name: /Smoothing/ })).toBeDisabled();
+  await expect(page.getByRole("slider", { name: "Visual sync offset" })).toBeDisabled();
+
+  await page.getByRole("checkbox", { name: /Normalization/ }).check();
+  await page.getByRole("slider", { name: "Normalization target" }).fill("-8");
+  await page.getByRole("slider", { name: "Maximum gain" }).fill("6");
+  await page.getByRole("slider", { name: "Gaussian radius" }).fill("2");
+  await page.getByRole("slider", { name: "High-frequency slope" }).fill("8");
+  await page.getByRole("slider", { name: "Roll-off bandwidth" }).fill("2000");
+  await page.getByRole("slider", { name: "Roll-off attenuation" }).fill("18");
+
+  await expect(page.getByText(/PEAK .* dBFS/)).toBeVisible();
+  await expect(page.getByText("PROCESSED · VISUAL ONLY")).toBeVisible();
+  const after = await spectrum.screenshot();
+  expect(before.equals(after)).toBe(false);
+});
+
 test("connects microphone only on action and releases every owned cycle", async ({ page }) => {
   await installMicrophoneMock(page, "live");
   await page.goto("/", { waitUntil: "domcontentloaded" });
@@ -144,6 +170,12 @@ test("connects microphone only on action and releases every owned cycle", async 
     page.getByRole("img", { name: /Live microphone ordered spectrum preview/ }),
   ).toHaveAttribute("data-spectrum-state", "ready");
   await expect(page.getByRole("checkbox", { name: /Allow high-cost FFT/ })).toBeDisabled();
+  await expect(page.getByRole("combobox", { name: /Smoothing/ })).toBeEnabled();
+  await page.getByRole("combobox", { name: /Smoothing/ }).selectOption("time-variant-ema");
+  await expect(page.getByRole("slider", { name: "Attack" })).toBeEnabled();
+  await expect(page.getByRole("slider", { name: "Visual sync offset" })).toBeEnabled();
+  await page.getByRole("slider", { name: "Visual sync offset" }).fill("-100");
+  await expect(page.getByText(/cannot provide future audio frames/i)).toBeVisible();
 
   await page.evaluate(() => {
     const mock = Reflect.get(window, "__waveformMicMock");
@@ -154,6 +186,9 @@ test("connects microphone only on action and releases every owned cycle", async 
     "Microphone · muted",
   );
   await expect(page.getByLabel("Signal status")).toContainText("MICROPHONE / MUTED");
+  await expect(page.locator(".signal-stage")).toHaveAttribute("data-dynamics-policy", "held-muted");
+  await page.getByRole("checkbox", { name: /Process muted input/ }).check();
+  await expect(page.locator(".signal-stage")).toHaveAttribute("data-dynamics-policy", "processed");
 
   await page.evaluate(() => {
     const mock = Reflect.get(window, "__waveformMicMock");

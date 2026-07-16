@@ -300,6 +300,27 @@ input:focus-visible {
   height: 100%;
 }
 
+.primary-waveform[data-dynamics-visible="false"] {
+  opacity: 0.08;
+}
+
+.signal-policy-state {
+  position: absolute;
+  z-index: 3;
+  inset: 50% auto auto 50%;
+  max-width: calc(100% - 4rem);
+  padding: 0.48rem 0.66rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 0.3rem;
+  background: rgb(7 10 11 / 0.9);
+  color: var(--cyan);
+  font-family: var(--font-mono);
+  font-size: 0.54rem;
+  letter-spacing: 0.03em;
+  text-align: center;
+  transform: translate(-50%, -50%);
+}
+
 .signal-scale {
   position: absolute;
   z-index: 2;
@@ -674,11 +695,12 @@ input:focus-visible {
 }
 
 .range-control[data-disabled="true"] {
-  opacity: 0.62;
+  opacity: 1;
 }
 
 .range-control input:disabled {
   cursor: not-allowed;
+  opacity: 0.48;
 }
 
 .capability-note {
@@ -723,6 +745,23 @@ input:focus-visible {
   background: var(--surface-active);
   color: var(--text);
   font-size: 0.52rem;
+}
+
+.select-control[data-disabled="true"],
+.toggle-control[data-disabled="true"] {
+  opacity: 1;
+}
+
+.range-control[data-disabled="true"] .capability-note,
+.select-control[data-disabled="true"] small,
+.toggle-control[data-disabled="true"] small {
+  color: var(--muted);
+}
+
+.select-control select:disabled,
+.toggle-control input:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
 }
 
 .color-readout {

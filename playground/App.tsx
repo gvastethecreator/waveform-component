@@ -11,11 +11,13 @@ import type { ReactNode } from "react";
 import {
   DEFAULT_SPECTRUM_ANALYSIS_CONFIG,
   DEFAULT_SPECTRUM_CONFIG,
+  DEFAULT_SPECTRUM_DYNAMICS_CONFIG,
   DEFAULT_WAVEFORM_CONFIG,
   GUARDED_SPECTRUM_FFT_SIZE,
   RecordedWaveformPlayer,
   SessionWaveform,
   Spectrum,
+  SpectrumFrameDelay,
   SPECTRUM_CONTROL_DEFINITIONS,
   Waveform,
   analyzeSpectrum,
@@ -23,11 +25,15 @@ import {
   createDemoWaveformSource,
   createMicrophoneSource,
   createRecordedAudioSource,
+  createSpectrumFrame,
+  createSpectrumDynamicsProcessor,
   createWaveformSession,
   getSpectrumControlAvailability,
   resolveSpectrumAnalysisConfig,
   resolveSpectrumConfig,
+  resolveSpectrumDynamicsConfig,
   resolveSpectrumFrequencyRange,
+  resolveVisualSyncOffset,
   useWaveformSession,
   useMicrophoneSource,
   type CanvasSpectrumConfig,
@@ -36,9 +42,16 @@ import {
   type MicrophoneSource,
   type SpectrumControlDefinition,
   type SpectrumControlId,
+  type SpectrumDynamicsConfig,
+  type SpectrumDynamicsResult,
   type SpectrumFrequencyScale,
+  type SpectrumFrame,
   type SpectrumGeometry,
+  type SpectrumInputState,
   type SpectrumInterpolation,
+  type SpectrumSmoothingMode,
+  type VisualSyncCapability,
+  type WaveformSessionStatus,
   type SpectrumWindow,
   type WaveformFrame,
 } from "waveform-component";
@@ -88,6 +101,10 @@ export default function App() {
   const [barWidth, setBarWidth] = useState(DEFAULT_SPECTRUM_CONFIG.barWidth);
   const [barGap, setBarGap] = useState(DEFAULT_SPECTRUM_CONFIG.barGap);
   const [showSpectrumGrid, setShowSpectrumGrid] = useState(DEFAULT_SPECTRUM_CONFIG.showGrid);
+  const [dynamicsSettings, setDynamicsSettings] = useState<SpectrumDynamicsConfig>(
+    DEFAULT_SPECTRUM_DYNAMICS_CONFIG,
+  );
+  const [visualSyncOffsetMs, setVisualSyncOffsetMs] = useState(0);
   const session = useMemo(() => createWaveformSession<WaveformFrame>(), []);
   const preset = PRESETS.find((candidate) => candidate.id === presetId) ?? PRESETS[0];
   const sessionSnapshot = useWaveformSession(session);
@@ -132,6 +149,35 @@ export default function App() {
       ),
     [recordedSource, sampleRate, sessionSnapshot.frame, spectrumAnalysis, visualMode],
   );
+  const dynamicsConfig = useMemo(
+    () =>
+      resolveSpectrumDynamicsConfig(
+        {
+          ...dynamicsSettings,
+          highFrequency,
+          lowFrequency,
+        },
+        spectrumFrame,
+      ),
+    [dynamicsSettings, highFrequency, lowFrequency, spectrumFrame],
+  );
+  const spectrumInputState = spectrumDynamicsInputState(sessionSnapshot.status);
+  const visualSyncCapability = useMemo<VisualSyncCapability>(
+    () => ({
+      canLookAhead: false,
+      sourceKind: microphoneSource ? "Live microphone" : "Static demo",
+    }),
+    [microphoneSource],
+  );
+  const visualSyncResolution = resolveVisualSyncOffset(visualSyncOffsetMs, visualSyncCapability);
+  const spectrumPresentation = useSpectrumPresentation({
+    capability: visualSyncCapability,
+    config: dynamicsConfig,
+    frame: spectrumFrame,
+    inputState: spectrumInputState,
+    offsetMs: microphoneSource ? visualSyncOffsetMs : 0,
+    sourceEpoch: sessionSnapshot.epoch,
+  });
   const spectrumConfig = useMemo<Partial<CanvasSpectrumConfig>>(
     () => ({
       barGap,
@@ -202,13 +248,19 @@ export default function App() {
     setBarWidth(DEFAULT_SPECTRUM_CONFIG.barWidth);
     setBarGap(DEFAULT_SPECTRUM_CONFIG.barGap);
     setShowSpectrumGrid(DEFAULT_SPECTRUM_CONFIG.showGrid);
+    setDynamicsSettings(DEFAULT_SPECTRUM_DYNAMICS_CONFIG);
+    setVisualSyncOffsetMs(0);
     setCopyState("idle");
+  };
+
+  const updateDynamics = (patch: Partial<SpectrumDynamicsConfig>) => {
+    setDynamicsSettings((current) => resolveSpectrumDynamicsConfig({ ...current, ...patch }));
   };
 
   const copyCode = async () => {
     const code =
       visualMode === "spectrum"
-        ? `<Spectrum\n  data={analyzeSpectrum(samples, {\n    sampleRate: ${sampleRate},\n    fftSize: ${spectrumAnalysis.fftSize},\n    allowLargeFft: ${spectrumAnalysis.allowLargeFft},\n    window: "${spectrumAnalysis.window}",\n    powerOfSineExponent: ${spectrumAnalysis.powerOfSineExponent},\n    minimumDecibels: ${spectrumAnalysis.minimumDecibels},\n    maximumDecibels: ${spectrumAnalysis.maximumDecibels}\n  })}\n  config={{\n    renderer: "canvas2d",\n    mode: "spectrum",\n    geometry: "${spectrumGeometry}",\n    frequencyScale: "${frequencyScale}",\n    lowFrequency: ${lowFrequency},\n    highFrequency: ${highFrequency},\n    minimumDecibels: ${minimumDecibels},\n    maximumDecibels: ${maximumDecibels},\n    interpolation: "${spectrumInterpolation}",\n    lineWidth: ${lineWidth},\n    barWidth: ${barWidth},\n    barGap: ${barGap},\n    showGrid: ${showSpectrumGrid},\n    color: "${signalColor}"\n  }}\n/>`
+        ? `const dynamics = createSpectrumDynamicsProcessor();\n\n<Spectrum\n  data={dynamics.process(\n    analyzeSpectrum(samples, {\n      sampleRate: ${sampleRate},\n      fftSize: ${spectrumAnalysis.fftSize},\n      allowLargeFft: ${spectrumAnalysis.allowLargeFft},\n      window: "${spectrumAnalysis.window}",\n      powerOfSineExponent: ${spectrumAnalysis.powerOfSineExponent},\n      minimumDecibels: ${spectrumAnalysis.minimumDecibels},\n      maximumDecibels: ${spectrumAnalysis.maximumDecibels}\n    }),\n    {\n      smoothingMode: "${dynamicsSettings.smoothingMode}",\n      smoothingFactor: ${dynamicsSettings.smoothingFactor},\n      attackMs: ${dynamicsSettings.attackMs},\n      releaseMs: ${dynamicsSettings.releaseMs},\n      inertiaMs: ${dynamicsSettings.inertiaMs},\n      fastPeaks: ${dynamicsSettings.fastPeaks},\n      normalizationEnabled: ${dynamicsSettings.normalizationEnabled},\n      normalizationTargetDb: ${dynamicsSettings.normalizationTargetDb},\n      normalizationMaxGainDb: ${dynamicsSettings.normalizationMaxGainDb},\n      gaussianRadius: ${dynamicsSettings.gaussianRadius},\n      highFrequencySlopeDbPerOctave: ${dynamicsSettings.highFrequencySlopeDbPerOctave},\n      rolloffBandwidthHz: ${dynamicsSettings.rolloffBandwidthHz},\n      rolloffAttenuationDb: ${dynamicsSettings.rolloffAttenuationDb}\n    },\n    { timestampMs: performance.now(), sourceState: "ready" }\n  ).frame}\n  config={{\n    renderer: "canvas2d",\n    mode: "spectrum",\n    geometry: "${spectrumGeometry}",\n    frequencyScale: "${frequencyScale}",\n    lowFrequency: ${lowFrequency},\n    highFrequency: ${highFrequency},\n    minimumDecibels: ${minimumDecibels},\n    maximumDecibels: ${maximumDecibels},\n    interpolation: "${spectrumInterpolation}",\n    lineWidth: ${lineWidth},\n    barWidth: ${barWidth},\n    barGap: ${barGap},\n    showGrid: ${showSpectrumGrid},\n    color: "${signalColor}"\n  }}\n/>`
         : `<Waveform\n  data={samples}\n  config={{\n    renderer: "canvas2d",\n    mode: "waveform",\n    amplitude: ${amplitude.toFixed(2)},\n    lineWidth: ${lineWidth.toFixed(1)},\n    color: "${signalColor}",\n    showCenterLine: ${showCenterLine}\n  }}\n/>`;
     try {
       await navigator.clipboard.writeText(code);
@@ -235,6 +287,12 @@ export default function App() {
     "barWidth",
     spectrumCapabilityContext,
   );
+  const temporalCapabilityReason = microphoneSource
+    ? undefined
+    : "Requires a clocked live frame stream; the deterministic demo has no cadence.";
+  const syncCapabilityReason = microphoneSource
+    ? visualSyncResolution.reason
+    : "Requires a clocked source. Static previews have no audio/visual timeline to offset.";
 
   return (
     <div className="workbench" data-view={view}>
@@ -292,7 +350,10 @@ export default function App() {
                 <span>MONO</span>
               </div>
             </div>
-            <div className="signal-stage">
+            <div
+              className="signal-stage"
+              data-dynamics-policy={spectrumPresentation.result?.policy ?? "unprocessed"}
+            >
               {recordedSource && !microphoneSource ? (
                 <RecordedWaveformPlayer
                   ariaLabel={`${recordedSource.getTransportSnapshot().name} local waveform preview`}
@@ -313,9 +374,19 @@ export default function App() {
                     ariaLabel={`${microphoneSource ? "Live microphone" : preset.label} ordered spectrum preview`}
                     className="primary-waveform"
                     config={spectrumConfig}
-                    data={spectrumFrame}
+                    data={spectrumPresentation.frame}
+                    data-dynamics-visible={spectrumPresentation.result?.visible ?? true}
                     height="100%"
                   />
+                  {spectrumPresentation.buffering ? (
+                    <div className="signal-policy-state" role="status">
+                      Buffering {visualSyncResolution.offsetMs} ms visual offset · audio unchanged
+                    </div>
+                  ) : spectrumPresentation.result?.visible === false ? (
+                    <div className="signal-policy-state" role="status">
+                      Hidden · below silence policy
+                    </div>
+                  ) : null}
                   <div className="frequency-axis" aria-hidden="true">
                     <span>{formatFrequency(spectrumFrequencyRange.lowFrequency)}</span>
                     <span>{frequencyScale === "log" ? "LOG Hz" : "LINEAR Hz"}</span>
@@ -352,15 +423,21 @@ export default function App() {
             <div className="artifact-footer">
               <span>
                 {visualMode === "spectrum"
-                  ? `${spectrumFrame.bins.length.toLocaleString()} ORDERED BINS`
+                  ? `${spectrumFrame.bins.length.toLocaleString()} BINS · ${spectrumAnalysis.fftSize.toLocaleString()} FFT`
                   : `${(sessionSnapshot.frame?.sampleCount ?? 0).toLocaleString()} DISPLAY SAMPLES`}
               </span>
               <span>
                 {visualMode === "spectrum"
-                  ? `${spectrumAnalysis.fftSize.toLocaleString()} FFT · ${spectrumAnalysis.window.toUpperCase()}`
+                  ? spectrumPresentation.result
+                    ? `PEAK ${spectrumPresentation.result.peakDb.toFixed(1)} dBFS · ${spectrumPresentation.result.reacting ? "REACTING" : "IDLE"}`
+                    : "DYNAMICS INITIALIZING"
                   : "PEAK +0.91 / −0.74"}
               </span>
-              <span>PUBLIC PACKAGE PATH</span>
+              <span>
+                {visualMode === "spectrum"
+                  ? `${spectrumPresentation.result?.policy.toUpperCase() ?? "UNPROCESSED"} · VISUAL ONLY`
+                  : "PUBLIC PACKAGE PATH"}
+              </span>
             </div>
           </div>
 
@@ -602,6 +679,234 @@ export default function App() {
             </ControlSection>
           ) : null}
 
+          {visualMode === "spectrum" ? (
+            <>
+              <ControlSection title="Dynamics">
+                <SelectControl
+                  definition={{
+                    description: "Frame-rate-independent temporal response",
+                    label: "Smoothing",
+                    options: [
+                      { label: "None", value: "none" },
+                      { label: "Simple EMA", value: "ema" },
+                      { label: "Attack / release", value: "time-variant-ema" },
+                    ],
+                  }}
+                  disabled={!microphoneSource}
+                  disabledReason={temporalCapabilityReason}
+                  value={dynamicsSettings.smoothingMode}
+                  onChange={(value) =>
+                    updateDynamics({ smoothingMode: value as SpectrumSmoothingMode })
+                  }
+                />
+                {dynamicsSettings.smoothingMode === "ema" ? (
+                  <RangeControl
+                    label="EMA persistence"
+                    min={0}
+                    max={0.99}
+                    step={0.01}
+                    value={dynamicsSettings.smoothingFactor}
+                    valueLabel={dynamicsSettings.smoothingFactor.toFixed(2)}
+                    disabled={!microphoneSource}
+                    disabledReason={temporalCapabilityReason}
+                    onChange={(value) => updateDynamics({ smoothingFactor: value })}
+                  />
+                ) : dynamicsSettings.smoothingMode === "time-variant-ema" ? (
+                  <>
+                    <RangeControl
+                      label="Attack"
+                      min={0}
+                      max={1000}
+                      step={5}
+                      value={dynamicsSettings.attackMs}
+                      valueLabel={`${dynamicsSettings.attackMs} ms`}
+                      disabled={!microphoneSource}
+                      disabledReason={temporalCapabilityReason}
+                      onChange={(value) => updateDynamics({ attackMs: value })}
+                    />
+                    <RangeControl
+                      label="Release"
+                      min={0}
+                      max={2000}
+                      step={10}
+                      value={dynamicsSettings.releaseMs}
+                      valueLabel={`${dynamicsSettings.releaseMs} ms`}
+                      disabled={!microphoneSource}
+                      disabledReason={temporalCapabilityReason}
+                      onChange={(value) => updateDynamics({ releaseMs: value })}
+                    />
+                  </>
+                ) : null}
+                <RangeControl
+                  label="Inertia"
+                  min={0}
+                  max={1000}
+                  step={5}
+                  value={dynamicsSettings.inertiaMs}
+                  valueLabel={`${dynamicsSettings.inertiaMs} ms`}
+                  disabled={!microphoneSource}
+                  disabledReason={temporalCapabilityReason}
+                  onChange={(value) => updateDynamics({ inertiaMs: value })}
+                />
+                <ToggleControl
+                  checked={dynamicsSettings.fastPeaks}
+                  description="Rising bins bypass temporal smoothing"
+                  disabled={!microphoneSource}
+                  disabledReason={temporalCapabilityReason}
+                  label="Fast peaks"
+                  onChange={(fastPeaks) => updateDynamics({ fastPeaks })}
+                />
+                <RangeControl
+                  label="React threshold"
+                  min={minimumDecibels}
+                  max={dynamicsSettings.peakThresholdDb}
+                  step={1}
+                  value={dynamicsConfig.reactThresholdDb}
+                  valueLabel={`${dynamicsConfig.reactThresholdDb} dBFS`}
+                  onChange={(reactThresholdDb) => updateDynamics({ reactThresholdDb })}
+                />
+                <RangeControl
+                  label="Peak threshold"
+                  min={dynamicsSettings.reactThresholdDb}
+                  max={maximumDecibels}
+                  step={1}
+                  value={dynamicsConfig.peakThresholdDb}
+                  valueLabel={`${dynamicsConfig.peakThresholdDb} dBFS`}
+                  onChange={(peakThresholdDb) => updateDynamics({ peakThresholdDb })}
+                />
+                <ToggleControl
+                  checked={dynamicsSettings.normalizationEnabled}
+                  description="Move valid signal toward a target with a hard gain cap"
+                  label="Normalization"
+                  onChange={(normalizationEnabled) => updateDynamics({ normalizationEnabled })}
+                />
+                {dynamicsSettings.normalizationEnabled ? (
+                  <>
+                    <RangeControl
+                      label="Normalization target"
+                      min={minimumDecibels}
+                      max={maximumDecibels}
+                      step={1}
+                      value={dynamicsConfig.normalizationTargetDb}
+                      valueLabel={`${dynamicsConfig.normalizationTargetDb} dBFS`}
+                      onChange={(normalizationTargetDb) =>
+                        updateDynamics({ normalizationTargetDb })
+                      }
+                    />
+                    <RangeControl
+                      label="Maximum gain"
+                      min={0}
+                      max={36}
+                      step={1}
+                      value={dynamicsSettings.normalizationMaxGainDb}
+                      valueLabel={`+${dynamicsSettings.normalizationMaxGainDb} dB`}
+                      onChange={(normalizationMaxGainDb) =>
+                        updateDynamics({ normalizationMaxGainDb })
+                      }
+                    />
+                  </>
+                ) : null}
+              </ControlSection>
+
+              <ControlSection title="Spectral filtering">
+                <RangeControl
+                  label="Gaussian radius"
+                  min={0}
+                  max={8}
+                  step={0.25}
+                  value={dynamicsSettings.gaussianRadius}
+                  valueLabel={`${dynamicsSettings.gaussianRadius.toFixed(2)} bins`}
+                  onChange={(gaussianRadius) => updateDynamics({ gaussianRadius })}
+                />
+                <RangeControl
+                  label="High-frequency slope"
+                  min={-24}
+                  max={24}
+                  step={0.5}
+                  value={dynamicsSettings.highFrequencySlopeDbPerOctave}
+                  valueLabel={`${formatSigned(dynamicsSettings.highFrequencySlopeDbPerOctave)} dB/oct`}
+                  onChange={(highFrequencySlopeDbPerOctave) =>
+                    updateDynamics({ highFrequencySlopeDbPerOctave })
+                  }
+                />
+                <RangeControl
+                  label="Slope reference"
+                  min={20}
+                  max={Math.min(12_000, nyquist)}
+                  step={10}
+                  value={Math.min(dynamicsSettings.highFrequencySlopeReference, nyquist)}
+                  valueLabel={formatFrequency(dynamicsSettings.highFrequencySlopeReference)}
+                  onChange={(highFrequencySlopeReference) =>
+                    updateDynamics({ highFrequencySlopeReference })
+                  }
+                />
+                <RangeControl
+                  label="Roll-off bandwidth"
+                  min={0}
+                  max={Math.min(10_000, nyquist)}
+                  step={100}
+                  value={Math.min(dynamicsSettings.rolloffBandwidthHz, nyquist)}
+                  valueLabel={formatFrequency(dynamicsSettings.rolloffBandwidthHz)}
+                  onChange={(rolloffBandwidthHz) => updateDynamics({ rolloffBandwidthHz })}
+                />
+                <RangeControl
+                  label="Roll-off attenuation"
+                  min={0}
+                  max={60}
+                  step={1}
+                  value={dynamicsSettings.rolloffAttenuationDb}
+                  valueLabel={`${dynamicsSettings.rolloffAttenuationDb} dB`}
+                  onChange={(rolloffAttenuationDb) => updateDynamics({ rolloffAttenuationDb })}
+                />
+              </ControlSection>
+
+              <ControlSection title="Source policy">
+                <RangeControl
+                  label="Silence threshold"
+                  min={minimumDecibels}
+                  max={Math.min(-1, maximumDecibels)}
+                  step={1}
+                  value={dynamicsConfig.silenceThresholdDb}
+                  valueLabel={`${dynamicsConfig.silenceThresholdDb} dBFS`}
+                  disabled={!microphoneSource}
+                  disabledReason={temporalCapabilityReason}
+                  onChange={(silenceThresholdDb) => updateDynamics({ silenceThresholdDb })}
+                />
+                <ToggleControl
+                  checked={dynamicsSettings.hideSilent}
+                  description="Hide the visual surface after the source enters silent state"
+                  disabled={!microphoneSource}
+                  disabledReason={temporalCapabilityReason}
+                  label="Hide silent input"
+                  onChange={(hideSilent) => updateDynamics({ hideSilent })}
+                />
+                <ToggleControl
+                  checked={dynamicsSettings.processMuted}
+                  description="Off holds the last frame instead of processing muted input"
+                  disabled={!microphoneSource}
+                  disabledReason={temporalCapabilityReason}
+                  label="Process muted input"
+                  onChange={(processMuted) => updateDynamics({ processMuted })}
+                />
+                <RangeControl
+                  label="Visual sync offset"
+                  min={-500}
+                  max={1000}
+                  step={10}
+                  value={visualSyncOffsetMs}
+                  valueLabel={`${formatSigned(visualSyncOffsetMs)} ms`}
+                  disabled={!microphoneSource}
+                  disabledReason={syncCapabilityReason}
+                  onChange={setVisualSyncOffsetMs}
+                />
+                <p className="control-note">
+                  Positive values buffer visuals only. This package never delays host audio;
+                  negative values require a source that can provide future frames.
+                </p>
+              </ControlSection>
+            </>
+          ) : null}
+
           <ControlSection title="Geometry">
             {visualMode === "spectrum" ? (
               <>
@@ -780,6 +1085,70 @@ export default function App() {
   );
 }
 
+interface SpectrumPresentation {
+  readonly buffering: boolean;
+  readonly frame: SpectrumFrame;
+  readonly result: SpectrumDynamicsResult | null;
+  readonly sourceEpoch: number;
+}
+
+function useSpectrumPresentation({
+  capability,
+  config,
+  frame,
+  inputState,
+  offsetMs,
+  sourceEpoch,
+}: {
+  readonly capability: VisualSyncCapability;
+  readonly config: SpectrumDynamicsConfig;
+  readonly frame: SpectrumFrame;
+  readonly inputState: SpectrumInputState;
+  readonly offsetMs: number;
+  readonly sourceEpoch: number;
+}): SpectrumPresentation {
+  const engine = useMemo(
+    () => ({ delay: new SpectrumFrameDelay(), dynamics: createSpectrumDynamicsProcessor() }),
+    [sourceEpoch],
+  );
+  const [presentation, setPresentation] = useState<SpectrumPresentation>({
+    buffering: false,
+    frame,
+    result: null,
+    sourceEpoch,
+  });
+
+  useEffect(() => {
+    const timestampMs = typeof performance === "undefined" ? Date.now() : performance.now();
+    const result = engine.dynamics.process(frame, config, { sourceState: inputState, timestampMs });
+    const sync = resolveVisualSyncOffset(offsetMs, capability);
+    let displayFrame = result.frame;
+    let buffering = false;
+    if (sync.enabled && sync.offsetMs > 0) {
+      const delayedFrame = engine.delay.push(result.frame, timestampMs, sync.offsetMs);
+      buffering = delayedFrame === null;
+      displayFrame =
+        delayedFrame ??
+        createSpectrumFrame(
+          new Float32Array(result.frame.bins.length).fill(result.frame.minimumDecibels),
+          result.frame,
+        );
+    } else {
+      engine.delay.clear();
+    }
+    setPresentation({ buffering, frame: displayFrame, result, sourceEpoch });
+  }, [capability, config, engine, frame, inputState, offsetMs, sourceEpoch]);
+
+  return presentation.sourceEpoch === sourceEpoch
+    ? presentation
+    : { buffering: false, frame, result: null, sourceEpoch };
+}
+
+function spectrumDynamicsInputState(status: WaveformSessionStatus): SpectrumInputState {
+  if (status.state === "muted" || status.state === "silent") return status.state;
+  return "ready";
+}
+
 function ControlSection({
   children,
   title,
@@ -801,6 +1170,39 @@ function StaticRow({ label, value }: { readonly label: string; readonly value: s
       <span>{label}</span>
       <strong>{value}</strong>
     </div>
+  );
+}
+
+function ToggleControl({
+  checked,
+  description,
+  disabled = false,
+  disabledReason,
+  label,
+  onChange,
+}: {
+  readonly checked: boolean;
+  readonly description: string;
+  readonly disabled?: boolean;
+  readonly disabledReason?: string;
+  readonly label: string;
+  readonly onChange: (checked: boolean) => void;
+}) {
+  const descriptionId = useId();
+  return (
+    <label className="toggle-control" data-disabled={disabled || undefined}>
+      <span>
+        <strong>{label}</strong>
+        <small id={descriptionId}>{disabledReason ?? description}</small>
+      </span>
+      <input
+        type="checkbox"
+        aria-describedby={descriptionId}
+        checked={checked}
+        disabled={disabled}
+        onChange={(event) => onChange(event.currentTarget.checked)}
+      />
+    </label>
   );
 }
 
@@ -895,11 +1297,17 @@ interface SelectOption {
 
 function SelectControl({
   definition,
+  disabled = false,
+  disabledReason,
   onChange,
   options = definition.options,
   value,
 }: {
-  readonly definition: SpectrumControlDefinition;
+  readonly definition: Pick<SpectrumControlDefinition, "description" | "label"> & {
+    readonly options?: readonly SelectOption[];
+  };
+  readonly disabled?: boolean;
+  readonly disabledReason?: string;
   readonly onChange: (value: string) => void;
   readonly options?: readonly SelectOption[];
   readonly value: number | string;
@@ -907,14 +1315,15 @@ function SelectControl({
   const inputId = useId();
   const descriptionId = useId();
   return (
-    <label className="select-control" htmlFor={inputId}>
+    <label className="select-control" data-disabled={disabled || undefined} htmlFor={inputId}>
       <span>
         <strong>{definition.label}</strong>
-        <small id={descriptionId}>{definition.description}</small>
+        <small id={descriptionId}>{disabledReason ?? definition.description}</small>
       </span>
       <select
         id={inputId}
         aria-describedby={descriptionId}
+        disabled={disabled}
         value={value}
         onChange={(event) => onChange(event.currentTarget.value)}
       >
@@ -940,4 +1349,8 @@ function formatFrequency(value: number): string {
     return `${kilohertz >= 10 ? kilohertz.toFixed(0) : kilohertz.toFixed(1)} kHz`;
   }
   return `${Math.round(value)} Hz`;
+}
+
+function formatSigned(value: number): string {
+  return `${value > 0 ? "+" : ""}${value}`;
 }

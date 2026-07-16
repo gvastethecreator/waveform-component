@@ -45,6 +45,30 @@ describe("Signal Workbench tracer", () => {
     expect(screen.getAllByText("1.0 kHz").length).toBeGreaterThanOrEqual(1);
   });
 
+  it("exposes honest dynamics, filtering, and source-policy capabilities", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole("button", { name: "Spectrum" }));
+    expect(screen.getByRole("combobox", { name: /Smoothing/ })).toBeDisabled();
+    expect(screen.getAllByText(/deterministic demo has no cadence/i).length).toBeGreaterThan(0);
+    expect(screen.getByRole("slider", { name: "Visual sync offset" })).toBeDisabled();
+
+    await user.click(screen.getByRole("checkbox", { name: /Normalization/ }));
+    expect(screen.getByRole("slider", { name: "Normalization target" })).toBeEnabled();
+    fireEvent.change(screen.getByRole("slider", { name: "Maximum gain" }), {
+      target: { value: "6" },
+    });
+    fireEvent.change(screen.getByRole("slider", { name: "Gaussian radius" }), {
+      target: { value: "2" },
+    });
+
+    expect(screen.getByText("+6 dB")).toBeInTheDocument();
+    expect(screen.getByText("2.00 bins")).toBeInTheDocument();
+    expect(screen.getByText(/PEAK .* dBFS/)).toBeInTheDocument();
+    expect(screen.getByText(/PROCESSED · VISUAL ONLY/)).toBeInTheDocument();
+  });
+
   it("loads a deterministic preset and restores public defaults", async () => {
     const user = userEvent.setup();
     render(<App />);

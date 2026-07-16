@@ -109,6 +109,37 @@ const spectrum = analyzeSpectrum(samples, {
 
 Cutoffs remain in hertz and clamp against source Nyquist only when geometry is built; fractional bins are internal. `nearest`, `lanczos`, and `catmull-rom` change only display resampling. `SPECTRUM_CONTROL_DEFINITIONS` exposes typed labels, units, ranges, defaults, descriptions, and capability reasons for a custom inspector.
 
+## Dynamics, filtering, and visual synchronization
+
+`createSpectrumDynamicsProcessor` turns ordered spectrum frames into a deliberate reactive stream. Its time-domain response uses elapsed timestamps, so simple EMA, attack/release, inertia, and fast-peak behavior do not change when the host cadence changes. Stateless controls cover capped target normalization, Gaussian bin filtering, high-frequency slope compensation, and cutoff roll-off.
+
+```tsx
+const dynamics = createSpectrumDynamicsProcessor();
+
+function onSpectrumFrame(frame: SpectrumFrame, timestampMs: number) {
+  const result = dynamics.process(
+    frame,
+    {
+      smoothingMode: "time-variant-ema",
+      attackMs: 35,
+      releaseMs: 240,
+      inertiaMs: 40,
+      normalizationEnabled: true,
+      normalizationTargetDb: -12,
+      normalizationMaxGainDb: 6,
+      gaussianRadius: 1.25,
+    },
+    { timestampMs, sourceState: "ready" },
+  );
+
+  return <Spectrum data={result.frame} ariaLabel="Reactive spectrum" />;
+}
+```
+
+The result reports `reacting`, `peakActive`, `peakDb`, `visible`, and a named `processed`, `held-muted`, or `hidden-silent` policy. Floor-only silence is never normalized. With `processMuted: false`, the processor holds the previous frame; `hideSilent` applies only to explicit silence or the configured dB threshold.
+
+Visual sync remains separate from audio ownership. `resolveVisualSyncOffset` rejects negative look-ahead when the source cannot supply future frames. `SpectrumFrameDelay` can buffer positive visual offsets, but it never delays or controls host audio.
+
 ## Development
 
 Requires Bun 1.3.14.
@@ -120,7 +151,7 @@ bun run verify:tracer
 bun run test:e2e
 ```
 
-The playground imports `waveform-component` through the public entry point and drives its main artifact through a shared session. `fixtures/external-consumer` installs a freshly packed tarball and typechecks convenience, session, recorded-player, microphone, analyzer, and spectrum-renderer interfaces against generated declarations exactly as an external consumer would.
+The playground imports `waveform-component` through the public entry point and drives its main artifact through a shared session. `fixtures/external-consumer` installs a freshly packed tarball and typechecks convenience, session, recorded-player, microphone, analyzer, spectrum-dynamics, and spectrum-renderer interfaces against generated declarations exactly as an external consumer would.
 
 ## Project records
 

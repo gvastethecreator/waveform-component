@@ -6,6 +6,7 @@ import {
   createDemoWaveform,
   analyzeSpectrum,
   createMicrophoneSource,
+  createSpectrumDynamicsProcessor,
   createStaticWaveformFrame,
   createStaticWaveformSource,
   createWaveformSession,
@@ -22,6 +23,18 @@ const spectrum = analyzeSpectrum(samples, {
   sampleRate: 48_000,
   window: "blackman-harris",
 });
+const dynamics = createSpectrumDynamicsProcessor();
+const responsiveSpectrum = dynamics.process(
+  spectrum,
+  {
+    gaussianRadius: 1.25,
+    normalizationEnabled: true,
+    normalizationMaxGainDb: 6,
+    normalizationTargetDb: -12,
+    smoothingMode: "time-variant-ema",
+  },
+  { timestampMs: 0 },
+);
 const session = createWaveformSession<WaveformFrame>();
 void session.attach(createStaticWaveformSource(samples, { id: "external-static" }));
 
@@ -43,7 +56,7 @@ export function SpectrumConsumerExample() {
   return (
     <Spectrum
       ariaLabel="External ordered spectrum"
-      data={spectrum}
+      data={responsiveSpectrum.frame}
       config={{
         frequencyScale: "log",
         geometry: "bars",

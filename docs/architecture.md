@@ -27,7 +27,11 @@ Live capture follows the same source boundary. `createMicrophoneSource` defers `
 
 Spectrum analysis is a pure PCM-to-`SpectrumFrame` module. Window coefficients and the radix-2 transform have no DOM or audio-node dependency; coherent-gain normalization produces ordered dBFS bins. FFT/window/dB validation is shared by programmatic use and the playground. Spectrum geometry converts public hertz cutoffs to fractional bins only at its boundary, handles linear/log axes, and resamples with nearest, Lanczos, or Catmull-Rom before Canvas curve/bar drawing. Its public control catalog describes applicability separately from values, so disabled settings retain an explicit capability reason.
 
-Later tickets add dynamics/filtering, SVG/DOM/WebGL2 adapters, broader capability-scoped schemas, original clean-room VFX, and standalone code export without changing the dependency direction established here.
+Spectrum dynamics is a separate stateful stage after analysis and before geometry. It applies capped normalization, spectral slope/roll-off, Gaussian bin filtering, then timestamp-derived temporal response. EMA persistence is converted to a 60 Hz-equivalent time constant; attack/release and inertia share the same elapsed-time model, so host cadence does not redefine the configured behavior. The result carries thresholds and named visibility/mute policy rather than hiding source state in renderer code.
+
+Visual synchronization is also outside the renderer. Capability resolution rejects look-ahead for live sources, while a bounded frame queue supports positive visual delay without claiming ownership of the audio clock or output. The playground enables temporal/source/sync controls only for clocked live input and explains why static previews cannot demonstrate them.
+
+Later tickets add SVG/DOM/WebGL2 adapters, broader capability-scoped schemas, original clean-room VFX, and standalone code export without changing the dependency direction established here.
 
 ## Provenance
 
