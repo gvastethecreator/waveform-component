@@ -1,6 +1,6 @@
 # 002 — Make `WaveformSession` lifecycle and source ownership reusable
 
-Status: blocked
+Status: ready-for-agent
 
 Type: AFK  
 Blocked by: 001  

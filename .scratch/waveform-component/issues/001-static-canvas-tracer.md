@@ -1,6 +1,8 @@
 # 001 — Ship the static Canvas waveform tracer bullet
 
-Status: ready-for-agent
+Status: ready-for-human
+
+Resolution: completed and verified in commit `5d30959`.
 
 Type: AFK  
 Blocked by: none  
@@ -27,3 +29,11 @@ A greenfield Bun/React/TypeScript package and playground render deterministic si
 - Repeated resize does not accumulate Canvas scale or produce non-finite geometry.
 - The external consumer builds against generated declarations.
 - Focused type, unit, component, build, and browser checks pass before a logical commit.
+
+## Verification
+
+- `bun run verify:tracer`: passed; TypeScript 7, oxlint, oxfmt, 19 unit/component tests, library/types/playground builds, SSR import, packed-tarball install, and external-consumer typecheck.
+- `bun run test:e2e`: passed; 2/2 Chrome paths for live control behavior, Focus mode, and 390 px reachability/overflow.
+- Browser inspection: 1440×960 has zero document overflow; 390×844 has zero horizontal overflow and inspector-first ordering; Canvas reports a ready frame and correct backing size; console is clean.
+- Visual evidence: `.scratch/evidence/001-tracer/desktop-final.png`, `focus.png`, and `narrow.png` (generated evidence is intentionally ignored by Git).
+- Review repair: the first rendered min/max path read as dotted; the renderer now connects bin midpoints while retaining vertical extrema, and focused renderer/component tests pass.
