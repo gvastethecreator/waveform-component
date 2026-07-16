@@ -11,24 +11,24 @@ Stop condition: accepted scope implemented; no blocker/P1; every applicable gate
 
 ## Gate manifest
 
-| Gate                      | Applicability | Safe proof surface                                                           | Current evidence                                                  | State                       |
-| ------------------------- | ------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------- | --------------------------- |
-| Scope                     | required      | source/diff/task audit                                                       | durable plan, Wayfinder, research note                            | passed for planning         |
-| Acceptance/baseline       | required      | like-for-like screenshots and PRD                                            | three rendered `folders` captures; approved ready-for-agent PRD   | passed for specification    |
-| Source provenance         | required      | local paths and official specs                                               | cited research note                                               | passed for planning         |
-| Creative direction search | required      | three same-viewport artifacts                                                | three SVG/PNG directions + direction cards                        | passed                      |
-| Signature/subtraction     | required      | direction/kill records                                                       | direct signal overlays; remove hero/dashboard/fake signal         | passed for direction        |
-| Blind audience read       | required      | brief-hidden reviewer record                                                 | `.scratch/design/waveform-component/blind-read.md`                | passed with accepted repair |
-| Independent judgment      | required      | fresh delegated raw-artifact review                                          | independent direction read changed control labeling/primary route | passed for planning         |
-| Package/public seam       | required      | external consumer build and runtime                                          | packed tarball + declarations + SSR import pass for tracer        | passed for tracer           |
-| Regression/runtime        | required      | focused tests and browser paths                                              | 19 unit/component + 2 Chrome E2E pass                             | passed for tracer           |
-| Hostile/boundary input    | required      | fixtures for invalid config, stale async, decode/permission/renderer failure | invalid/empty static data covered; async/source failures pending  | partial                     |
-| User states               | required      | rendered real states                                                         | ready/empty static frames covered; source state matrix pending    | partial                     |
-| Viewport/platform         | required      | 1440, 390, 320, ultrawide captures                                           | 1440 and 390 rendered; zero relevant overflow                     | partial                     |
-| Accessibility             | required      | keyboard/pointer/focus/reduced-motion checks                                 | semantic Canvas, labeled controls, focus and reduced-motion base  | partial                     |
-| Performance/lifecycle     | required      | traces, active-resource audit, long-data scenario                            | contract only                                                     | blocked by implementation   |
-| Export                    | required      | isolated compile/runtime fixture                                             | contract only                                                     | blocked by implementation   |
-| Adversarial autopsy       | required      | fresh final artifact inspection                                              | not yet applicable                                                | blocked by implementation   |
+| Gate                      | Applicability | Safe proof surface                                                           | Current evidence                                                             | State                       |
+| ------------------------- | ------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | --------------------------- |
+| Scope                     | required      | source/diff/task audit                                                       | durable plan, Wayfinder, research note                                       | passed for planning         |
+| Acceptance/baseline       | required      | like-for-like screenshots and PRD                                            | three rendered `folders` captures; approved ready-for-agent PRD              | passed for specification    |
+| Source provenance         | required      | local paths and official specs                                               | cited research note                                                          | passed for planning         |
+| Creative direction search | required      | three same-viewport artifacts                                                | three SVG/PNG directions + direction cards                                   | passed                      |
+| Signature/subtraction     | required      | direction/kill records                                                       | direct signal overlays; remove hero/dashboard/fake signal                    | passed for direction        |
+| Blind audience read       | required      | brief-hidden reviewer record                                                 | `.scratch/design/waveform-component/blind-read.md`                           | passed with accepted repair |
+| Independent judgment      | required      | fresh delegated raw-artifact review                                          | independent direction read changed control labeling/primary route            | passed for planning         |
+| Package/public seam       | required      | external consumer build and runtime                                          | packed tarball + declarations + SSR import pass for tracer                   | passed for tracer           |
+| Regression/runtime        | required      | focused tests and browser paths                                              | 19 unit/component + 2 Chrome E2E pass                                        | passed for tracer           |
+| Hostile/boundary input    | required      | fixtures for invalid config, stale async, decode/permission/renderer failure | invalid/empty static data covered; async/source failures pending             | partial                     |
+| User states               | required      | rendered real states                                                         | ready/empty static frames covered; source state matrix pending               | partial                     |
+| Viewport/platform         | required      | 1440, 390, 320, ultrawide captures                                           | 1440 and 390 rendered; zero relevant overflow                                | partial                     |
+| Accessibility             | required      | keyboard/pointer/focus/reduced-motion checks                                 | semantic Canvas, labeled controls, focus and reduced-motion base             | partial                     |
+| Performance/lifecycle     | required      | traces, active-resource audit, long-data scenario                            | epochs, cleanup, shared session and ownership tests pass; load proof pending | partial                     |
+| Export                    | required      | isolated compile/runtime fixture                                             | contract only                                                                | blocked by implementation   |
+| Adversarial autopsy       | required      | fresh final artifact inspection                                              | not yet applicable                                                           | blocked by implementation   |
 
 ## Valid loop ledger
 
@@ -49,6 +49,11 @@ Stop condition: accepted scope implemented; no blocker/P1; every applicable gate
 |  13 | Signed data and DPR behavior needed independent proof | Static validation, deterministic demo, pure geometry, absolute Canvas transform, and 19 tests added | better  | browser path          |
 |  14 | Browser runner lacked only its video helper           | Official Playwright ffmpeg installed; 2/2 Chrome E2E paths now pass                                 | better  | rendered inspection   |
 |  15 | Min/max-only Canvas output read as dotted             | Continuous midpoint path added without removing extrema; final rendered evidence is clean           | better  | session lifecycle     |
+|  16 | Source growth needed one lifecycle authority          | Generic session, immutable snapshots, statuses, errors, epochs, and React store binding added       | better  | race proof            |
+|  17 | Late async connect could outlive replacement          | Abort/epoch guards ignore stale callbacks and dispose late handles exactly once                     | better  | ownership proof       |
+|  18 | Host and package resources need different teardown    | Borrowed stream/node adapters detach without stop/disconnect; owned tracks stop once                | better  | package proof         |
+|  19 | Same-version tarball cache hid new declarations       | Consumer fixture cleans verified local artifacts and installs fresh without manifest cache          | better  | browser path          |
+|  20 | Rapid source-style changes could expose stale UI      | Three rapid transitions end at epoch 9, `DEMO / READY`, correct frame, and clean console            | better  | recorded source       |
 
 ## Loop 10 verdict
 
@@ -77,6 +82,21 @@ Ticket 001 is implemented, verified, and committed. Its package boundary, typed 
 - Root cause: extrema preserved density but had no cross-bin continuity path.
 - Repair: retain vertical extrema and add one continuous midpoint path per channel.
 - Closing proof: focused renderer/component tests, clean 1440×960 browser metrics/console, and inspected `desktop-final.png`.
+- Unresolved severity: closed.
+
+## Loop 20 verdict
+
+`continue`
+
+Ticket 002 is implemented, verified, and committed. The frontier now branches into recorded audio (003), microphone lifecycle (004), and spectrum analysis (005). Recorded audio is next because it exercises decode, transport, long-data peaks, and user-controlled seeking while reusing the now-proven epoch/ownership boundary.
+
+## Session pressure record
+
+- Strongest observed defect: the packed external consumer kept a same-version tarball installation and falsely reported missing new public exports.
+- User harm: release proof could validate stale declarations instead of the current package.
+- Root cause: Bun's fixture lock/install cache outlived the overwritten local tarball despite `--force`.
+- Repair: a path-guarded cleanup removes only the fixture's `node_modules`, lock, and tarball, then installs the new tarball with `--no-cache`.
+- Closing proof: the fresh pack includes session declarations; the fixture imports both session and convenience APIs; full verification passes.
 - Unresolved severity: closed.
 
 ## Pressure record

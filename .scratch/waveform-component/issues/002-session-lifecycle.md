@@ -1,6 +1,8 @@
 # 002 — Make `WaveformSession` lifecycle and source ownership reusable
 
-Status: ready-for-agent
+Status: ready-for-human
+
+Resolution: completed and verified in commit `7f14d5f`.
 
 Type: AFK  
 Blocked by: 001  
@@ -25,3 +27,11 @@ A framework-neutral `WaveformSession` owns frame publication, source replacement
 - Replacement and disposal remove listeners, animation frames, observers, nodes, contexts, workers, and tracks created by the package.
 - Status and errors are structured, typed, and independently renderable by a host.
 - Lifecycle fixtures cover attach, replace, abort, dispose, and shared observation.
+
+## Verification
+
+- `bun run verify:tracer`: passed with 30/30 unit/component tests, TypeScript 7, lint/format, package/types/playground builds, SSR import, fresh packed-tarball install, and external-consumer typecheck.
+- Session-focused tests cover two subscribers/two React views, generic analysis frames, async stale publication, late-handle disposal, cleanup failure, structured connection errors, terminal disposal, AudioBuffer copying, MediaStream ownership/mute/end, and borrowed AudioNode behavior.
+- `bun run test:e2e`: passed 2/2 installed-Chrome paths after the playground migrated its primary artifact/status to one shared session.
+- Browser inspection after rapid Broadcast → Transient → Nocturne → Signal red changes: `DEMO / READY`, owned source, epoch 9, correct 2048-sample Canvas, zero document overflow, and clean console.
+- Evidence: `.scratch/evidence/002-session/desktop.png` (generated evidence is intentionally ignored by Git).

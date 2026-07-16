@@ -1,6 +1,6 @@
 # 003 — Decode, play, inspect, and scrub local audio
 
-Status: blocked
+Status: ready-for-agent
 
 Type: AFK  
 Blocked by: 002  

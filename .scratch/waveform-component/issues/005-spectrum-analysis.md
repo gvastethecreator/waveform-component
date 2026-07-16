@@ -1,6 +1,6 @@
 # 005 — Render a physically meaningful spectrum
 
-Status: blocked
+Status: ready-for-agent
 
 Type: AFK  
 Blocked by: 002  
