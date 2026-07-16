@@ -1,6 +1,8 @@
 # 008 — Add radial geometry and the complete color grammar
 
-Status: ready-for-agent
+Status: ready-for-human
+
+Resolution: completed and verified in commit `4476f49`.
 
 Type: AFK  
 Blocked by: 005, 007  
@@ -25,3 +27,11 @@ Canvas modes support radial layout and a complete typed color grammar, with ever
 - Every enabled control changes the real artifact; every disabled control explains why.
 - Gradient and threshold ordering reject or normalize invalid states predictably.
 - Canvas contract tests cover rectangular and radial outputs at multiple DPRs.
+
+## Verification
+
+- `bun run verify:tracer`: passed with 95/95 unit/component tests, type/lint/format, library/types/playground builds, SSR import, and a fresh packed consumer compiling radial gradient roles.
+- Pure fixtures cover zero/full/partial arcs, wraparound rotation, inward/outward radii, 0–100% deadzones, finite degenerate geometry, gradient/pulse/range decisions, alpha preservation, CSS-variable fallback, threshold ordering, and forced-colors system roles.
+- `bun run test:e2e`: passed 10/10 installed-Chrome paths. The radial path proves rectangular corner radius, radial caps, deadzone/arc/rotation/inversion, gradient ratio/crest alpha, magnitude/frequency pulse, ordered range thresholds, capability feedback, pixel differences, and bounded layout.
+- Browser inspection: 1440×960, 390×844, and DPR-2 forced-colors captures render the same 300° radial gradient contract without document/stage horizontal overflow, console errors, or stale Canvas sizing.
+- Evidence: `.scratch/evidence/008-radial-color/desktop-final.png`, `narrow-final.png`, `forced-colors-final.png`, and `browser-report.json` (generated evidence is intentionally ignored by Git).

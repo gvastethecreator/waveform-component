@@ -204,6 +204,31 @@ Ticket 007 is implemented, verified, and committed. Radial/color 008 is next bec
 - Closing proof: independent geometry ranges, browser pixel comparisons, fixed vertical envelope evidence, 85/85 tests, 9/9 Chrome E2E, packed consumer, and a console-clean live-source rerun.
 - Unresolved severity: closed.
 
+## Loops 46–50
+
+|   N | Source finding                                                       | Artifact/proof delta                                                                                                                                              | Verdict  | Next                           |
+| --: | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------ |
+|  46 | Primitive and layout are independent public dimensions               | Separated curve/bars from rectangular/radial layout and added typed deadzone, arc, rotation, inversion, caps, corner radius, color modes, roles, and alpha.       | continue | Prove polar extremes           |
+|  47 | Full-circle curves and bars need different endpoint policies         | Added finite pure polar geometry: curves retain both frequency endpoints, full-circle bars avoid duplicate rays, partial arcs include both ends, and 0° is empty. | continue | Build reusable color decisions |
+|  48 | Color semantics must survive Canvas and CSS boundaries               | Added bounded pulse/range decisions, typed alpha, CSS-variable resolution, five distinct Canvas strategies, and forced-colors system-role substitution.           | continue | Pressure capability UI         |
+|  49 | Initial capability rules disabled line width while Line bars used it | Made availability depend on primitive plus color mode, added truthful polar legends, conditional role controls, ordered threshold UI, and pixel checks.           | continue | Run full package/browser gate  |
+|  50 | Visual proof must include constrained and high-contrast surfaces     | Captured desktop, narrow, and DPR-2 forced-colors radial gradients with finite bounds, inherited CSS roles, zero horizontal overflow, and clean console.          | continue | Open trustworthy meters 009    |
+
+## Loop 50 verdict
+
+`continue`
+
+Ticket 008 is implemented, verified, and committed. Trustworthy meters/history 009 is next by the approved graph; it distinguishes RMS, peak, ballistics, stepped geometry, and bounded time history before accessible overlays and renderer parity consume meter semantics.
+
+## Radial/color pressure record
+
+- Strongest observed defect: the first availability rule disabled line width for every bars geometry even though the new Line color mode used line width for bar outlines and radial rays.
+- User harm: the artifact and capability inspector disagreed; a real visual parameter was locked behind an explanation that was demonstrably false.
+- Root cause: availability still depended only on the older curve-versus-bars primitive and ignored the newly independent color mode.
+- Repair: line width is enabled for Line mode and range-colored curves, rounded caps are limited to stroked curves/radial bars, and corner radius remains rectangular-bars-only.
+- Closing proof: capability fixtures, component assertions, rectangular/radial pixel changes, 95/95 tests, 10/10 Chrome E2E, packed consumer, SSR import, and inspected normal/forced-colors captures.
+- Unresolved severity: closed.
+
 ## Pressure record
 
 Strongest current objection: the proposed package can become so broad that “super customizable” turns into a huge shallow config object and a playground parameter dump.  

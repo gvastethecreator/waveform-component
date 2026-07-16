@@ -1,6 +1,6 @@
 # 013 — Open the WebGL2 path with Pulse Ring and graceful fallback
 
-Status: blocked
+Status: ready-for-agent
 
 Type: AFK  
 Blocked by: 006, 008  
