@@ -1,0 +1,43 @@
+{
+  "workUnitId": "waveform-playground",
+  "archetype": "interactive audio lab",
+  "secondaryRegions": ["preset gallery", "code export", "analysis diagnostics"],
+  "userMode": ["create", "explore", "compare"],
+  "primaryArtifact": "live waveform, spectrum, meter, or audio-reactive visual",
+  "frequency": "repeated",
+  "pressure": "low consequence, high iteration frequency, expert-friendly density",
+  "input": ["pointer", "keyboard", "touch"],
+  "spatialModel": "artifact-dominant inspector workbench",
+  "costlyStates": [
+    "microphone permission pending or denied",
+    "audio decode failure",
+    "silent or ended source",
+    "unsupported WebGL2 renderer",
+    "long audio data",
+    "narrow workspace",
+    "reduced motion"
+  ],
+  "constraints": [
+    "static frontend",
+    "React 19, TypeScript 7, Vite 8, Tailwind 4, Bun",
+    "package and playground must remain separate",
+    "clean-room implementation from GPL OBS references",
+    "semantic DOM controls around canvas or WebGL output",
+    "desktop no-scroll main workspace, structural narrow layout"
+  ],
+  "preservedContracts": [
+    "folders overview/focus grammar",
+    "typed central config, presets, reset, and capability catalog",
+    "Controls/Code inspector rail",
+    "standalone selected-adapter export",
+    "deterministic fixtures and browser proof"
+  ],
+  "proofMatrix": {
+    "desktop": "1440x960 main, stressed state, and detail crop",
+    "narrow": "390x844 controls then artifact with no horizontal overflow",
+    "interaction": "play, seek, select region, change engine/mode, reset, copy export",
+    "recovery": "permission denied and unsupported WebGL2 fallback",
+    "accessibility": "keyboard and Pointer Events, focus, reduced motion, semantic status"
+  },
+  "designRead": "interactive audio lab + create/explore + live signal artifact + high iteration density + inspector workbench + desktop/narrow/recovery proof"
+}

@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900">
+  <rect width="1440" height="900" fill="#08090a"/>
+  <rect x="1120" width="320" height="900" fill="#111315"/>
+  <line x1="1120" x2="1120" y2="900" stroke="#303438"/>
+  <text x="34" y="40" fill="#f4f5f6" font-family="Segoe UI" font-size="17" font-weight="700">SIGNAL WORKBENCH</text>
+  <text x="34" y="62" fill="#8b949e" font-family="Segoe UI" font-size="11">DEMO OSCILLATOR · PLAYING · 48 kHz</text>
+  <g font-family="Segoe UI" font-size="11">
+    <rect x="480" y="24" width="62" height="32" rx="5" fill="#1a1d20" stroke="#3b4248"/><text x="500" y="44" fill="#e7eaed">Play</text>
+    <rect x="550" y="24" width="80" height="32" rx="5" fill="#1a1d20" stroke="#3b4248"/><text x="569" y="44" fill="#e7eaed">Overview</text>
+    <rect x="636" y="24" width="62" height="32" rx="5" fill="#24282c" stroke="#6e7a84"/><text x="653" y="44" fill="#ffffff">Focus</text>
+    <text x="718" y="44" fill="#8b949e">00:12.480 / 00:32.000</text>
+  </g>
+  <line x1="32" x2="1088" y1="82" y2="82" stroke="#292d31"/>
+  <rect x="32" y="105" width="1056" height="590" rx="8" fill="#0d1012" stroke="#2c3136"/>
+  <text x="54" y="135" fill="#9aa3ab" font-family="Segoe UI" font-size="10">SPECTRUM · CANVAS 2D · STEREO</text>
+  <g stroke="#1f2529" stroke-width="1">
+    <line x1="54" x2="1066" y1="235" y2="235"/><line x1="54" x2="1066" y1="335" y2="335"/><line x1="54" x2="1066" y1="435" y2="435"/><line x1="54" x2="1066" y1="535" y2="535"/>
+    <line x1="180" x2="180" y1="155" y2="650"/><line x1="380" x2="380" y1="155" y2="650"/><line x1="580" x2="580" y1="155" y2="650"/><line x1="780" x2="780" y1="155" y2="650"/><line x1="980" x2="980" y1="155" y2="650"/>
+  </g>
+  <path d="M54 552 C85 536 106 520 132 545 S180 480 210 508 S270 430 302 470 S348 400 390 445 S454 350 500 410 S555 300 610 378 S667 248 726 360 S790 315 840 390 S920 350 965 470 S1024 442 1066 518" fill="none" stroke="#6ee7ff" stroke-width="3"/>
+  <path d="M54 552 C85 536 106 520 132 545 S180 480 210 508 S270 430 302 470 S348 400 390 445 S454 350 500 410 S555 300 610 378 S667 248 726 360 S790 315 840 390 S920 350 965 470 S1024 442 1066 518 L1066 650 L54 650Z" fill="#1c7180" opacity=".22"/>
+  <rect x="178" y="155" width="604" height="495" fill="#73e4f5" opacity=".05" stroke="#73e4f5" stroke-dasharray="6 4"/>
+  <line x1="642" x2="642" y1="155" y2="650" stroke="#f8d66d" stroke-width="2"/>
+  <circle cx="642" cy="378" r="6" fill="#f8d66d"/>
+  <line x1="380" x2="380" y1="155" y2="650" stroke="#f27d9d" stroke-dasharray="5 4"/>
+  <text x="362" y="174" fill="#f27d9d" font-family="Segoe UI" font-size="10">120 Hz</text>
+  <line x1="920" x2="920" y1="155" y2="650" stroke="#f27d9d" stroke-dasharray="5 4"/>
+  <text x="898" y="174" fill="#f27d9d" font-family="Segoe UI" font-size="10">17.5 kHz</text>
+  <text x="54" y="676" fill="#727c85" font-family="Segoe UI" font-size="10">Drag cutoffs, playhead, range, and thresholds directly on the signal</text>
+  <text x="34" y="736" fill="#8b949e" font-family="Segoe UI" font-size="10">PRESET STRIP</text>
+  <g font-family="Segoe UI" font-size="10">
+    <rect x="32" y="752" width="196" height="110" rx="6" fill="#111416" stroke="#59636b"/><path d="M48 823 Q85 785 118 815 T210 786" fill="none" stroke="#6ee7ff" stroke-width="2"/><text x="48" y="848" fill="#edf1f4">Studio spectrum</text>
+    <rect x="240" y="752" width="196" height="110" rx="6" fill="#111416" stroke="#293037"/><g fill="#f8d66d"><rect x="258" y="790" width="9" height="36"/><rect x="273" y="774" width="9" height="52"/><rect x="288" y="802" width="9" height="24"/><rect x="303" y="767" width="9" height="59"/><rect x="318" y="784" width="9" height="42"/></g><text x="258" y="848" fill="#edf1f4">Rounded bars</text>
+    <rect x="448" y="752" width="196" height="110" rx="6" fill="#111416" stroke="#293037"/><circle cx="546" cy="802" r="30" fill="none" stroke="#f27d9d" stroke-width="4"/><text x="466" y="848" fill="#edf1f4">Pulse ring</text>
+    <rect x="656" y="752" width="196" height="110" rx="6" fill="#111416" stroke="#293037"/><path d="M674 814 C706 758 742 850 774 785 S824 836 834 779" fill="none" stroke="#a9f19f" stroke-width="3"/><text x="674" y="848" fill="#edf1f4">Waveform</text>
+    <rect x="864" y="752" width="224" height="110" rx="6" fill="#111416" stroke="#293037"/><text x="884" y="794" fill="#8b949e">+ 9 visual families</text><text x="884" y="848" fill="#edf1f4">Open overview</text>
+  </g>
+  <g font-family="Segoe UI">
+    <text x="1144" y="40" fill="#f4f5f6" font-size="16" font-weight="700">Playground</text><text x="1144" y="60" fill="#7f8992" font-size="10">Signal · shared analysis</text>
+    <line x1="1132" x2="1424" y1="82" y2="82" stroke="#303438"/>
+    <text x="1144" y="112" fill="#808a93" font-size="9" font-weight="700">SOURCE &amp; TRANSPORT</text><rect x="1144" y="126" width="268" height="38" rx="4" fill="#181b1e" stroke="#343a40"/><text x="1158" y="150" fill="#d7dce0" font-size="11">Deterministic demo</text>
+    <text x="1144" y="197" fill="#808a93" font-size="9" font-weight="700">MODE &amp; ENGINE</text><rect x="1144" y="211" width="128" height="36" rx="4" fill="#22272b"/><text x="1160" y="234" fill="#ffffff" font-size="11">Spectrum</text><rect x="1280" y="211" width="132" height="36" rx="4" fill="#181b1e"/><text x="1296" y="234" fill="#d7dce0" font-size="11">Canvas 2D</text>
+    <line x1="1132" x2="1424" y1="272" y2="272" stroke="#303438"/><text x="1144" y="301" fill="#d7dce0" font-size="11" font-weight="700">ANALYSIS</text><text x="1398" y="301" fill="#7f8992" font-size="13">⌃</text>
+    <text x="1144" y="334" fill="#7f8992" font-size="9">FFT SIZE</text><text x="1370" y="334" fill="#d7dce0" font-size="10">4096</text><line x1="1144" x2="1412" y1="352" y2="352" stroke="#3c444b"/><circle cx="1310" cy="352" r="5" fill="#e8edf0"/>
+    <text x="1144" y="388" fill="#7f8992" font-size="9">SMOOTHING</text><text x="1370" y="388" fill="#d7dce0" font-size="10">0.65</text><line x1="1144" x2="1412" y1="406" y2="406" stroke="#3c444b"/><circle cx="1265" cy="406" r="5" fill="#e8edf0"/>
+    <line x1="1132" x2="1424" y1="440" y2="440" stroke="#303438"/><text x="1144" y="470" fill="#d7dce0" font-size="11" font-weight="700">GEOMETRY &amp; LAYOUT</text><text x="1398" y="470" fill="#7f8992" font-size="13">⌄</text>
+    <line x1="1132" x2="1424" y1="506" y2="506" stroke="#303438"/><text x="1144" y="536" fill="#d7dce0" font-size="11" font-weight="700">COLOR &amp; REACTIVITY</text><text x="1398" y="536" fill="#7f8992" font-size="13">⌄</text>
+    <line x1="1132" x2="1424" y1="572" y2="572" stroke="#303438"/><text x="1144" y="602" fill="#d7dce0" font-size="11" font-weight="700">ADVANCED DSP</text><text x="1398" y="602" fill="#7f8992" font-size="13">⌄</text>
+    <line x1="1132" x2="1424" y1="638" y2="638" stroke="#303438"/><text x="1144" y="668" fill="#d7dce0" font-size="11" font-weight="700">ACCESSIBILITY &amp; QUALITY</text><text x="1398" y="668" fill="#7f8992" font-size="13">⌄</text>
+    <rect x="1144" y="826" width="128" height="40" rx="5" fill="#1b1f22" stroke="#394149"/><text x="1188" y="851" fill="#d7dce0" font-size="11">Reset</text><rect x="1282" y="826" width="130" height="40" rx="5" fill="#e8edf0"/><text x="1314" y="851" fill="#101214" font-size="11" font-weight="700">Copy code</text>
+  </g>
+</svg>

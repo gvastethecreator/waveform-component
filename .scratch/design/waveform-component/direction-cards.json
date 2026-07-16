@@ -1,0 +1,51 @@
+{
+  "comparisonViewport": "1440x900",
+  "directions": [
+    {
+      "id": "signal-workbench",
+      "argument": "Edit the signal on the signal: one sovereign stage, direct overlays, compact inspector.",
+      "composition": "Top transport and scope, dominant waveform stage, slim preset strip, 320px right inspector.",
+      "interaction": "Overview and Focus modes; drag playhead, selection, cutoffs, thresholds, and radial origin directly on the artifact.",
+      "visualLanguage": "Near-black calibrated instrument, quiet hairlines, luminance-led hierarchy, one signal accent and semantic state colors.",
+      "signature": "Signal overlays are both measurement and control, so advanced parameters remain visibly tethered to their effect.",
+      "responsiveScrollModel": "No-scroll desktop workbench; bounded inspector first, stage second on narrow screens.",
+      "assetPlan": "Deterministic generated audio plus local user file; no decorative imagery.",
+      "primaryRisk": "Dense overlays could become illegible; progressive disclosure and direct-manipulation affordances must stay disciplined.",
+      "representativeArtifact": "direction-a-signal-workbench.svg",
+      "status": "selected"
+    },
+    {
+      "id": "engine-matrix",
+      "argument": "Make renderer parity the product: four synchronized engines shown at once.",
+      "composition": "Left source/analysis rail, 2x2 phase-locked renderer matrix, shared bottom timeline.",
+      "interaction": "Scrubbing or changing data updates every tile; selecting one tile expands it for deeper control.",
+      "visualLanguage": "Lab comparison grid with strict shared axes and capability annotations.",
+      "signature": "One crosshair and time/frequency cursor travels across every engine for like-for-like comparison.",
+      "responsiveScrollModel": "Matrix collapses to a selected renderer plus swipeable engine tabs on narrow screens.",
+      "assetPlan": "Same deterministic signal frame for every renderer.",
+      "primaryRisk": "Comparison chrome competes with creative tuning and makes the main waveform feel like a test fixture.",
+      "representativeArtifact": "direction-b-engine-matrix.svg",
+      "status": "rejected"
+    },
+    {
+      "id": "modulation-patchbay",
+      "argument": "Expose customization as routing: sources and analysis bands patch into visual parameters.",
+      "composition": "Source nodes left, large visual center, modulation/parameter graph right, transport below.",
+      "interaction": "Drag level, bands, peaks, or time into color, scale, glow, rotation, and geometry ports.",
+      "visualLanguage": "Diagrammatic patch cords and compact node labels over a restrained stage.",
+      "signature": "Every audio-to-visual mapping is visible as a patch, making reactive behavior explicit and remixable.",
+      "responsiveScrollModel": "Separate Patch and Preview modes on narrow screens.",
+      "assetPlan": "Real analysis channels and preset patches; no fake nodes.",
+      "primaryRisk": "Learned node interaction delays the common task and creates a second product before core controls are proven.",
+      "representativeArtifact": "direction-c-modulation-patchbay.svg",
+      "status": "rejected"
+    }
+  ],
+  "selection": {
+    "id": "signal-workbench",
+    "reason": "It maps the proven folders playground structure onto audio without hiding the artifact, supports all required states, and leaves renderer comparison as Overview rather than making comparison chrome sovereign.",
+    "whyNotHybrid": "Adding the matrix or patch graph to the primary screen would dilute the direct signal-editing thesis. Their best ideas can appear later as bounded modes, not as the default composition.",
+    "blindReadRisk": "A dense control panel can obscure the primary route, and visual mode can be confused with rendering engine.",
+    "acceptedRepair": "Render Visual mode and Rendering engine as distinct labeled control rows; reinforce Play -> adjust on the signal -> Copy code as the primary route."
+  }
+}
