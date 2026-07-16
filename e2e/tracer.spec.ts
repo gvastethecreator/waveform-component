@@ -33,7 +33,7 @@ test("preserves stereo identity across layouts, envelope placement, and orientat
   page,
 }) => {
   test.setTimeout(60_000);
-  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.goto("/", { timeout: 60_000, waitUntil: "domcontentloaded" });
 
   const stage = page.locator(".signal-stage");
   const waveform = page.getByRole("img", { name: /Broadcast deterministic waveform preview/ });
@@ -367,33 +367,7 @@ test("switches Canvas and SVG through one frame/config/session contract", async 
     if (message.type() === "error") browserErrors.push(`console: ${message.text()}`);
   });
   page.on("pageerror", (error) => browserErrors.push(`pageerror: ${error.message}`));
-  await page.addInitScript(() => {
-    const NativeResizeObserver = window.ResizeObserver;
-    const stats = { active: 0, created: 0, disconnected: 0 };
-    class CountingResizeObserver extends NativeResizeObserver {
-      private released = false;
-
-      constructor(callback: ResizeObserverCallback) {
-        super(callback);
-        stats.active += 1;
-        stats.created += 1;
-      }
-
-      override disconnect() {
-        if (!this.released) {
-          this.released = true;
-          stats.active -= 1;
-          stats.disconnected += 1;
-        }
-        super.disconnect();
-      }
-    }
-    Object.defineProperty(window, "ResizeObserver", {
-      configurable: true,
-      value: CountingResizeObserver,
-    });
-    Reflect.set(window, "__rendererObserverStats", stats);
-  });
+  await installRendererObserverProbe(page);
 
   const evidence = process.env.CAPTURE_SVG_EVIDENCE ? ".scratch/evidence/011-svg-renderer" : null;
   if (evidence) await mkdir(evidence, { recursive: true });
@@ -562,6 +536,205 @@ test("keeps SVG responsive, theme-aware, reduced-motion static, and forced-color
   );
   expect(horizontalOverflow).toBeLessThanOrEqual(0);
   if (evidence) await stage.screenshot({ path: `${evidence}/svg-narrow-forced-colors.png` });
+  expect(browserErrors).toEqual([]);
+});
+
+test("switches DOM/CSS through bounded bars and meters with explicit capability recovery", async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  const browserErrors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") browserErrors.push(`console: ${message.text()}`);
+  });
+  page.on("pageerror", (error) => browserErrors.push(`pageerror: ${error.message}`));
+  await installRendererObserverProbe(page);
+  const evidence = process.env.CAPTURE_DOM_EVIDENCE ? ".scratch/evidence/012-dom-renderer" : null;
+  if (evidence) await mkdir(evidence, { recursive: true });
+  await page.goto("/", { timeout: 60_000, waitUntil: "domcontentloaded" });
+  await expect(page.getByLabel("Signal status")).toContainText("DEMO / READY");
+
+  const stage = page.locator(".signal-stage");
+  const engine = page.getByRole("combobox", { name: /Rendering engine/ });
+  const observerBaseline = await rendererObserverStat(page, "active");
+  const epoch = await page.getByText(/Epoch \d+/).textContent();
+  await page.getByRole("slider", { name: "Overlay playhead", exact: true }).fill("0.63");
+  await engine.selectOption("dom");
+  await expect(stage).toHaveAttribute("data-renderer", "dom");
+  await expect(page.getByRole("alert")).toContainText("DOM/CSS does not support waveform mode");
+  await expect(page.getByRole("button", { name: "Waveform" })).toBeDisabled();
+  await expect(page.getByRole("checkbox", { name: "Semantic overlays" })).toBeDisabled();
+
+  await page.getByRole("button", { name: "Spectrum" }).click();
+  await expect(page.getByRole("alert")).toContainText(
+    "DOM/CSS does not support curve spectrum geometry",
+  );
+  const geometry = page.getByRole("combobox", { name: /^Geometry/ });
+  const layout = page.getByRole("combobox", { name: /^Layout/ });
+  await expect(geometry.locator('option[value="curve"]')).toHaveAttribute("disabled", "");
+  await expect(layout.locator('option[value="radial"]')).toHaveAttribute("disabled", "");
+  await geometry.selectOption("bars");
+
+  const domSpectrum = page.getByRole("img", { name: /Broadcast ordered spectrum preview/ });
+  await expect(domSpectrum).toHaveAttribute("data-dom-render-status", "ready");
+  const spectrumIntegrity = await domSpectrum.evaluate((surface) => ({
+    animationCount: surface.getAnimations({ subtree: true }).length,
+    declaredNodeCount: Number(surface.getAttribute("data-dom-node-count")),
+    renderedNodeCount: surface.querySelectorAll("[data-dom-node]").length,
+    roles: [...surface.querySelectorAll("[data-dom-role]")].map((node) =>
+      node.getAttribute("data-dom-role"),
+    ),
+  }));
+  expect(spectrumIntegrity.declaredNodeCount).toBe(spectrumIntegrity.renderedNodeCount);
+  expect(spectrumIntegrity.declaredNodeCount).toBeLessThanOrEqual(1024);
+  expect(spectrumIntegrity.roles).toContain("spectrum-bar");
+  expect(spectrumIntegrity.animationCount).toBe(0);
+  await expect(page.locator("#renderer-support-note")).toContainText(
+    "DOM/CSS samples spectrum geometry to 256 points",
+  );
+  const firstBar = domSpectrum.locator('[data-dom-role="spectrum-bar"]').first();
+  const colorBefore = await firstBar.evaluate(
+    (element) => getComputedStyle(element).borderTopColor,
+  );
+  await stage.evaluate((element) =>
+    (element as HTMLElement).style.setProperty("--waveform-color-base", "#ff205e"),
+  );
+  await expect
+    .poll(() => firstBar.evaluate((element) => getComputedStyle(element).borderTopColor))
+    .not.toBe(colorBefore);
+  const cutoff = page.getByRole("slider", { name: "Low cutoff handle", exact: true });
+  const cutoffBefore = Number(await cutoff.getAttribute("aria-valuenow"));
+  await cutoff.focus();
+  await cutoff.press("ArrowRight");
+  await expect
+    .poll(async () => Number(await cutoff.getAttribute("aria-valuenow")))
+    .toBeGreaterThan(cutoffBefore);
+  if (evidence) await stage.screenshot({ path: `${evidence}/dom-spectrum-bars.png` });
+
+  await page.getByRole("button", { name: "Stepped meter" }).click();
+  const meterLayout = page.getByRole("combobox", { name: /Meter layout/ });
+  await expect(meterLayout.locator('option[value="radial"]')).toHaveAttribute("disabled", "");
+  const domMeter = page.getByRole("img", { name: /stepped-meter preview.*RMS display/i });
+  await expect(domMeter).toHaveAttribute("data-dom-render-status", "ready");
+  await page.getByRole("slider", { name: "Step width", exact: true }).fill("1");
+  await page.getByRole("slider", { name: "Step gap", exact: true }).fill("0");
+  await expect(page.getByRole("alert")).toContainText("DOM/CSS node budget exceeded");
+  if (evidence) await stage.screenshot({ path: `${evidence}/dom-node-budget.png` });
+  await page.getByRole("slider", { name: "Step width", exact: true }).fill("8");
+  await page.getByRole("slider", { name: "Step gap", exact: true }).fill("3");
+  await expect(domMeter).toHaveAttribute("data-dom-render-status", "ready");
+  const meterNodeCount = Number(await domMeter.getAttribute("data-dom-node-count"));
+  expect(meterNodeCount).toBeGreaterThan(0);
+  expect(meterNodeCount).toBeLessThanOrEqual(1024);
+  expect(await domMeter.locator("[data-dom-node]").count()).toBe(meterNodeCount);
+  if (evidence) await stage.screenshot({ path: `${evidence}/dom-stepped-meter.png` });
+
+  await engine.selectOption("svg");
+  await expect(
+    page.getByRole("img", { name: /stepped-meter preview.*RMS display/i }),
+  ).toHaveAttribute("data-renderer", "svg");
+  await engine.selectOption("canvas2d");
+  await expect(
+    page.getByRole("img", { name: /stepped-meter preview.*RMS display/i }),
+  ).toHaveJSProperty("tagName", "CANVAS");
+  await expect(page.getByText(epoch ?? "Epoch 1")).toBeVisible();
+  await expect.poll(() => rendererObserverStat(page, "active")).toBe(observerBaseline);
+
+  await page.getByLabel("Load local audio").setInputFiles({
+    buffer: createWavFixture(),
+    mimeType: "audio/wav",
+    name: "dom-renderer-state.wav",
+  });
+  await expect(page.getByLabel("Signal status")).toContainText("RECORDED-AUDIO / READY");
+  const recordedSeek = page.getByRole("slider", { name: "Seek dom-renderer-state.wav" });
+  await recordedSeek.fill("0.4");
+  await engine.selectOption("dom");
+  await expect(page.getByRole("region", { name: "dom-renderer-state.wav player" })).toBeVisible();
+  await expect(recordedSeek).toHaveValue("0.4");
+  await expect(
+    page.getByRole("img", { name: /dom-renderer-state.wav local waveform preview/ }),
+  ).toHaveAttribute("data-dom-render-status", "unsupported");
+  await expect.poll(() => rendererObserverStat(page, "active")).toBe(observerBaseline);
+  if (evidence) await stage.screenshot({ path: `${evidence}/dom-recorded-state.png` });
+  await engine.selectOption("canvas2d");
+  expect(browserErrors).toEqual([]);
+
+  if (evidence)
+    await writeFile(
+      `${evidence}/browser-report.json`,
+      `${JSON.stringify(
+        {
+          browserErrors,
+          meterNodeCount,
+          observerBaseline,
+          observerStats: await page.evaluate(() => Reflect.get(window, "__rendererObserverStats")),
+          spectrumIntegrity,
+        },
+        null,
+        2,
+      )}\n`,
+    );
+});
+
+test("keeps DOM/CSS boxes responsive, zoom-safe, reduced-motion static, and forced-color legible", async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  const browserErrors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") browserErrors.push(`console: ${message.text()}`);
+  });
+  page.on("pageerror", (error) => browserErrors.push(`pageerror: ${error.message}`));
+  const evidence = process.env.CAPTURE_DOM_EVIDENCE ? ".scratch/evidence/012-dom-renderer" : null;
+  if (evidence) await mkdir(evidence, { recursive: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/", { timeout: 60_000, waitUntil: "domcontentloaded" });
+  await page.getByRole("button", { name: "Spectrum" }).click();
+  await page.getByRole("combobox", { name: /^Geometry/ }).selectOption("bars");
+  await page.getByRole("combobox", { name: /Color mode/ }).selectOption("gradient");
+  await page.getByRole("combobox", { name: /Rendering engine/ }).selectOption("dom");
+
+  const stage = page.locator(".signal-stage");
+  const spectrum = page.getByRole("img", { name: /Broadcast ordered spectrum preview/ });
+  await expect(spectrum).toHaveAttribute("data-dom-render-status", "ready");
+  const themedBefore = await stage.screenshot();
+  await page.evaluate(() => {
+    document.documentElement.style.setProperty("--waveform-color-base", "#ff2f92");
+    document.documentElement.style.setProperty("--waveform-color-crest", "#35ff79");
+  });
+  const themedAfter = await stage.screenshot();
+  expect(themedBefore.equals(themedAfter)).toBe(false);
+  if (evidence) await stage.screenshot({ path: `${evidence}/dom-narrow-theme.png` });
+
+  await page.emulateMedia({ forcedColors: "active", reducedMotion: "reduce" });
+  const firstBar = spectrum.locator('[data-dom-role="spectrum-bar"]').first();
+  await expect
+    .poll(() => firstBar.evaluate((element) => element.getAttribute("style")?.toLowerCase()))
+    .toContain("canvastext");
+  expect(await spectrum.evaluate((surface) => getComputedStyle(surface).forcedColorAdjust)).toBe(
+    "none",
+  );
+  expect(await firstBar.evaluate((element) => getComputedStyle(element).backgroundImage)).not.toBe(
+    "none",
+  );
+  expect(
+    await spectrum.evaluate((surface) => surface.getAnimations({ subtree: true }).length),
+  ).toBe(0);
+  const horizontalOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - window.innerWidth,
+  );
+  expect(horizontalOverflow).toBeLessThanOrEqual(0);
+  if (evidence) await stage.screenshot({ path: `${evidence}/dom-narrow-forced-colors.png` });
+
+  const devtools = await page.context().newCDPSession(page);
+  await devtools.send("Emulation.setPageScaleFactor", { pageScaleFactor: 2 });
+  const pageScale = await page.evaluate(() => window.visualViewport?.scale ?? 1);
+  expect(pageScale).toBe(2);
+  const zoomOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - window.innerWidth,
+  );
+  expect(zoomOverflow).toBeLessThanOrEqual(0);
+  if (evidence) await stage.screenshot({ path: `${evidence}/dom-narrow-forced-colors-zoom.png` });
   expect(browserErrors).toEqual([]);
 });
 
@@ -946,6 +1119,36 @@ async function installMicrophoneMock(page: Page, mode: "denied" | "live") {
 
 async function microphoneStat(page: Page, key: "closes" | "requests" | "stops") {
   return page.evaluate((property) => Reflect.get(window, "__waveformMicMock")[property], key);
+}
+
+async function installRendererObserverProbe(page: Page) {
+  await page.addInitScript(() => {
+    const NativeResizeObserver = window.ResizeObserver;
+    const stats = { active: 0, created: 0, disconnected: 0 };
+    class CountingResizeObserver extends NativeResizeObserver {
+      private released = false;
+
+      constructor(callback: ResizeObserverCallback) {
+        super(callback);
+        stats.active += 1;
+        stats.created += 1;
+      }
+
+      override disconnect() {
+        if (!this.released) {
+          this.released = true;
+          stats.active -= 1;
+          stats.disconnected += 1;
+        }
+        super.disconnect();
+      }
+    }
+    Object.defineProperty(window, "ResizeObserver", {
+      configurable: true,
+      value: CountingResizeObserver,
+    });
+    Reflect.set(window, "__rendererObserverStats", stats);
+  });
 }
 
 async function rendererObserverStat(page: Page, key: "active" | "created" | "disconnected") {

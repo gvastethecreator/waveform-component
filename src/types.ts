@@ -46,7 +46,7 @@ export type SpectrumGeometry = "curve" | "bars";
 export type SpectrumLayout = "radial" | "rectangular";
 export type SpectrumColorMode = "gradient" | "line" | "pulse" | "range" | "solid";
 export type SpectrumPulseMode = "peak-frequency" | "peak-magnitude";
-export type CoreRendererId = "canvas2d" | "svg";
+export type CoreRendererId = "canvas2d" | "dom" | "svg";
 
 export interface CanvasColorRole {
   readonly alpha: number;

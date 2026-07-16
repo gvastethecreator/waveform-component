@@ -301,7 +301,7 @@ const [playhead, setPlayhead] = useState(0.32);
 
 `minimum`/`maximum` describe the value a handle may currently commit. Optional `domainMinimum`/`domainMaximum` describe where that value sits on the shared signal axis; paired selection, loop, or cutoff handles therefore cannot cross but do not jump when their allowed range changes. Horizontal controls honor LTR/RTL, vertical controls use up/down keys, and Home/End/Page keys remain bounded. Set `reversed` on a seek surface or handle for a bottom-up or otherwise physically reversed value axis without changing the logical value domain. Pointer events cover mouse, pen, and touch; cancellation restores the value present at pointer-down. Overlapping ranges receive separate hit-target lanes, overlapping markers/handles receive deterministic point lanes, and every control remains a separate tab stop with a component-owned focus indicator and polite commit/activation announcements.
 
-## Canvas and SVG renderer parity
+## Canvas, SVG, and DOM/CSS renderer parity
 
 The existing `Waveform`, `Envelope`, `Spectrum`, `Meter`, `SessionWaveform`, and recorded-player interfaces switch adapters through the same config field. Frames, source/session state, playback, and controlled overlays are not recreated by an engine change.
 
@@ -309,13 +309,18 @@ The existing `Waveform`, `Envelope`, `Spectrum`, `Meter`, `SessionWaveform`, and
 const [renderer, setRenderer] = useState<CoreRendererId>("canvas2d");
 
 <Waveform data={frame} config={{ renderer }} />;
-<Spectrum data={spectrumFrame} config={{ renderer, layout: "radial" }} />;
+<Spectrum
+  data={spectrumFrame}
+  config={{ renderer, geometry: "bars", layout: renderer === "dom" ? "rectangular" : "radial" }}
+/>;
 <Meter data={meterFrame} history={history} config={{ renderer, mode: "stepped-meter" }} />;
 ```
 
-`CORE_RENDERER_CATALOG`, `CANVAS2D_RENDERER_CAPABILITIES`, `SVG_RENDERER_CAPABILITIES`, and `getRendererSupport` publish supported modes plus practical limits. SVG supports every currently implemented core waveform/envelope/spectrum/meter layout and color mode, but it is deliberately bounded to 32 channels, 1,024 time-domain columns, 512 spectrum points, 16 meter-history layers, and 4,096 rendered shape nodes. Reductions are exposed through `data-svg-message` and the returned `SvgScene.messages`; an exceeded channel or node budget produces a visible `SVG_RENDER_UNSUPPORTED` state rather than silently dropping config.
+`CORE_RENDERER_CATALOG`, the three built-in capability records, and `getRendererSupport` publish supported modes plus practical limits. SVG supports every currently implemented core waveform/envelope/spectrum/meter layout and color mode, but it is deliberately bounded to 32 channels, 1,024 time-domain columns, 512 spectrum points, 16 meter-history layers, and 4,096 rendered shape nodes. Reductions are exposed through `data-svg-message` and the returned `SvgScene.messages`; an exceeded channel or node budget produces a visible `SVG_RENDER_UNSUPPORTED` state rather than silently dropping config.
 
 For headless or custom integrations, `SVG_RENDERER_ADAPTER`/`renderSvgFrame` route canonical frame kinds through one capability-bearing seam; `renderSvgTimeDomain`, `renderSvgSpectrum`, and `renderSvgMeter` expose its focused functions. All return immutable `SvgScene` descriptors. Supply a stable, instance-unique `idPrefix` when multiple headless scenes will share a document; the React interfaces derive one from `useId`, so gradient IDs and references remain stable and collision-free automatically. SVG inherits CSS color roles, substitutes system roles in forced colors, has no animation of its own, and reuses `SignalOverlay` instead of introducing focusable SVG hit regions.
+
+DOM/CSS intentionally supports only rectangular spectrum `bars`, `meter`, and `stepped-meter`; waveform/envelope curves and every radial layout return a visible `DOM_RENDER_UNSUPPORTED` state. It preserves CSS-variable color roles without headless resolution, uses system colors under forced colors, samples at most 256 spectrum bars and four compatible history layers, supports eight channels, and never exposes more than 1,024 shape boxes. Excessive stepped density is rejected before geometry allocation. `DOM_RENDERER_ADAPTER`/`renderDomFrame`, `renderDomSpectrum`, and `renderDomMeter` return immutable `DomScene` descriptors, while React exposes matching `data-dom-*` counts/messages and mounts no renderer-specific interaction targets or animation work.
 
 ## Development
 
@@ -328,7 +333,7 @@ bun run verify:tracer
 bun run test:e2e
 ```
 
-The playground imports `waveform-component` through the public entry point and drives its main artifact through a shared session. `fixtures/external-consumer` installs a freshly packed tarball and typechecks waveform/envelope layout, session, recorded-player, microphone, analyzer, spectrum-dynamics, Canvas/SVG renderers, meter-analysis, meter-history, and controlled overlay interfaces against generated declarations exactly as an external consumer would.
+The playground imports `waveform-component` through the public entry point and drives its main artifact through a shared session. `fixtures/external-consumer` installs a freshly packed tarball and typechecks waveform/envelope layout, session, recorded-player, microphone, analyzer, spectrum-dynamics, Canvas/SVG/DOM renderers, meter-analysis, meter-history, and controlled overlay interfaces against generated declarations exactly as an external consumer would.
 
 ## Project records
 

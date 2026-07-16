@@ -3,6 +3,7 @@ import type {
   CoreRendererId,
   MeterColorMode,
   SpectrumColorMode,
+  SpectrumGeometry,
   SpectrumLayout,
   WaveformChannelLayout,
 } from "../types";
@@ -26,6 +27,7 @@ export interface RendererCapabilities {
   readonly limits: RendererLimits;
   readonly modes: readonly CoreRendererMode[];
   readonly semanticOverlays: "shared-dom";
+  readonly spectrumGeometries: readonly SpectrumGeometry[];
   readonly supportsDenseRealtime: boolean;
   readonly supportsVfx: false;
 }
@@ -34,8 +36,11 @@ export interface RendererSupportQuery {
   readonly channelCount?: number;
   readonly frameKind: AnalysisFrame["kind"];
   readonly historyCount?: number;
+  readonly layout?: SpectrumLayout | WaveformChannelLayout;
   readonly mode: CoreRendererMode;
   readonly pointCount?: number;
+  readonly spectrumGeometry?: SpectrumGeometry;
+  readonly colorMode?: MeterColorMode | SpectrumColorMode;
 }
 
 export interface RendererSupport {
@@ -59,6 +64,7 @@ const CORE_LAYOUTS = Object.freeze([
   "radial",
 ] as const);
 const CORE_COLORS = Object.freeze(["solid", "line", "gradient", "pulse", "range"] as const);
+const CORE_SPECTRUM_GEOMETRIES = Object.freeze(["curve", "bars"] as const);
 
 export const CANVAS2D_RENDERER_CAPABILITIES: RendererCapabilities = Object.freeze({
   colorModes: CORE_COLORS,
@@ -76,6 +82,7 @@ export const CANVAS2D_RENDERER_CAPABILITIES: RendererCapabilities = Object.freez
   }),
   modes: CORE_MODES,
   semanticOverlays: "shared-dom",
+  spectrumGeometries: CORE_SPECTRUM_GEOMETRIES,
   supportsDenseRealtime: true,
   supportsVfx: false,
 });
@@ -96,6 +103,28 @@ export const SVG_RENDERER_CAPABILITIES: RendererCapabilities = Object.freeze({
   }),
   modes: CORE_MODES,
   semanticOverlays: "shared-dom",
+  spectrumGeometries: CORE_SPECTRUM_GEOMETRIES,
+  supportsDenseRealtime: false,
+  supportsVfx: false,
+});
+
+export const DOM_RENDERER_CAPABILITIES: RendererCapabilities = Object.freeze({
+  colorModes: CORE_COLORS,
+  description:
+    "Inspectable CSS-box renderer for bounded rectangular spectrum bars and level meters.",
+  id: "dom",
+  label: "DOM/CSS",
+  layouts: Object.freeze(["rectangular"] as const),
+  limits: Object.freeze({
+    maximumChannels: 8,
+    maximumHistoryLayers: 4,
+    maximumNodes: 1024,
+    maximumSpectrumPoints: 256,
+    maximumTimeDomainColumns: 0,
+  }),
+  modes: Object.freeze(["spectrum", "meter", "stepped-meter"] as const),
+  semanticOverlays: "shared-dom",
+  spectrumGeometries: Object.freeze(["bars"] as const),
   supportsDenseRealtime: false,
   supportsVfx: false,
 });
@@ -103,6 +132,7 @@ export const SVG_RENDERER_CAPABILITIES: RendererCapabilities = Object.freeze({
 export const CORE_RENDERER_CATALOG: Readonly<Record<CoreRendererId, RendererCapabilities>> =
   Object.freeze({
     canvas2d: CANVAS2D_RENDERER_CAPABILITIES,
+    dom: DOM_RENDERER_CAPABILITIES,
     svg: SVG_RENDERER_CAPABILITIES,
   });
 
@@ -123,6 +153,18 @@ export function getRendererSupport(
     reasons.push(
       `${capabilities.label} supports at most ${capabilities.limits.maximumChannels} channels; received ${query.channelCount}.`,
     );
+  if (query.layout && !capabilities.layouts.includes(query.layout))
+    reasons.push(`${capabilities.label} does not support ${query.layout} layout.`);
+  if (
+    expectedKind === "spectrum" &&
+    query.spectrumGeometry &&
+    !capabilities.spectrumGeometries.includes(query.spectrumGeometry)
+  )
+    reasons.push(
+      `${capabilities.label} does not support ${query.spectrumGeometry} spectrum geometry.`,
+    );
+  if (query.colorMode && !capabilities.colorModes.includes(query.colorMode))
+    reasons.push(`${capabilities.label} does not support ${query.colorMode} color mode.`);
 
   if (
     expectedKind === "spectrum" &&
@@ -133,6 +175,7 @@ export function getRendererSupport(
     );
   if (
     (expectedKind === "waveform" || expectedKind === "envelope") &&
+    capabilities.limits.maximumTimeDomainColumns > 0 &&
     (query.pointCount ?? 0) > capabilities.limits.maximumTimeDomainColumns
   )
     warnings.push(

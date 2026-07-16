@@ -206,7 +206,7 @@ describe("Signal Workbench tracer", () => {
     expect(screen.getByText(/Epoch \d+/)).toBeInTheDocument();
   });
 
-  it("switches Canvas and SVG live without replacing session or controlled overlay state", async () => {
+  it("switches Canvas, SVG, and DOM/CSS live without replacing session or controlled state", async () => {
     const user = userEvent.setup();
     const { container } = render(<App />);
     await screen.findByText("DEMO / READY");
@@ -237,6 +237,26 @@ describe("Signal Workbench tracer", () => {
     const writeText = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue(undefined);
     await user.click(screen.getByRole("button", { name: "Copy code" }));
     expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining('renderer: "svg"'));
+
+    await user.selectOptions(engine, "dom");
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "DOM/CSS does not support curve spectrum geometry",
+    );
+    const geometry = screen.getByRole("combobox", { name: /^Geometry/ });
+    await user.selectOptions(geometry, "bars");
+    const boxes = screen.getByRole("img", { name: /ordered spectrum preview/ });
+    expect(boxes.tagName).toBe("DIV");
+    expect(boxes).toHaveAttribute("data-renderer", "dom");
+    expect(boxes).toHaveAttribute("data-dom-render-status", "ready");
+    expect(Number(boxes.getAttribute("data-dom-node-count"))).toBeLessThanOrEqual(1024);
+    expect(
+      screen.getByText(/DOM\/CSS samples spectrum geometry to 256 points/, {
+        selector: "#renderer-support-note",
+      }),
+    ).toBeVisible();
+    expect(screen.getByText(epoch ?? "")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Copy code|Copied/ }));
+    expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining('renderer: "dom"'));
 
     await user.selectOptions(engine, "canvas2d");
     expect(screen.getByRole("img", { name: /ordered spectrum preview/ }).tagName).toBe("CANVAS");

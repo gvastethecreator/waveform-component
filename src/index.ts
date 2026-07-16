@@ -110,6 +110,7 @@ export type { CanvasSize } from "./renderers/canvas2d";
 export {
   CANVAS2D_RENDERER_CAPABILITIES,
   CORE_RENDERER_CATALOG,
+  DOM_RENDERER_CAPABILITIES,
   SVG_RENDERER_CAPABILITIES,
   getRendererSupport,
 } from "./renderers/capabilities";
@@ -120,6 +121,17 @@ export type {
   RendererSupport,
   RendererSupportQuery,
 } from "./renderers/capabilities";
+export { renderDomMeter } from "./renderers/domMeter";
+export { renderDomSpectrum } from "./renderers/domSpectrum";
+export { DOM_RENDERER_ADAPTER, renderDomFrame } from "./renderers/dom";
+export type { DomRendererAdapter, DomRenderRequest } from "./renderers/dom";
+export type {
+  DomBoxNode,
+  DomNode,
+  DomNodeRole,
+  DomRenderOptions,
+  DomScene,
+} from "./renderers/domTypes";
 export { renderSvgTimeDomain } from "./renderers/svgTimeDomain";
 export { renderSvgSpectrum } from "./renderers/svgSpectrum";
 export { renderSvgMeter } from "./renderers/svgMeter";

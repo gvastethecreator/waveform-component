@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { CSSProperties, HTMLAttributes } from "react";
+import { renderDomSpectrum } from "../renderers/domSpectrum";
 import { renderCanvasSpectrum } from "../renderers/canvasSpectrum";
 import { renderSvgSpectrum } from "../renderers/svgSpectrum";
 import { syncCanvasSize } from "../renderers/canvas2d";
 import { resolveSpectrumConfig } from "../spectrumConfig";
 import type { SpectrumConfigInput, SpectrumFrame } from "../types";
+import { DomSurface } from "./DomSurface";
 import { SvgSurface } from "./SvgSurface";
 
 export interface SpectrumProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "color"> {
@@ -68,6 +70,27 @@ export function Spectrum({
     ) => renderSvgSpectrum(data, viewport, resolvedConfig, options),
     [data, resolvedConfig],
   );
+  const buildDomScene = useCallback(
+    (
+      viewport: Parameters<typeof renderDomSpectrum>[1],
+      options: Parameters<typeof renderDomSpectrum>[3],
+    ) => renderDomSpectrum(data, viewport, resolvedConfig, options),
+    [data, resolvedConfig],
+  );
+  if (config?.renderer === "dom")
+    return (
+      <DomSurface
+        {...containerProps}
+        ariaLabel={svgLabel}
+        buildScene={buildDomScene}
+        className={className}
+        data-spectrum-color-mode={resolvedConfig.colorMode}
+        data-spectrum-layout={resolvedConfig.layout}
+        data-spectrum-state={data.state}
+        height={height}
+        style={style}
+      />
+    );
   if (config?.renderer === "svg")
     return (
       <SvgSurface

@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import type { HTMLAttributes } from "react";
 import { createStaticWaveformFrame } from "../core/staticFrame";
 import type { StaticWaveformInput, WaveformConfigInput, WaveformFrame } from "../types";
+import { TimeDomainDom } from "./TimeDomainDom";
 import { TimeDomainCanvas } from "./TimeDomainCanvas";
 import { TimeDomainSvg } from "./TimeDomainSvg";
 
@@ -23,6 +24,10 @@ export function Waveform({
     () => (isWaveformFrame(data) ? data : createStaticWaveformFrame(data)),
     [data],
   );
+  if (config?.renderer === "dom")
+    return (
+      <TimeDomainDom {...containerProps} ariaLabel={ariaLabel} config={config} frame={frame} />
+    );
   if (config?.renderer === "svg")
     return (
       <TimeDomainSvg {...containerProps} ariaLabel={ariaLabel} config={config} frame={frame} />

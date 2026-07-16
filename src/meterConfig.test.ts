@@ -42,5 +42,6 @@ describe("meter config", () => {
     });
     expect(resolved.colorRoles.base).toEqual({ alpha: 1, color: "#fff" });
     expect(resolveMeterConfig({ renderer: "svg" }).renderer).toBe("svg");
+    expect(resolveMeterConfig({ renderer: "dom" }).renderer).toBe("dom");
   });
 });

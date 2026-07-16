@@ -542,6 +542,8 @@ export default function App() {
   const rendererCapabilities = CORE_RENDERER_CATALOG[renderer];
   const rendererSupport = getRendererSupport(renderer, {
     channelCount: selectedChannelCount,
+    colorMode:
+      visualMode === "spectrum" ? spectrumColorMode : isMeterMode ? meterColorMode : undefined,
     frameKind: isMeterMode
       ? "meter"
       : visualMode === "spectrum"
@@ -550,11 +552,15 @@ export default function App() {
           ? "envelope"
           : "waveform",
     historyCount: isMeterMode ? meterPresentation.history.length : 0,
+    layout: visualMode === "spectrum" ? spectrumLayout : isMeterMode ? meterLayout : undefined,
     mode: visualMode,
     pointCount:
       visualMode === "spectrum"
         ? spectrumFrame.bins.length
-        : (sessionSnapshot.frame?.sampleCount ?? 0),
+        : visualMode === "waveform" || visualMode === "envelope"
+          ? (sessionSnapshot.frame?.sampleCount ?? 0)
+          : 0,
+    spectrumGeometry: visualMode === "spectrum" ? spectrumGeometry : undefined,
   });
   const rendererStatusCopy = !rendererSupport.enabled
     ? rendererSupport.reasons.join(" ")
@@ -1252,7 +1258,10 @@ const result = meter.process(
                   ) : null}
                 </>
               )}
-              {showOverlays && !recordedSource && !radialOverlayUnavailable ? (
+              {showOverlays &&
+              rendererSupport.enabled &&
+              !recordedSource &&
+              !radialOverlayUnavailable ? (
                 <SignalOverlay
                   ariaLabel={`${visualMode} semantic interaction overlay`}
                   direction={isTimeOverlay ? overlayDirection : "ltr"}
@@ -1384,7 +1393,11 @@ const result = meter.process(
                 <span className="eyebrow">DETERMINISTIC SOURCES</span>
                 <h2 id="preset-heading">Signal studies</h2>
               </div>
-              <span>Same component · four configurations</span>
+              <span>
+                {renderer === "dom"
+                  ? "Canvas thumbnails · DOM/CSS is bar/meter scoped"
+                  : "Same component · four configurations"}
+              </span>
             </div>
             <div className="preset-grid">
               {PRESETS.map((candidate) => {
@@ -1415,6 +1428,7 @@ const result = meter.process(
                         mode: "waveform",
                         orientation: "horizontal",
                         padding: 4,
+                        renderer: renderer === "dom" ? "canvas2d" : renderer,
                         showCenterLine: false,
                       }}
                       height={50}
@@ -1435,7 +1449,7 @@ const result = meter.process(
         <header className="inspector-header">
           <div>
             <span className="eyebrow">PLAYGROUND</span>
-            <h2>Signal 011</h2>
+            <h2>Signal 012</h2>
           </div>
           <span className="version-tag">v0.1 core</span>
         </header>
@@ -1513,16 +1527,24 @@ const result = meter.process(
             <div className="mode-control" role="group" aria-label="Visual mode">
               <button
                 type="button"
+                aria-describedby={renderer === "dom" ? "renderer-support-note" : undefined}
                 aria-pressed={visualMode === "waveform"}
+                disabled={renderer === "dom"}
                 onClick={() => setVisualMode("waveform")}
               >
                 Waveform
               </button>
               <button
                 type="button"
-                aria-describedby={recordedSource ? "time-domain-source-limit" : undefined}
+                aria-describedby={
+                  recordedSource
+                    ? "time-domain-source-limit"
+                    : renderer === "dom"
+                      ? "renderer-support-note"
+                      : undefined
+                }
                 aria-pressed={visualMode === "envelope"}
-                disabled={Boolean(recordedSource)}
+                disabled={Boolean(recordedSource) || renderer === "dom"}
                 onClick={() => setVisualMode("envelope")}
               >
                 Envelope
@@ -1563,6 +1585,7 @@ const result = meter.process(
                 options: [
                   { label: "Canvas 2D", value: "canvas2d" },
                   { label: "SVG", value: "svg" },
+                  { label: "DOM/CSS", value: "dom" },
                 ],
               }}
               value={renderer}
@@ -1580,6 +1603,7 @@ const result = meter.process(
               className="capability-note"
               data-enabled={rendererSupport.enabled}
               data-renderer-support={renderer}
+              id="renderer-support-note"
               role="status"
             >
               {rendererStatusCopy}
@@ -1589,9 +1613,13 @@ const result = meter.process(
           <ControlSection title="Overlays & interaction">
             <ToggleControl
               checked={showOverlays}
-              description="Semantic DOM regions, markers, inspection, and direct handles above either visual renderer."
-              disabled={Boolean(recordedSource)}
-              disabledReason="Recorded playback already exposes its controlled transport slider; raw overlay data is unavailable."
+              description="Semantic DOM regions, markers, inspection, and direct handles above every supported visual renderer."
+              disabled={Boolean(recordedSource) || !rendererSupport.enabled}
+              disabledReason={
+                recordedSource
+                  ? "Recorded playback already exposes its controlled transport slider; raw overlay data is unavailable."
+                  : rendererSupport.reasons.join(" ")
+              }
               label="Semantic overlays"
               onChange={setShowOverlays}
             />
@@ -2188,11 +2216,19 @@ const result = meter.process(
               <>
                 <SelectControl
                   definition={spectrumControl("geometry")}
+                  options={spectrumControl("geometry").options?.map((option) => ({
+                    ...option,
+                    disabled: renderer === "dom" && option.value !== "bars",
+                  }))}
                   value={spectrumGeometry}
                   onChange={(value) => setSpectrumGeometry(value as SpectrumGeometry)}
                 />
                 <SelectControl
                   definition={spectrumControl("layout")}
+                  options={spectrumControl("layout").options?.map((option) => ({
+                    ...option,
+                    disabled: renderer === "dom" && option.value !== "rectangular",
+                  }))}
                   value={spectrumLayout}
                   onChange={(value) => setSpectrumLayout(value as SpectrumLayout)}
                 />
@@ -2332,7 +2368,7 @@ const result = meter.process(
                     label: "Meter layout",
                     options: [
                       { label: "Rectangular", value: "rectangular" },
-                      { label: "Radial", value: "radial" },
+                      { disabled: renderer === "dom", label: "Radial", value: "radial" },
                     ],
                   }}
                   value={meterLayout}
@@ -2869,7 +2905,13 @@ const result = meter.process(
               </div>
               <div>
                 <dt>Resize</dt>
-                <dd>{renderer === "canvas2d" ? "DPR bitmap" : "responsive viewBox"}</dd>
+                <dd>
+                  {renderer === "canvas2d"
+                    ? "DPR bitmap"
+                    : renderer === "svg"
+                      ? "responsive viewBox"
+                      : "observed CSS boxes"}
+                </dd>
               </div>
               <div>
                 <dt>Budget</dt>

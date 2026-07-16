@@ -146,8 +146,8 @@ function resolveOrientation(value: unknown): WaveformOrientation {
   );
 }
 
-function resolveRenderer(value: unknown): "canvas2d" | "svg" {
-  return value === "svg" ? "svg" : "canvas2d";
+function resolveRenderer(value: unknown): "canvas2d" | "dom" | "svg" {
+  return value === "svg" || value === "dom" ? value : "canvas2d";
 }
 
 function resolveAmplitudePlacement(

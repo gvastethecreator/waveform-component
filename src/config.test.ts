@@ -30,6 +30,7 @@ describe("resolveWaveformConfig", () => {
     colors[0] = "#000000";
     expect(resolved.channelColors).toEqual(["#00ffff", "#ffff00"]);
     expect(resolveWaveformConfig({ renderer: "svg" }).renderer).toBe("svg");
+    expect(resolveWaveformConfig({ renderer: "dom" }).renderer).toBe("dom");
   });
 
   it("rejects invalid mode, placement, orientation, and incomplete selection", () => {

@@ -85,5 +85,6 @@ describe("spectrum config", () => {
     });
     expect(Object.isFrozen(config.colorRoles)).toBe(true);
     expect(resolveSpectrumConfig({ renderer: "svg" }).renderer).toBe("svg");
+    expect(resolveSpectrumConfig({ renderer: "dom" }).renderer).toBe("dom");
   });
 });

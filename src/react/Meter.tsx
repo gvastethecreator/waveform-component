@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { CSSProperties, HTMLAttributes } from "react";
 import { resolveMeterConfig } from "../meterConfig";
+import { renderDomMeter } from "../renderers/domMeter";
 import { renderCanvasMeter } from "../renderers/canvasMeter";
 import { renderSvgMeter } from "../renderers/svgMeter";
 import { syncCanvasSize } from "../renderers/canvas2d";
 import type { MeterConfigInput, MeterFrame, MeterHistoryPoint } from "../types";
+import { DomSurface } from "./DomSurface";
 import { SvgSurface } from "./SvgSurface";
 
 export interface MeterProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "color"> {
@@ -70,6 +72,28 @@ export function Meter({
     ) => renderSvgMeter(data, viewport, resolvedConfig, history, options),
     [data, history, resolvedConfig],
   );
+  const buildDomScene = useCallback(
+    (
+      viewport: Parameters<typeof renderDomMeter>[1],
+      options: Parameters<typeof renderDomMeter>[4],
+    ) => renderDomMeter(data, viewport, resolvedConfig, history, options),
+    [data, history, resolvedConfig],
+  );
+  if (config?.renderer === "dom")
+    return (
+      <DomSurface
+        {...containerProps}
+        ariaLabel={label}
+        buildScene={buildDomScene}
+        className={className}
+        data-meter-layout={resolvedConfig.layout}
+        data-meter-measurement={resolvedConfig.measurement}
+        data-meter-mode={resolvedConfig.mode}
+        data-meter-state={data.state}
+        height={height}
+        style={style}
+      />
+    );
   if (config?.renderer === "svg")
     return (
       <SvgSurface

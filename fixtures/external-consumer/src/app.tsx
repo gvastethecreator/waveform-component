@@ -1,5 +1,7 @@
 import {
   Envelope,
+  DOM_RENDERER_ADAPTER,
+  DOM_RENDERER_CAPABILITIES,
   Meter,
   SignalOverlay,
   SVG_RENDERER_CAPABILITIES,
@@ -20,6 +22,8 @@ import {
   createWaveformSession,
   renderSvgMeter,
   renderSvgSpectrum,
+  renderDomMeter,
+  renderDomSpectrum,
   useMicrophoneSource,
   type MicrophoneSource,
   type WaveformFrame,
@@ -71,6 +75,21 @@ const svgMeterScene = renderSvgMeter(
   meter.history,
   { idPrefix: "external-meter" },
 );
+const domTimeScene = DOM_RENDERER_ADAPTER.render(
+  { config: { renderer: "dom" }, frame },
+  { height: 180, width: 640 },
+);
+const domSpectrumScene = renderDomSpectrum(
+  responsiveSpectrum.frame,
+  { height: 180, width: 640 },
+  { geometry: "bars", layout: "rectangular", renderer: "dom" },
+);
+const domMeterScene = renderDomMeter(
+  meter.frame,
+  { height: 180, width: 640 },
+  { layout: "rectangular", renderer: "dom" },
+  meter.history,
+);
 
 export function ExternalConsumerExample() {
   return (
@@ -103,6 +122,27 @@ export function SvgConsumerExample() {
         data={meter.frame}
         history={meter.history}
         config={{ renderer: "svg" }}
+      />
+    </section>
+  );
+}
+
+export function DomConsumerExample() {
+  return (
+    <section
+      data-dom-budget={DOM_RENDERER_CAPABILITIES.limits.maximumNodes}
+      data-dom-scenes={`${domTimeScene.status}/${domSpectrumScene.status}/${domMeterScene.status}`}
+    >
+      <Spectrum
+        ariaLabel="External DOM spectrum"
+        data={responsiveSpectrum.frame}
+        config={{ geometry: "bars", layout: "rectangular", renderer: "dom" }}
+      />
+      <Meter
+        ariaLabel="External DOM meter"
+        data={meter.frame}
+        history={meter.history}
+        config={{ layout: "rectangular", renderer: "dom" }}
       />
     </section>
   );
