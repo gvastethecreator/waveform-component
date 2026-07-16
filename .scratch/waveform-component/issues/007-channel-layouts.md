@@ -1,6 +1,6 @@
 # 007 — Preserve channel meaning across time-domain layouts
 
-Status: blocked
+Status: ready-for-agent
 
 Type: AFK  
 Blocked by: 003, 005  
