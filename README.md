@@ -26,6 +26,33 @@ export function Example() {
 
 Static values must be finite and normalized to `[-1, 1]`. Empty input produces an explicit empty frame. The package does not access `window`, `document`, Web Audio, or media devices at module scope.
 
+## Shared headless session
+
+`WaveformSession` separates source ownership and frame publication from React. One source connection can feed several views, and source epochs prevent stale async work from publishing after replacement.
+
+```tsx
+import {
+  SessionWaveform,
+  createDemoWaveformSource,
+  createWaveformSession,
+  type WaveformFrame,
+} from "waveform-component";
+
+const session = createWaveformSession<WaveformFrame>();
+await session.attach(createDemoWaveformSource({ sampleCount: 2048 }));
+
+export function SharedViews() {
+  return (
+    <>
+      <SessionWaveform session={session} ariaLabel="Primary waveform" />
+      <SessionWaveform session={session} ariaLabel="Mirrored waveform" />
+    </>
+  );
+}
+```
+
+Sources declare `owned` or `borrowed` semantics. Borrowed media streams, elements, and audio nodes are detached without stopping or disconnecting host resources; owned stream tracks stop exactly once. Call `detach()` to replace/remove a source and `dispose()` for terminal session teardown.
+
 ## Development
 
 Requires Bun 1.3.14.
@@ -37,7 +64,7 @@ bun run verify:tracer
 bun run test:e2e
 ```
 
-The playground imports `waveform-component` through the public entry point. `fixtures/external-consumer` installs a freshly packed tarball and typechecks against the generated declarations exactly as an external consumer would.
+The playground imports `waveform-component` through the public entry point and drives its main artifact through a shared session. `fixtures/external-consumer` installs a freshly packed tarball and typechecks both convenience and session interfaces against generated declarations exactly as an external consumer would.
 
 ## Project records
 

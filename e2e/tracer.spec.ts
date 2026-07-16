@@ -5,6 +5,8 @@ test("renders and controls the public Canvas waveform path", async ({ page }) =>
 
   await expect(page.getByRole("heading", { name: "Signal Workbench" })).toBeVisible();
   await expect(page.getByRole("img", { name: /deterministic waveform preview/ })).toBeVisible();
+  await expect(page.getByLabel("Signal status")).toContainText("DEMO / READY");
+  await expect(page.getByText("owned")).toBeVisible();
   await expect(page.getByText("Visual mode").locator("..").getByText("Waveform")).toBeVisible();
   await expect(
     page.getByText("Rendering engine").locator("..").getByText("Canvas 2D"),

@@ -26,4 +26,12 @@ describe("Signal Workbench tracer", () => {
     expect(screen.getByRole("heading", { name: "Broadcast waveform" })).toBeInTheDocument();
     expect(screen.getByText("0.86×")).toBeInTheDocument();
   });
+
+  it("surfaces the shared session lifecycle and owned demo source", async () => {
+    render(<App />);
+
+    expect(await screen.findByText("DEMO / READY")).toBeInTheDocument();
+    expect(screen.getByText("owned")).toBeInTheDocument();
+    expect(screen.getByText(/Epoch \d+/)).toBeInTheDocument();
+  });
 });

@@ -11,6 +11,56 @@ export interface WaveformFrame {
   readonly duration?: number;
 }
 
+export interface EnvelopeFrame {
+  readonly kind: "envelope";
+  readonly state: "empty" | "ready";
+  readonly channels: readonly Float32Array[];
+  readonly sampleCount: number;
+  readonly sampleRate?: number;
+  readonly duration?: number;
+}
+
+export interface SpectrumFrame {
+  readonly kind: "spectrum";
+  readonly state: "empty" | "ready";
+  readonly bins: Float32Array;
+  readonly fftSize: number;
+  readonly sampleRate: number;
+  readonly minimumDecibels: number;
+  readonly maximumDecibels: number;
+}
+
+export interface MeterChannel {
+  readonly peak: number;
+  readonly rms: number;
+}
+
+export interface MeterFrame {
+  readonly kind: "meter";
+  readonly state: "empty" | "ready";
+  readonly channels: readonly MeterChannel[];
+}
+
+export interface EnergyBand {
+  readonly energy: number;
+  readonly highFrequency: number;
+  readonly id: string;
+  readonly lowFrequency: number;
+}
+
+export interface BandEnergyFrame {
+  readonly kind: "bands";
+  readonly state: "empty" | "ready";
+  readonly bands: readonly EnergyBand[];
+}
+
+export type AnalysisFrame =
+  | WaveformFrame
+  | EnvelopeFrame
+  | SpectrumFrame
+  | MeterFrame
+  | BandEnergyFrame;
+
 export interface CanvasWaveformConfig {
   readonly renderer: "canvas2d";
   readonly mode: "waveform";

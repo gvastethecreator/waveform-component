@@ -34,7 +34,7 @@
     "test:watch": "vitest src playground",
     "test:coverage": "vitest run src playground --coverage",
     "test:ssr-import": "bun -e \"await import('./dist/index.js')\"",
-    "test:consumer": "bun pm pack --filename fixtures/external-consumer/waveform-component.tgz --quiet && bun install --cwd fixtures/external-consumer --force && bun run typecheck:consumer",
+    "test:consumer": "bun run scripts/clean-consumer.ts && bun pm pack --filename fixtures/external-consumer/waveform-component.tgz --quiet && bun install --cwd fixtures/external-consumer --no-cache && bun run typecheck:consumer",
     "test:e2e": "playwright test",
     "test:e2e:install": "playwright install chromium",
     "verify:tracer": "bun run typecheck && bun run lint && bun run format:check && bun run test && bun run build && bun run test:ssr-import && bun run test:consumer"

@@ -6,13 +6,18 @@ import {
   IconLayoutGrid,
   IconRefresh,
 } from "@tabler/icons-react";
-import { useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import {
   DEFAULT_WAVEFORM_CONFIG,
+  SessionWaveform,
   Waveform,
   createDemoWaveform,
+  createDemoWaveformSource,
+  createWaveformSession,
+  useWaveformSession,
   type CanvasWaveformConfig,
+  type WaveformFrame,
 } from "waveform-component";
 
 const PRESETS = [
@@ -32,15 +37,26 @@ export default function App() {
   const [lineWidth, setLineWidth] = useState(DEFAULT_WAVEFORM_CONFIG.lineWidth);
   const [showCenterLine, setShowCenterLine] = useState(true);
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
+  const session = useMemo(() => createWaveformSession<WaveformFrame>(), []);
   const preset = PRESETS.find((candidate) => candidate.id === presetId) ?? PRESETS[0];
-  const samples = useMemo(
-    () => createDemoWaveform({ phase: preset.phase, sampleCount }),
-    [preset.phase, sampleCount],
-  );
+  const sessionSnapshot = useWaveformSession(session);
   const config = useMemo<Partial<CanvasWaveformConfig>>(
     () => ({ amplitude, color: preset.color, lineWidth, showCenterLine }),
     [amplitude, lineWidth, preset.color, showCenterLine],
   );
+
+  useEffect(() => {
+    void session.attach(
+      createDemoWaveformSource({
+        id: `${preset.id}-${sampleCount}`,
+        phase: preset.phase,
+        sampleCount,
+      }),
+    );
+    return () => {
+      void session.detach();
+    };
+  }, [preset.id, preset.phase, sampleCount, session]);
 
   const reset = () => {
     setPresetId("broadcast");
@@ -94,7 +110,8 @@ export default function App() {
           </div>
           <div className="status-readout" aria-label="Signal status">
             <span className="status-dot" />
-            STATIC / READY
+            {sessionSnapshot.source?.kind.toUpperCase() ?? "NO SOURCE"} /{" "}
+            {sessionSnapshot.status.state.toUpperCase()}
           </div>
         </header>
 
@@ -117,12 +134,12 @@ export default function App() {
                 <span>0.0</span>
                 <span>−1.0</span>
               </div>
-              <Waveform
+              <SessionWaveform
                 ariaLabel={`${preset.label} deterministic waveform preview`}
                 className="primary-waveform"
                 config={config}
-                data={samples}
                 height="100%"
+                session={session}
               />
               <div className="transient-guide" aria-hidden="true">
                 <span>TRANSIENT</span>
@@ -192,7 +209,7 @@ export default function App() {
 
         <div className="inspector-scroll">
           <ControlSection title="Source & transport">
-            <StaticRow label="Source" value="Deterministic demo" />
+            <StaticRow label="Source" value="Deterministic demo · session" />
             <p className="control-note">No permission, network, or audio device required.</p>
           </ControlSection>
 
@@ -270,6 +287,14 @@ export default function App() {
               <div>
                 <dt>Import</dt>
                 <dd>SSR safe</dd>
+              </div>
+              <div>
+                <dt>Lifecycle</dt>
+                <dd>Epoch {sessionSnapshot.epoch}</dd>
+              </div>
+              <div>
+                <dt>Ownership</dt>
+                <dd>{sessionSnapshot.source?.ownership ?? "none"}</dd>
               </div>
             </dl>
           </ControlSection>

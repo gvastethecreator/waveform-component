@@ -17,7 +17,11 @@ The package has no browser side effects at module scope. Rendering and media wor
 
 ## Planned seams
 
-Ticket 002 adds the approved framework-neutral `WaveformSession`, source adapters, canonical multi-kind frames, epochs, ownership, and cleanup. Later tickets add pure analysis modules, SVG/DOM/WebGL2 adapters, capability-scoped schemas, original clean-room VFX, and standalone code export without changing the package/playground dependency direction established here.
+`WaveformSession` is the framework-neutral lifecycle boundary. It publishes immutable snapshots through `subscribe/getSnapshot`, accepts generic canonical analysis frames, assigns a new epoch on every source transition, aborts old work, ignores stale callbacks, disposes late async handles, and distinguishes terminal disposal from ordinary detach. Sources own their resource policy: borrowed host streams/elements/nodes remove only package listeners, while owned stream tracks stop exactly once.
+
+React uses `useSyncExternalStore` through `useWaveformSession`; `SessionWaveform` is a convenience view over waveform frames. The playground's artifact and status readout share one session connection.
+
+Later tickets add real decode/live analysis, pure DSP modules, SVG/DOM/WebGL2 adapters, capability-scoped schemas, original clean-room VFX, and standalone code export without changing the dependency direction established here.
 
 ## Provenance
 
