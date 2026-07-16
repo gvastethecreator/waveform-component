@@ -15,12 +15,14 @@ import {
   DEFAULT_METER_CONFIG,
   DEFAULT_METER_DYNAMICS_CONFIG,
   DEFAULT_ENVELOPE_CONFIG,
+  DEFAULT_PULSE_RING_CONFIG,
   DEFAULT_WAVEFORM_CONFIG,
-  CORE_RENDERER_CATALOG,
+  BUILTIN_RENDERER_CATALOG,
   Envelope,
   GUARDED_SPECTRUM_FFT_SIZE,
   METER_PRESETS,
   Meter,
+  PulseRing,
   RecordedWaveformPlayer,
   SessionWaveform,
   SignalOverlay,
@@ -32,6 +34,7 @@ import {
   analyzeMeterWindows,
   analyzeSpectrum,
   createDemoWaveform,
+  createBandEnergyFrameFromSpectrum,
   createDemoWaveformSource,
   createEnvelopeFrameFromWaveform,
   createMicrophoneSource,
@@ -55,7 +58,7 @@ import {
   type SpectrumConfigInput,
   type MeterConfigInput,
   type WaveformConfigInput,
-  type CoreRendererId,
+  type BuiltinRendererId,
   type EnvelopeAmplitudePlacement,
   type EnvelopeFrame,
   type RecordedAudioSource,
@@ -64,6 +67,8 @@ import {
   type MeterDynamicsConfig,
   type MeterDynamicsResult,
   type MeterMeasurement,
+  type PulseRingConfigInput,
+  type PulseRingQuality,
   type SpectrumControlDefinition,
   type SpectrumControlId,
   type SpectrumDynamicsConfig,
@@ -100,11 +105,30 @@ type Preset = (typeof PRESETS)[number];
 export default function App() {
   const [view, setView] = useState<"overview" | "focus">("overview");
   const [visualMode, setVisualMode] = useState<
-    "envelope" | "meter" | "spectrum" | "stepped-meter" | "waveform"
+    "envelope" | "meter" | "pulse-ring" | "spectrum" | "stepped-meter" | "waveform"
   >("waveform");
-  const [renderer, setRenderer] = useState<CoreRendererId>("canvas2d");
+  const [renderer, setRenderer] = useState<BuiltinRendererId>("canvas2d");
   const [presetId, setPresetId] = useState<Preset["id"]>("broadcast");
   const [signalColor, setSignalColor] = useState<string>(PRESETS[0].color);
+  const [pulseRingThickness, setPulseRingThickness] = useState(DEFAULT_PULSE_RING_CONFIG.thickness);
+  const [pulseRingGlow, setPulseRingGlow] = useState(DEFAULT_PULSE_RING_CONFIG.glowStrength);
+  const [pulseRingRotation, setPulseRingRotation] = useState(
+    DEFAULT_PULSE_RING_CONFIG.rotationSpeed,
+  );
+  const [pulseRingReactivity, setPulseRingReactivity] = useState(
+    DEFAULT_PULSE_RING_CONFIG.bandReactivity,
+  );
+  const [pulseRingQuality, setPulseRingQuality] = useState<PulseRingQuality>(
+    DEFAULT_PULSE_RING_CONFIG.quality,
+  );
+  const [pulseRingPrimary, setPulseRingPrimary] = useState(DEFAULT_PULSE_RING_CONFIG.primaryColor);
+  const [pulseRingSecondary, setPulseRingSecondary] = useState(
+    DEFAULT_PULSE_RING_CONFIG.secondaryColor,
+  );
+  const [pulseRingTertiary, setPulseRingTertiary] = useState(
+    DEFAULT_PULSE_RING_CONFIG.tertiaryColor,
+  );
+  const [pulseRingSweep, setPulseRingSweep] = useState(DEFAULT_PULSE_RING_CONFIG.sweepColor);
   const [sampleCount, setSampleCount] = useState(2048);
   const [amplitude, setAmplitude] = useState(DEFAULT_WAVEFORM_CONFIG.amplitude);
   const [lineWidth, setLineWidth] = useState(DEFAULT_WAVEFORM_CONFIG.lineWidth);
@@ -215,6 +239,8 @@ export default function App() {
   const session = useMemo(() => createWaveformSession<WaveformFrame>(), []);
   const preset = PRESETS.find((candidate) => candidate.id === presetId) ?? PRESETS[0];
   const isMeterMode = visualMode === "meter" || visualMode === "stepped-meter";
+  const isPulseRingMode = visualMode === "pulse-ring";
+  const coreRenderer = renderer === "webgl2" ? "canvas2d" : renderer;
   const sessionSnapshot = useWaveformSession(session);
   const demoSource = useMemo(
     () =>
@@ -240,7 +266,7 @@ export default function App() {
       lineWidth,
       mode: visualMode === "envelope" ? "envelope" : "waveform",
       orientation,
-      renderer,
+      renderer: coreRenderer,
       showCenterLine,
     }),
     [
@@ -252,7 +278,7 @@ export default function App() {
       envelopePlacement,
       lineWidth,
       orientation,
-      renderer,
+      coreRenderer,
       showCenterLine,
       signalColor,
       visualMode,
@@ -295,7 +321,7 @@ export default function App() {
   const spectrumFrame = useMemo(
     () =>
       analyzeSpectrum(
-        visualMode === "spectrum" && !recordedSource
+        (visualMode === "spectrum" || visualMode === "pulse-ring") && !recordedSource
           ? (sessionSnapshot.frame?.channels[0] ?? [])
           : [],
         {
@@ -334,6 +360,34 @@ export default function App() {
     offsetMs: microphoneSource ? visualSyncOffsetMs : 0,
     sourceEpoch: sessionSnapshot.epoch,
   });
+  const pulseRingFrame = useMemo(
+    () => createBandEnergyFrameFromSpectrum(spectrumPresentation.frame, { bandCount: 8 }),
+    [spectrumPresentation.frame],
+  );
+  const pulseRingConfig = useMemo<PulseRingConfigInput>(
+    () => ({
+      bandReactivity: pulseRingReactivity,
+      glowStrength: pulseRingGlow,
+      primaryColor: pulseRingPrimary,
+      quality: pulseRingQuality,
+      rotationSpeed: pulseRingRotation,
+      secondaryColor: pulseRingSecondary,
+      sweepColor: pulseRingSweep,
+      tertiaryColor: pulseRingTertiary,
+      thickness: pulseRingThickness,
+    }),
+    [
+      pulseRingGlow,
+      pulseRingPrimary,
+      pulseRingQuality,
+      pulseRingReactivity,
+      pulseRingRotation,
+      pulseRingSecondary,
+      pulseRingSweep,
+      pulseRingTertiary,
+      pulseRingThickness,
+    ],
+  );
   const spectrumConfig = useMemo<SpectrumConfigInput>(
     () => ({
       barGap,
@@ -370,7 +424,7 @@ export default function App() {
       radialDeadzone,
       radialInvert,
       radialRotation,
-      renderer,
+      renderer: coreRenderer,
       roundedCaps,
       showGrid: showSpectrumGrid,
     }),
@@ -398,7 +452,7 @@ export default function App() {
       radialDeadzone,
       radialInvert,
       radialRotation,
-      renderer,
+      coreRenderer,
       roundedCaps,
       signalColor,
       showSpectrumGrid,
@@ -493,7 +547,7 @@ export default function App() {
       radialInvert,
       radialRotation,
       reactThresholdDb: resolvedMeterDynamics.reactThresholdDb,
-      renderer,
+      renderer: coreRenderer,
       roundedCaps,
       showHistory: showMeterHistory,
       stepGap: meterStepGap,
@@ -528,7 +582,7 @@ export default function App() {
       radialRotation,
       resolvedMeterDynamics.peakThresholdDb,
       resolvedMeterDynamics.reactThresholdDb,
-      renderer,
+      coreRenderer,
       roundedCaps,
       showMeterHistory,
       signalColor,
@@ -539,23 +593,32 @@ export default function App() {
     () => resolveMeterConfig(meterConfig, meterPresentation.frame),
     [meterConfig, meterPresentation.frame],
   );
-  const rendererCapabilities = CORE_RENDERER_CATALOG[renderer];
+  const rendererCapabilities = BUILTIN_RENDERER_CATALOG[renderer];
   const rendererSupport = getRendererSupport(renderer, {
-    channelCount: selectedChannelCount,
+    channelCount: isPulseRingMode ? 0 : selectedChannelCount,
     colorMode:
       visualMode === "spectrum" ? spectrumColorMode : isMeterMode ? meterColorMode : undefined,
-    frameKind: isMeterMode
-      ? "meter"
-      : visualMode === "spectrum"
-        ? "spectrum"
-        : visualMode === "envelope"
-          ? "envelope"
-          : "waveform",
+    frameKind: isPulseRingMode
+      ? "bands"
+      : isMeterMode
+        ? "meter"
+        : visualMode === "spectrum"
+          ? "spectrum"
+          : visualMode === "envelope"
+            ? "envelope"
+            : "waveform",
     historyCount: isMeterMode ? meterPresentation.history.length : 0,
-    layout: visualMode === "spectrum" ? spectrumLayout : isMeterMode ? meterLayout : undefined,
+    layout: isPulseRingMode
+      ? "radial"
+      : visualMode === "spectrum"
+        ? spectrumLayout
+        : isMeterMode
+          ? meterLayout
+          : undefined,
     mode: visualMode,
-    pointCount:
-      visualMode === "spectrum"
+    pointCount: isPulseRingMode
+      ? pulseRingFrame.bands.length
+      : visualMode === "spectrum"
         ? spectrumFrame.bins.length
         : visualMode === "waveform" || visualMode === "envelope"
           ? (sessionSnapshot.frame?.sampleCount ?? 0)
@@ -568,6 +631,7 @@ export default function App() {
   const isTimeOverlay = visualMode === "waveform" || visualMode === "envelope";
   const overlayOrientation = visualMode === "spectrum" ? "horizontal" : orientation;
   const radialOverlayUnavailable =
+    isPulseRingMode ||
     (visualMode === "spectrum" && spectrumLayout === "radial") ||
     (isMeterMode && meterLayout === "radial");
   const overlayHandles = useMemo<readonly SignalOverlayHandle[]>(() => {
@@ -827,6 +891,15 @@ export default function App() {
     setRenderer("canvas2d");
     setPresetId("broadcast");
     setSignalColor(PRESETS[0].color);
+    setPulseRingThickness(DEFAULT_PULSE_RING_CONFIG.thickness);
+    setPulseRingGlow(DEFAULT_PULSE_RING_CONFIG.glowStrength);
+    setPulseRingRotation(DEFAULT_PULSE_RING_CONFIG.rotationSpeed);
+    setPulseRingReactivity(DEFAULT_PULSE_RING_CONFIG.bandReactivity);
+    setPulseRingQuality(DEFAULT_PULSE_RING_CONFIG.quality);
+    setPulseRingPrimary(DEFAULT_PULSE_RING_CONFIG.primaryColor);
+    setPulseRingSecondary(DEFAULT_PULSE_RING_CONFIG.secondaryColor);
+    setPulseRingTertiary(DEFAULT_PULSE_RING_CONFIG.tertiaryColor);
+    setPulseRingSweep(DEFAULT_PULSE_RING_CONFIG.sweepColor);
     setSampleCount(2048);
     setAmplitude(DEFAULT_WAVEFORM_CONFIG.amplitude);
     setLineWidth(DEFAULT_WAVEFORM_CONFIG.lineWidth);
@@ -922,8 +995,27 @@ export default function App() {
   };
 
   const copyCode = async () => {
-    const code = isMeterMode
-      ? `const meter = createMeterDynamicsProcessor();
+    const code = isPulseRingMode
+      ? `const bands = createBandEnergyFrameFromSpectrum(spectrum, { bandCount: 8 });
+
+<PulseRing
+  data={bands}
+  config={{
+    renderer: "webgl2",
+    mode: "pulse-ring",
+    thickness: ${pulseRingThickness.toFixed(3)},
+    glowStrength: ${pulseRingGlow.toFixed(2)},
+    rotationSpeed: ${pulseRingRotation.toFixed(2)},
+    bandReactivity: ${pulseRingReactivity.toFixed(2)},
+    quality: "${pulseRingQuality}",
+    primaryColor: "${pulseRingPrimary}",
+    secondaryColor: "${pulseRingSecondary}",
+    tertiaryColor: "${pulseRingTertiary}",
+    sweepColor: "${pulseRingSweep}"
+  }}
+/>`
+      : isMeterMode
+        ? `const meter = createMeterDynamicsProcessor();
 const result = meter.process(
   analyzeMeter(samples, {
     channelMode: "${channelMode}",
@@ -961,14 +1053,16 @@ const result = meter.process(
     showHistory: ${showMeterHistory}
   }}
 />`
-      : visualMode === "spectrum"
-        ? `const dynamics = createSpectrumDynamicsProcessor();\n\n<Spectrum\n  data={dynamics.process(\n    analyzeSpectrum(samples, {\n      sampleRate: ${sampleRate},\n      fftSize: ${spectrumAnalysis.fftSize},\n      allowLargeFft: ${spectrumAnalysis.allowLargeFft},\n      window: "${spectrumAnalysis.window}",\n      powerOfSineExponent: ${spectrumAnalysis.powerOfSineExponent},\n      minimumDecibels: ${spectrumAnalysis.minimumDecibels},\n      maximumDecibels: ${spectrumAnalysis.maximumDecibels}\n    }),\n    {\n      smoothingMode: "${dynamicsSettings.smoothingMode}",\n      smoothingFactor: ${dynamicsSettings.smoothingFactor},\n      attackMs: ${dynamicsSettings.attackMs},\n      releaseMs: ${dynamicsSettings.releaseMs},\n      inertiaMs: ${dynamicsSettings.inertiaMs},\n      fastPeaks: ${dynamicsSettings.fastPeaks},\n      normalizationEnabled: ${dynamicsSettings.normalizationEnabled},\n      normalizationTargetDb: ${dynamicsSettings.normalizationTargetDb},\n      normalizationMaxGainDb: ${dynamicsSettings.normalizationMaxGainDb},\n      gaussianRadius: ${dynamicsSettings.gaussianRadius},\n      highFrequencySlopeDbPerOctave: ${dynamicsSettings.highFrequencySlopeDbPerOctave},\n      rolloffBandwidthHz: ${dynamicsSettings.rolloffBandwidthHz},\n      rolloffAttenuationDb: ${dynamicsSettings.rolloffAttenuationDb}\n    },\n    { timestampMs: performance.now(), sourceState: "ready" }\n  ).frame}\n  config={{\n    renderer: "canvas2d",\n    mode: "spectrum",\n    geometry: "${spectrumGeometry}",\n    layout: "${spectrumLayout}",\n    radialInvert: ${radialInvert},\n    radialDeadzone: ${radialDeadzone.toFixed(2)},\n    radialArc: ${radialArc},\n    radialRotation: ${radialRotation},\n    roundedCaps: ${roundedCaps},\n    cornerRadius: ${cornerRadius},\n    frequencyScale: "${frequencyScale}",\n    lowFrequency: ${lowFrequency},\n    highFrequency: ${highFrequency},\n    minimumDecibels: ${minimumDecibels},\n    maximumDecibels: ${maximumDecibels},\n    interpolation: "${spectrumInterpolation}",\n    lineWidth: ${lineWidth},\n    barWidth: ${barWidth},\n    barGap: ${barGap},\n    colorMode: "${spectrumColorMode}",\n    pulseMode: "${spectrumPulseMode}",\n    colorRoles: {\n      base: { color: "${signalColor}", alpha: ${baseAlpha.toFixed(2)} },\n      middle: { color: "${middleColor}", alpha: ${middleAlpha.toFixed(2)} },\n      crest: { color: "${crestColor}", alpha: ${crestAlpha.toFixed(2)} },\n      accent: { color: "${accentColor}", alpha: ${accentAlpha.toFixed(2)} }\n    },\n    gradientRatio: ${gradientRatio.toFixed(2)},\n    middleDecibels: ${middleDecibels},\n    crestDecibels: ${crestDecibels},\n    showGrid: ${showSpectrumGrid}\n  }}\n/>`
-        : visualMode === "envelope"
-          ? `<Envelope\n  data={magnitudes}\n  ${timeDomainSizing === "fixed" ? `width={${fixedTimeDomainWidth}}\n  ` : ""}config={{\n    renderer: "canvas2d",\n    mode: "envelope",\n    channelMode: "${channelMode}",${channelMode === "single" ? `\n    channelIndex: ${channelIndex},` : ""}\n    channelLayout: "${channelLayout}",\n    channelGap: ${channelGap},\n    amplitudePlacement: "${envelopePlacement}",\n    orientation: "${orientation}",\n    amplitude: ${amplitude.toFixed(2)},\n    lineWidth: ${lineWidth.toFixed(1)},\n    color: "${signalColor}",\n    showCenterLine: ${showCenterLine}\n  }}\n/>`
-          : `<Waveform\n  data={channels}\n  ${timeDomainSizing === "fixed" ? `width={${fixedTimeDomainWidth}}\n  ` : ""}config={{\n    renderer: "canvas2d",\n    mode: "waveform",\n    channelMode: "${channelMode}",${channelMode === "single" ? `\n    channelIndex: ${channelIndex},` : ""}\n    channelLayout: "${channelLayout}",\n    channelGap: ${channelGap},\n    amplitudePlacement: "${waveformPlacement}",\n    orientation: "${orientation}",\n    amplitude: ${amplitude.toFixed(2)},\n    lineWidth: ${lineWidth.toFixed(1)},\n    color: "${signalColor}",\n    showCenterLine: ${showCenterLine}\n  }}\n/>`;
-    const rendererCode = code.includes("renderer:")
-      ? code.replaceAll('renderer: "canvas2d"', `renderer: "${renderer}"`)
-      : code.replace("config={{", `config={{\n    renderer: "${renderer}",`);
+        : visualMode === "spectrum"
+          ? `const dynamics = createSpectrumDynamicsProcessor();\n\n<Spectrum\n  data={dynamics.process(\n    analyzeSpectrum(samples, {\n      sampleRate: ${sampleRate},\n      fftSize: ${spectrumAnalysis.fftSize},\n      allowLargeFft: ${spectrumAnalysis.allowLargeFft},\n      window: "${spectrumAnalysis.window}",\n      powerOfSineExponent: ${spectrumAnalysis.powerOfSineExponent},\n      minimumDecibels: ${spectrumAnalysis.minimumDecibels},\n      maximumDecibels: ${spectrumAnalysis.maximumDecibels}\n    }),\n    {\n      smoothingMode: "${dynamicsSettings.smoothingMode}",\n      smoothingFactor: ${dynamicsSettings.smoothingFactor},\n      attackMs: ${dynamicsSettings.attackMs},\n      releaseMs: ${dynamicsSettings.releaseMs},\n      inertiaMs: ${dynamicsSettings.inertiaMs},\n      fastPeaks: ${dynamicsSettings.fastPeaks},\n      normalizationEnabled: ${dynamicsSettings.normalizationEnabled},\n      normalizationTargetDb: ${dynamicsSettings.normalizationTargetDb},\n      normalizationMaxGainDb: ${dynamicsSettings.normalizationMaxGainDb},\n      gaussianRadius: ${dynamicsSettings.gaussianRadius},\n      highFrequencySlopeDbPerOctave: ${dynamicsSettings.highFrequencySlopeDbPerOctave},\n      rolloffBandwidthHz: ${dynamicsSettings.rolloffBandwidthHz},\n      rolloffAttenuationDb: ${dynamicsSettings.rolloffAttenuationDb}\n    },\n    { timestampMs: performance.now(), sourceState: "ready" }\n  ).frame}\n  config={{\n    renderer: "canvas2d",\n    mode: "spectrum",\n    geometry: "${spectrumGeometry}",\n    layout: "${spectrumLayout}",\n    radialInvert: ${radialInvert},\n    radialDeadzone: ${radialDeadzone.toFixed(2)},\n    radialArc: ${radialArc},\n    radialRotation: ${radialRotation},\n    roundedCaps: ${roundedCaps},\n    cornerRadius: ${cornerRadius},\n    frequencyScale: "${frequencyScale}",\n    lowFrequency: ${lowFrequency},\n    highFrequency: ${highFrequency},\n    minimumDecibels: ${minimumDecibels},\n    maximumDecibels: ${maximumDecibels},\n    interpolation: "${spectrumInterpolation}",\n    lineWidth: ${lineWidth},\n    barWidth: ${barWidth},\n    barGap: ${barGap},\n    colorMode: "${spectrumColorMode}",\n    pulseMode: "${spectrumPulseMode}",\n    colorRoles: {\n      base: { color: "${signalColor}", alpha: ${baseAlpha.toFixed(2)} },\n      middle: { color: "${middleColor}", alpha: ${middleAlpha.toFixed(2)} },\n      crest: { color: "${crestColor}", alpha: ${crestAlpha.toFixed(2)} },\n      accent: { color: "${accentColor}", alpha: ${accentAlpha.toFixed(2)} }\n    },\n    gradientRatio: ${gradientRatio.toFixed(2)},\n    middleDecibels: ${middleDecibels},\n    crestDecibels: ${crestDecibels},\n    showGrid: ${showSpectrumGrid}\n  }}\n/>`
+          : visualMode === "envelope"
+            ? `<Envelope\n  data={magnitudes}\n  ${timeDomainSizing === "fixed" ? `width={${fixedTimeDomainWidth}}\n  ` : ""}config={{\n    renderer: "canvas2d",\n    mode: "envelope",\n    channelMode: "${channelMode}",${channelMode === "single" ? `\n    channelIndex: ${channelIndex},` : ""}\n    channelLayout: "${channelLayout}",\n    channelGap: ${channelGap},\n    amplitudePlacement: "${envelopePlacement}",\n    orientation: "${orientation}",\n    amplitude: ${amplitude.toFixed(2)},\n    lineWidth: ${lineWidth.toFixed(1)},\n    color: "${signalColor}",\n    showCenterLine: ${showCenterLine}\n  }}\n/>`
+            : `<Waveform\n  data={channels}\n  ${timeDomainSizing === "fixed" ? `width={${fixedTimeDomainWidth}}\n  ` : ""}config={{\n    renderer: "canvas2d",\n    mode: "waveform",\n    channelMode: "${channelMode}",${channelMode === "single" ? `\n    channelIndex: ${channelIndex},` : ""}\n    channelLayout: "${channelLayout}",\n    channelGap: ${channelGap},\n    amplitudePlacement: "${waveformPlacement}",\n    orientation: "${orientation}",\n    amplitude: ${amplitude.toFixed(2)},\n    lineWidth: ${lineWidth.toFixed(1)},\n    color: "${signalColor}",\n    showCenterLine: ${showCenterLine}\n  }}\n/>`;
+    const rendererCode = isPulseRingMode
+      ? code
+      : code.includes("renderer:")
+        ? code.replaceAll('renderer: "canvas2d"', `renderer: "${coreRenderer}"`)
+        : code.replace("config={{", `config={{\n    renderer: "${coreRenderer}",`);
     try {
       await navigator.clipboard.writeText(rendererCode);
       setCopyState("copied");
@@ -1101,9 +1195,11 @@ const result = meter.process(
                 <span>
                   {visualMode === "spectrum"
                     ? `${spectrumLayout.toUpperCase()} · ${spectrumColorMode.toUpperCase()}`
-                    : isMeterMode
-                      ? `${meterLayout.toUpperCase()} · ${meterMeasurement.toUpperCase()}`
-                      : `${selectedChannelCount} CH · ${channelLayout.toUpperCase()}`}
+                    : isPulseRingMode
+                      ? `${pulseRingFrame.bands.length} BANDS · ${pulseRingQuality.toUpperCase()}`
+                      : isMeterMode
+                        ? `${meterLayout.toUpperCase()} · ${meterMeasurement.toUpperCase()}`
+                        : `${selectedChannelCount} CH · ${channelLayout.toUpperCase()}`}
                 </span>
               </div>
             </div>
@@ -1117,7 +1213,25 @@ const result = meter.process(
               data-meter-mode={isMeterMode ? visualMode : undefined}
               style={spectrumStageStyle}
             >
-              {recordedSource && !microphoneSource ? (
+              {isPulseRingMode ? (
+                renderer === "webgl2" ? (
+                  <PulseRing
+                    ariaLabel={`${microphoneSource ? "Live microphone" : preset.label} audio-reactive Pulse Ring preview`}
+                    className="primary-waveform"
+                    config={pulseRingConfig}
+                    data={pulseRingFrame}
+                    height="100%"
+                  />
+                ) : (
+                  <div className="pulse-ring-engine-fallback" role="status">
+                    <span aria-hidden="true" />
+                    <strong>Pulse Ring needs WebGL2</strong>
+                    <small>
+                      Select the WebGL2 rendering engine. Source and controls are preserved.
+                    </small>
+                  </div>
+                )
+              ) : recordedSource && !microphoneSource ? (
                 <RecordedWaveformPlayer
                   ariaLabel={`${recordedSource.getTransportSnapshot().name} local waveform preview`}
                   className="primary-waveform"
@@ -1258,6 +1372,11 @@ const result = meter.process(
                   ) : null}
                 </>
               )}
+              {renderer === "webgl2" && !isPulseRingMode ? (
+                <div className="signal-policy-state" role="status">
+                  Canvas 2D fallback · WebGL2 is scoped to Pulse Ring
+                </div>
+              ) : null}
               {showOverlays &&
               rendererSupport.enabled &&
               !recordedSource &&
@@ -1360,29 +1479,35 @@ const result = meter.process(
             </div>
             <div className="artifact-footer">
               <span>
-                {visualMode === "spectrum"
-                  ? `${spectrumFrame.bins.length.toLocaleString()} BINS · ${spectrumAnalysis.fftSize.toLocaleString()} FFT`
-                  : isMeterMode
-                    ? `${meterPresentation.frame.channels.length} CH · ${meterPresentation.history.length}/${meterPresentation.historyCapacity} HISTORY`
-                    : `${(sessionSnapshot.frame?.sampleCount ?? 0).toLocaleString()} DISPLAY SAMPLES`}
+                {isPulseRingMode
+                  ? `${pulseRingFrame.bands.length} BANDS · CLEAN-ROOM VFX`
+                  : visualMode === "spectrum"
+                    ? `${spectrumFrame.bins.length.toLocaleString()} BINS · ${spectrumAnalysis.fftSize.toLocaleString()} FFT`
+                    : isMeterMode
+                      ? `${meterPresentation.frame.channels.length} CH · ${meterPresentation.history.length}/${meterPresentation.historyCapacity} HISTORY`
+                      : `${(sessionSnapshot.frame?.sampleCount ?? 0).toLocaleString()} DISPLAY SAMPLES`}
               </span>
               <span>
-                {visualMode === "spectrum"
-                  ? spectrumPresentation.result
-                    ? `PEAK ${spectrumPresentation.result.peakDb.toFixed(1)} dBFS · ${spectrumPresentation.result.reacting ? "REACTING" : "IDLE"}`
-                    : "DYNAMICS INITIALIZING"
-                  : isMeterMode
-                    ? `${meterMeasurement.toUpperCase()} ${meterPresentation.frame.channels[0]?.[meterMeasurement === "rms" ? "rmsDbfs" : "peakDbfs"].toFixed(1) ?? meterMinimumDecibels} dBFS · ${meterPresentation.peaking ? "PEAKING" : meterPresentation.reacting ? "REACTING" : "IDLE"}`
-                    : visualMode === "envelope"
-                      ? "MAGNITUDE 0…1 · POLARITY SEPARATE"
-                      : "SIGNED −1…+1 · POLARITY PRESERVED"}
+                {isPulseRingMode
+                  ? `THICKNESS ${pulseRingThickness.toFixed(3)} · GLOW ${pulseRingGlow.toFixed(2)}×`
+                  : visualMode === "spectrum"
+                    ? spectrumPresentation.result
+                      ? `PEAK ${spectrumPresentation.result.peakDb.toFixed(1)} dBFS · ${spectrumPresentation.result.reacting ? "REACTING" : "IDLE"}`
+                      : "DYNAMICS INITIALIZING"
+                    : isMeterMode
+                      ? `${meterMeasurement.toUpperCase()} ${meterPresentation.frame.channels[0]?.[meterMeasurement === "rms" ? "rmsDbfs" : "peakDbfs"].toFixed(1) ?? meterMinimumDecibels} dBFS · ${meterPresentation.peaking ? "PEAKING" : meterPresentation.reacting ? "REACTING" : "IDLE"}`
+                      : visualMode === "envelope"
+                        ? "MAGNITUDE 0…1 · POLARITY SEPARATE"
+                        : "SIGNED −1…+1 · POLARITY PRESERVED"}
               </span>
               <span>
-                {visualMode === "spectrum"
-                  ? `${spectrumPresentation.result?.policy.toUpperCase() ?? "UNPROCESSED"} · ${rendererCapabilities.label.toUpperCase()} · ${spectrumLayout.toUpperCase()}/${spectrumColorMode.toUpperCase()}`
-                  : isMeterMode
-                    ? `${resolvedMeterDynamics.attackMs}/${resolvedMeterDynamics.releaseMs} ms · ${rendererCapabilities.label.toUpperCase()} · ${meterLayout.toUpperCase()}/${meterColorMode.toUpperCase()}`
-                    : `${rendererCapabilities.label.toUpperCase()} · ${orientation.toUpperCase()} · ${timeDomainSizing.toUpperCase()}`}
+                {isPulseRingMode
+                  ? `${rendererCapabilities.label.toUpperCase()} · ${pulseRingQuality.toUpperCase()} · ${pulseRingRotation.toFixed(2)} REV/S`
+                  : visualMode === "spectrum"
+                    ? `${spectrumPresentation.result?.policy.toUpperCase() ?? "UNPROCESSED"} · ${rendererCapabilities.label.toUpperCase()} · ${spectrumLayout.toUpperCase()}/${spectrumColorMode.toUpperCase()}`
+                    : isMeterMode
+                      ? `${resolvedMeterDynamics.attackMs}/${resolvedMeterDynamics.releaseMs} ms · ${rendererCapabilities.label.toUpperCase()} · ${meterLayout.toUpperCase()}/${meterColorMode.toUpperCase()}`
+                      : `${rendererCapabilities.label.toUpperCase()} · ${orientation.toUpperCase()} · ${timeDomainSizing.toUpperCase()}`}
               </span>
             </div>
           </div>
@@ -1394,8 +1519,8 @@ const result = meter.process(
                 <h2 id="preset-heading">Signal studies</h2>
               </div>
               <span>
-                {renderer === "dom"
-                  ? "Canvas thumbnails · DOM/CSS is bar/meter scoped"
+                {renderer === "dom" || renderer === "webgl2"
+                  ? `Canvas thumbnails · ${rendererCapabilities.label} is mode scoped`
                   : "Same component · four configurations"}
               </span>
             </div>
@@ -1428,7 +1553,7 @@ const result = meter.process(
                         mode: "waveform",
                         orientation: "horizontal",
                         padding: 4,
-                        renderer: renderer === "dom" ? "canvas2d" : renderer,
+                        renderer: renderer === "dom" ? "canvas2d" : coreRenderer,
                         showCenterLine: false,
                       }}
                       height={50}
@@ -1449,7 +1574,7 @@ const result = meter.process(
         <header className="inspector-header">
           <div>
             <span className="eyebrow">PLAYGROUND</span>
-            <h2>Signal 012</h2>
+            <h2>Signal 013</h2>
           </div>
           <span className="version-tag">v0.1 core</span>
         </header>
@@ -1527,9 +1652,11 @@ const result = meter.process(
             <div className="mode-control" role="group" aria-label="Visual mode">
               <button
                 type="button"
-                aria-describedby={renderer === "dom" ? "renderer-support-note" : undefined}
+                aria-describedby={
+                  renderer === "dom" || renderer === "webgl2" ? "renderer-support-note" : undefined
+                }
                 aria-pressed={visualMode === "waveform"}
-                disabled={renderer === "dom"}
+                disabled={renderer === "dom" || renderer === "webgl2"}
                 onClick={() => setVisualMode("waveform")}
               >
                 Waveform
@@ -1539,42 +1666,71 @@ const result = meter.process(
                 aria-describedby={
                   recordedSource
                     ? "time-domain-source-limit"
-                    : renderer === "dom"
+                    : renderer === "dom" || renderer === "webgl2"
                       ? "renderer-support-note"
                       : undefined
                 }
                 aria-pressed={visualMode === "envelope"}
-                disabled={Boolean(recordedSource) || renderer === "dom"}
+                disabled={Boolean(recordedSource) || renderer === "dom" || renderer === "webgl2"}
                 onClick={() => setVisualMode("envelope")}
               >
                 Envelope
               </button>
               <button
                 type="button"
-                aria-describedby={recordedSource ? "time-domain-source-limit" : undefined}
+                aria-describedby={
+                  recordedSource
+                    ? "time-domain-source-limit"
+                    : renderer === "webgl2"
+                      ? "renderer-support-note"
+                      : undefined
+                }
                 aria-pressed={visualMode === "spectrum"}
-                disabled={Boolean(recordedSource)}
+                disabled={Boolean(recordedSource) || renderer === "webgl2"}
                 onClick={() => setVisualMode("spectrum")}
               >
                 Spectrum
               </button>
               <button
                 type="button"
-                aria-describedby={recordedSource ? "time-domain-source-limit" : undefined}
+                aria-describedby={
+                  recordedSource
+                    ? "time-domain-source-limit"
+                    : renderer === "webgl2"
+                      ? "renderer-support-note"
+                      : undefined
+                }
                 aria-pressed={visualMode === "meter"}
-                disabled={Boolean(recordedSource)}
+                disabled={Boolean(recordedSource) || renderer === "webgl2"}
                 onClick={() => setVisualMode("meter")}
               >
                 Meter
               </button>
               <button
                 type="button"
-                aria-describedby={recordedSource ? "time-domain-source-limit" : undefined}
+                aria-describedby={
+                  recordedSource
+                    ? "time-domain-source-limit"
+                    : renderer === "webgl2"
+                      ? "renderer-support-note"
+                      : undefined
+                }
                 aria-pressed={visualMode === "stepped-meter"}
-                disabled={Boolean(recordedSource)}
+                disabled={Boolean(recordedSource) || renderer === "webgl2"}
                 onClick={() => setVisualMode("stepped-meter")}
               >
                 Stepped meter
+              </button>
+              <button
+                type="button"
+                aria-describedby={
+                  recordedSource ? "time-domain-source-limit" : "renderer-support-note"
+                }
+                aria-pressed={visualMode === "pulse-ring"}
+                disabled={Boolean(recordedSource) || renderer !== "webgl2"}
+                onClick={() => setVisualMode("pulse-ring")}
+              >
+                Pulse Ring
               </button>
             </div>
             <SelectControl
@@ -1586,10 +1742,11 @@ const result = meter.process(
                   { label: "Canvas 2D", value: "canvas2d" },
                   { label: "SVG", value: "svg" },
                   { label: "DOM/CSS", value: "dom" },
+                  { label: "WebGL2", value: "webgl2" },
                 ],
               }}
               value={renderer}
-              onChange={(value) => setRenderer(value as CoreRendererId)}
+              onChange={(value) => setRenderer(value as BuiltinRendererId)}
             />
             <p
               className="control-note"
@@ -1597,7 +1754,7 @@ const result = meter.process(
             >
               {recordedSource
                 ? "Envelope, spectrum, and meters are disabled: this transport exposes bounded peaks, not raw PCM. Signed polarity remains in the player."
-                : "Mode and engine are separate public contracts."}
+                : "Mode and engine are separate public contracts. WebGL2 exposes Pulse Ring; core modes remain available through an explicit Canvas 2D fallback in the stage."}
             </p>
             <p
               className="capability-note"
@@ -1614,11 +1771,13 @@ const result = meter.process(
             <ToggleControl
               checked={showOverlays}
               description="Semantic DOM regions, markers, inspection, and direct handles above every supported visual renderer."
-              disabled={Boolean(recordedSource) || !rendererSupport.enabled}
+              disabled={Boolean(recordedSource) || isPulseRingMode || !rendererSupport.enabled}
               disabledReason={
                 recordedSource
                   ? "Recorded playback already exposes its controlled transport slider; raw overlay data is unavailable."
-                  : rendererSupport.reasons.join(" ")
+                  : isPulseRingMode
+                    ? "Pulse Ring is a radial VFX surface; editor overlays stay unmounted."
+                    : rendererSupport.reasons.join(" ")
               }
               label="Semantic overlays"
               onChange={setShowOverlays}
@@ -1716,22 +1875,26 @@ const result = meter.process(
               value={
                 recordedSource
                   ? "Unavailable · recorded peaks"
-                  : !showOverlays
-                    ? "Hidden · overlays off"
-                    : radialOverlayUnavailable
-                      ? "Unavailable · radial"
-                      : visualMode === "spectrum"
-                        ? "Cutoff rail + dB thresholds"
-                        : isMeterMode
-                          ? "React + peak thresholds"
-                          : "Seek + selection + loop"
+                  : isPulseRingMode
+                    ? "Unavailable · VFX surface"
+                    : !showOverlays
+                      ? "Hidden · overlays off"
+                      : radialOverlayUnavailable
+                        ? "Unavailable · radial"
+                        : visualMode === "spectrum"
+                          ? "Cutoff rail + dB thresholds"
+                          : isMeterMode
+                            ? "React + peak thresholds"
+                            : "Seek + selection + loop"
               }
             />
             <StaticRow
               label="Inspection"
               value={
                 recordedSource || radialOverlayUnavailable
-                  ? "Unavailable"
+                  ? isPulseRingMode
+                    ? "Unavailable · VFX surface"
+                    : "Unavailable"
                   : !showOverlays
                     ? "Enable overlays"
                     : overlayInspection === null
@@ -2212,7 +2375,64 @@ const result = meter.process(
           ) : null}
 
           <ControlSection title="Geometry">
-            {visualMode === "spectrum" ? (
+            {isPulseRingMode ? (
+              <>
+                <RangeControl
+                  label="Ring thickness"
+                  min={0.01}
+                  max={0.18}
+                  step={0.005}
+                  value={pulseRingThickness}
+                  valueLabel={`${(pulseRingThickness * 100).toFixed(1)}%`}
+                  onChange={setPulseRingThickness}
+                />
+                <RangeControl
+                  label="Glow strength"
+                  min={0}
+                  max={2}
+                  step={0.05}
+                  value={pulseRingGlow}
+                  valueLabel={`${pulseRingGlow.toFixed(2)}×`}
+                  onChange={setPulseRingGlow}
+                />
+                <RangeControl
+                  label="Rotation speed"
+                  min={-1}
+                  max={1}
+                  step={0.01}
+                  value={pulseRingRotation}
+                  valueLabel={`${pulseRingRotation.toFixed(2)} rev/s`}
+                  onChange={setPulseRingRotation}
+                />
+                <RangeControl
+                  label="Band reactivity"
+                  min={0}
+                  max={2}
+                  step={0.05}
+                  value={pulseRingReactivity}
+                  valueLabel={`${pulseRingReactivity.toFixed(2)}×`}
+                  onChange={setPulseRingReactivity}
+                />
+                <SelectControl
+                  definition={{
+                    description:
+                      "Bound the backing-buffer DPR and pixel allocation without changing CSS size.",
+                    label: "GPU quality",
+                    options: [
+                      { label: "Low · 1× cap", value: "low" },
+                      { label: "Balanced · 1.5× cap", value: "balanced" },
+                      { label: "High · 2× cap", value: "high" },
+                    ],
+                  }}
+                  value={pulseRingQuality}
+                  onChange={(value) => setPulseRingQuality(value as PulseRingQuality)}
+                />
+                <p className="control-note">
+                  Eight ordered logarithmic energy bands drive one bounded full-screen triangle. No
+                  textures are allocated.
+                </p>
+              </>
+            ) : visualMode === "spectrum" ? (
               <>
                 <SelectControl
                   definition={spectrumControl("geometry")}
@@ -2668,7 +2888,62 @@ const result = meter.process(
           </ControlSection>
 
           <ControlSection title="Color & guides">
-            {visualMode === "spectrum" ? (
+            {isPulseRingMode ? (
+              <>
+                <label className="color-control">
+                  <span>Primary color</span>
+                  <span className="color-readout">
+                    <input
+                      type="color"
+                      aria-label="Primary color"
+                      value={pulseRingPrimary}
+                      onChange={(event) => setPulseRingPrimary(event.currentTarget.value)}
+                    />
+                    {pulseRingPrimary.toUpperCase()}
+                  </span>
+                </label>
+                <label className="color-control">
+                  <span>Secondary color</span>
+                  <span className="color-readout">
+                    <input
+                      type="color"
+                      aria-label="Secondary color"
+                      value={pulseRingSecondary}
+                      onChange={(event) => setPulseRingSecondary(event.currentTarget.value)}
+                    />
+                    {pulseRingSecondary.toUpperCase()}
+                  </span>
+                </label>
+                <label className="color-control">
+                  <span>Tertiary color</span>
+                  <span className="color-readout">
+                    <input
+                      type="color"
+                      aria-label="Tertiary color"
+                      value={pulseRingTertiary}
+                      onChange={(event) => setPulseRingTertiary(event.currentTarget.value)}
+                    />
+                    {pulseRingTertiary.toUpperCase()}
+                  </span>
+                </label>
+                <label className="color-control">
+                  <span>Sweep flash color</span>
+                  <span className="color-readout">
+                    <input
+                      type="color"
+                      aria-label="Sweep flash color"
+                      value={pulseRingSweep}
+                      onChange={(event) => setPulseRingSweep(event.currentTarget.value)}
+                    />
+                    {pulseRingSweep.toUpperCase()}
+                  </span>
+                </label>
+                <p className="control-note">
+                  Four independent shader roles; forced-colors mode substitutes a manual
+                  high-contrast palette for canvas pixels.
+                </p>
+              </>
+            ) : visualMode === "spectrum" ? (
               <>
                 <SelectControl
                   definition={spectrumControl("colorMode")}
@@ -2878,25 +3153,29 @@ const result = meter.process(
               <div>
                 <dt>Input</dt>
                 <dd>
-                  {visualMode === "spectrum"
-                    ? "ordered dB bins"
-                    : isMeterMode
-                      ? `independent ${meterMeasurement.toUpperCase()} + peak channels`
-                      : visualMode === "envelope"
-                        ? "magnitude channels"
-                        : "signed PCM channels"}
+                  {isPulseRingMode
+                    ? "ordered logarithmic band energy"
+                    : visualMode === "spectrum"
+                      ? "ordered dB bins"
+                      : isMeterMode
+                        ? `independent ${meterMeasurement.toUpperCase()} + peak channels`
+                        : visualMode === "envelope"
+                          ? "magnitude channels"
+                          : "signed PCM channels"}
                 </dd>
               </div>
               <div>
                 <dt>Range</dt>
                 <dd>
-                  {visualMode === "spectrum"
-                    ? `${minimumDecibels}…${maximumDecibels} dBFS`
-                    : isMeterMode
-                      ? `${meterMinimumDecibels}…${meterMaximumDecibels} dBFS · ref 1`
-                      : visualMode === "envelope"
-                        ? "0…1 magnitude"
-                        : "−1…+1 signed"}
+                  {isPulseRingMode
+                    ? "0…1 RMS amplitude per band"
+                    : visualMode === "spectrum"
+                      ? `${minimumDecibels}…${maximumDecibels} dBFS`
+                      : isMeterMode
+                        ? `${meterMinimumDecibels}…${meterMaximumDecibels} dBFS · ref 1`
+                        : visualMode === "envelope"
+                          ? "0…1 magnitude"
+                          : "−1…+1 signed"}
                 </dd>
               </div>
               <div>
@@ -2906,19 +3185,23 @@ const result = meter.process(
               <div>
                 <dt>Resize</dt>
                 <dd>
-                  {renderer === "canvas2d"
-                    ? "DPR bitmap"
-                    : renderer === "svg"
-                      ? "responsive viewBox"
-                      : "observed CSS boxes"}
+                  {renderer === "webgl2"
+                    ? "bounded DPR bitmap"
+                    : renderer === "canvas2d"
+                      ? "DPR bitmap"
+                      : renderer === "svg"
+                        ? "responsive viewBox"
+                        : "observed CSS boxes"}
                 </dd>
               </div>
               <div>
                 <dt>Budget</dt>
                 <dd>
-                  {renderer === "canvas2d"
-                    ? "dense core"
-                    : `${rendererCapabilities.limits.maximumSpectrumPoints} points · ${rendererCapabilities.limits.maximumNodes} nodes`}
+                  {renderer === "webgl2"
+                    ? `${rendererCapabilities.limits.maximumBands} bands · 4,194,304 pixels`
+                    : renderer === "canvas2d"
+                      ? "dense core"
+                      : `${rendererCapabilities.limits.maximumSpectrumPoints} points · ${rendererCapabilities.limits.maximumNodes} nodes`}
                 </dd>
               </div>
               <div>

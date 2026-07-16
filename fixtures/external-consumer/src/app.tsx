@@ -3,14 +3,17 @@ import {
   DOM_RENDERER_ADAPTER,
   DOM_RENDERER_CAPABILITIES,
   Meter,
+  PulseRing,
   SignalOverlay,
   SVG_RENDERER_CAPABILITIES,
   SVG_RENDERER_ADAPTER,
+  WEBGL2_RENDERER_CAPABILITIES,
   SessionWaveform,
   Spectrum,
   RecordedWaveformPlayer,
   Waveform,
   createDemoWaveform,
+  createBandEnergyFrameFromSpectrum,
   createEnvelopeFrameFromWaveform,
   analyzeSpectrum,
   analyzeMeter,
@@ -20,10 +23,12 @@ import {
   createStaticWaveformFrame,
   createStaticWaveformSource,
   createWaveformSession,
+  createWebglPulseRingRenderer,
   renderSvgMeter,
   renderSvgSpectrum,
   renderDomMeter,
   renderDomSpectrum,
+  resolvePulseRingConfig,
   useMicrophoneSource,
   type MicrophoneSource,
   type WaveformFrame,
@@ -37,6 +42,13 @@ const spectrum = analyzeSpectrum(samples, {
   fftSize: 512,
   sampleRate: 48_000,
   window: "blackman-harris",
+});
+const pulseRingBands = createBandEnergyFrameFromSpectrum(spectrum, { bandCount: 8 });
+const pulseRingConfig = resolvePulseRingConfig({
+  bandReactivity: 1.2,
+  glowStrength: 0.9,
+  quality: "balanced",
+  thickness: 0.06,
 });
 const dynamics = createSpectrumDynamicsProcessor();
 const meterDynamics = createMeterDynamicsProcessor();
@@ -208,6 +220,22 @@ export function MeterConsumerExample() {
       }}
     />
   );
+}
+
+export function PulseRingConsumerExample() {
+  return (
+    <section data-webgl2-band-budget={WEBGL2_RENDERER_CAPABILITIES.limits.maximumBands}>
+      <PulseRing
+        ariaLabel="External audio-reactive Pulse Ring"
+        config={pulseRingConfig}
+        data={pulseRingBands}
+      />
+    </section>
+  );
+}
+
+export function createExternalPulseRingRenderer(canvas: HTMLCanvasElement) {
+  return createWebglPulseRingRenderer(canvas);
 }
 
 export function OverlayConsumerExample({

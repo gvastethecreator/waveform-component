@@ -512,6 +512,12 @@ test("keeps SVG responsive, theme-aware, reduced-motion static, and forced-color
     document.documentElement.style.setProperty("--waveform-color-base", "#ff2f92");
     document.documentElement.style.setProperty("--waveform-color-crest", "#35ff79");
   });
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      ),
+  );
   const themedAfter = await stage.screenshot();
   expect(themedBefore.equals(themedAfter)).toBe(false);
   if (evidence) await stage.screenshot({ path: `${evidence}/svg-narrow-theme.png` });
@@ -537,6 +543,273 @@ test("keeps SVG responsive, theme-aware, reduced-motion static, and forced-color
   expect(horizontalOverflow).toBeLessThanOrEqual(0);
   if (evidence) await stage.screenshot({ path: `${evidence}/svg-narrow-forced-colors.png` });
   expect(browserErrors).toEqual([]);
+});
+
+test("drives Pulse Ring controls and recovers WebGL2 resources after real context loss", async ({
+  page,
+}) => {
+  test.setTimeout(180_000);
+  const browserErrors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") browserErrors.push(`console: ${message.text()}`);
+  });
+  page.on("pageerror", (error) => browserErrors.push(`pageerror: ${error.message}`));
+  await installRendererObserverProbe(page);
+  await installWebglResourceProbe(page);
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: 2 });
+  });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+
+  const evidence = process.env.CAPTURE_WEBGL_EVIDENCE
+    ? ".scratch/evidence/013-webgl-pulse-ring"
+    : null;
+  if (evidence) await mkdir(evidence, { recursive: true });
+  await page.goto("/", { timeout: 60_000, waitUntil: "domcontentloaded" });
+  await expect(page.getByLabel("Signal status")).toContainText("DEMO / READY");
+
+  const stage = page.locator(".signal-stage");
+  const engine = page.getByRole("combobox", { name: /Rendering engine/ });
+  const observerBaseline = await rendererObserverStat(page, "active");
+  const rafBaseline = await webglProbeStat(page, "activeRafs");
+  const epoch = await page.getByText(/Epoch \d+/).textContent();
+
+  await engine.selectOption("webgl2");
+  await expect(stage).toHaveAttribute("data-renderer", "webgl2");
+  await expect(page.getByText("Canvas 2D fallback · WebGL2 is scoped to Pulse Ring")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Waveform" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Pulse Ring" })).toBeEnabled();
+  await expect(page.getByText(epoch ?? "Epoch 1")).toBeVisible();
+
+  await page.getByRole("button", { name: "Pulse Ring" }).click();
+  const pulseRing = page.locator('.primary-waveform[data-renderer="webgl2"]');
+  const canvas = pulseRing.locator('canvas[data-webgl-canvas="pulse-ring"]');
+  await expect(pulseRing).toHaveAttribute("data-webgl-state", "ready");
+  await expect(pulseRing).toHaveAttribute("data-webgl-generation", "1");
+  await expect(pulseRing).toHaveAttribute("data-webgl-resources", "1/1/1");
+  await expect(pulseRing).toHaveAttribute("data-webgl-animation", "static");
+  await expect(pulseRing).toHaveAttribute("data-pulse-ring-state", "ready");
+  await expect(canvas).toHaveCSS("opacity", "1");
+  await expect.poll(() => webglProbeStat(page, "activePrograms")).toBe(1);
+  await expect.poll(() => webglProbeStat(page, "activeTextures")).toBe(0);
+  await expect.poll(() => rendererObserverStat(page, "active")).toBe(observerBaseline);
+  expect(await webglProbeStat(page, "activeRafs")).toBe(rafBaseline);
+  if (evidence) await stage.screenshot({ path: `${evidence}/webgl2-pulse-ring-static.png` });
+
+  const assertControlChangesPixels = async (name: string, action: () => Promise<void>) => {
+    const before = await stage.screenshot();
+    const drawCalls = Number(await canvas.getAttribute("data-webgl-draw-calls"));
+    await action();
+    await expect
+      .poll(async () => Number(await canvas.getAttribute("data-webgl-draw-calls")))
+      .toBeGreaterThan(drawCalls);
+    const after = await stage.screenshot();
+    expect(after.equals(before), `${name} must change the rendered Pulse Ring`).toBe(false);
+  };
+
+  await assertControlChangesPixels("Ring thickness", () =>
+    page.getByRole("slider", { name: "Ring thickness" }).fill("0.11"),
+  );
+  await assertControlChangesPixels("Glow strength", () =>
+    page.getByRole("slider", { name: "Glow strength" }).fill("1.65"),
+  );
+  await assertControlChangesPixels("Rotation speed", () =>
+    page.getByRole("slider", { name: "Rotation speed" }).fill("-0.72"),
+  );
+  await assertControlChangesPixels("Band reactivity", () =>
+    page.getByRole("slider", { name: "Band reactivity" }).fill("1.8"),
+  );
+  for (const [name, value] of [
+    ["Primary color", "#ff214f"],
+    ["Secondary color", "#24ffa8"],
+    ["Tertiary color", "#8e6cff"],
+    ["Sweep flash color", "#ffffff"],
+  ] as const)
+    await assertControlChangesPixels(name, () =>
+      page.getByLabel(name, { exact: true }).fill(value),
+    );
+
+  const balancedWidth = Number(await pulseRing.getAttribute("data-webgl-buffer-width"));
+  await page.getByRole("combobox", { name: /GPU quality/ }).selectOption("low");
+  await expect
+    .poll(async () => Number(await pulseRing.getAttribute("data-webgl-buffer-width")))
+    .toBeLessThan(balancedWidth);
+  const lowWidth = Number(await pulseRing.getAttribute("data-webgl-buffer-width"));
+  await page.getByRole("combobox", { name: /GPU quality/ }).selectOption("high");
+  await expect
+    .poll(async () => Number(await pulseRing.getAttribute("data-webgl-buffer-width")))
+    .toBeGreaterThan(lowWidth);
+  if (evidence) await stage.screenshot({ path: `${evidence}/webgl2-controls.png` });
+
+  const lossExtensionAvailable = await canvas.evaluate((element) => {
+    const context = (element as HTMLCanvasElement).getContext("webgl2");
+    const extension = context?.getExtension("WEBGL_lose_context") ?? null;
+    if (extension) {
+      Reflect.set(window, "__pulseRingLossExtension", extension);
+      extension.loseContext();
+    }
+    return Boolean(extension);
+  });
+  expect(lossExtensionAvailable).toBe(true);
+  await expect(pulseRing).toHaveAttribute("data-webgl-state", "context-lost");
+  await expect(pulseRing).toHaveAttribute("data-webgl-resources", "0/0/0");
+  await expect(pulseRing.locator('[data-webgl-fallback="context-lost"]')).toBeVisible();
+  await expect(pulseRing.getByRole("status")).toContainText("WEBGL2_CONTEXT_LOST");
+  await expect.poll(() => webglProbeStat(page, "activePrograms")).toBe(0);
+  if (evidence) await stage.screenshot({ path: `${evidence}/webgl2-context-lost.png` });
+
+  await page.evaluate(() => Reflect.get(window, "__pulseRingLossExtension").restoreContext());
+  await expect(pulseRing).toHaveAttribute("data-webgl-state", "ready");
+  await expect(pulseRing).toHaveAttribute("data-webgl-generation", "2");
+  await expect(pulseRing).toHaveAttribute("data-webgl-resources", "1/1/1");
+  await expect.poll(() => webglProbeStat(page, "activePrograms")).toBe(1);
+  if (evidence) await stage.screenshot({ path: `${evidence}/webgl2-recovered.png` });
+
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await expect(pulseRing).toHaveAttribute("data-webgl-animation", "running");
+  await expect.poll(() => webglProbeStat(page, "activeRafs")).toBeGreaterThan(rafBaseline);
+  await engine.selectOption("canvas2d");
+  await expect(pulseRing).toHaveCount(0);
+  await expect.poll(() => webglProbeStat(page, "activePrograms")).toBe(0);
+  await expect.poll(() => webglProbeStat(page, "activeBuffers")).toBe(0);
+  await expect.poll(() => webglProbeStat(page, "activeVertexArrays")).toBe(0);
+  await expect.poll(() => webglProbeStat(page, "activeTextures")).toBe(0);
+  await expect.poll(() => webglProbeStat(page, "activeRafs")).toBe(rafBaseline);
+  await page.getByRole("button", { name: "Waveform" }).click();
+  await expect.poll(() => rendererObserverStat(page, "active")).toBe(observerBaseline);
+  await expect(page.getByText(epoch ?? "Epoch 1")).toBeVisible();
+
+  const invalidConfig = await page.evaluate(async () => {
+    const modulePath = "/src/vfx/pulseRing.ts";
+    const api = (await import(/* @vite-ignore */ modulePath)) as {
+      resolvePulseRingConfig(input: Record<string, unknown>): {
+        bandReactivity: number;
+        glowStrength: number;
+        quality: string;
+        rotationSpeed: number;
+        thickness: number;
+      };
+    };
+    return api.resolvePulseRingConfig({
+      bandReactivity: Number.POSITIVE_INFINITY,
+      glowStrength: -20,
+      quality: "unbounded",
+      rotationSpeed: 99,
+      thickness: Number.NaN,
+    });
+  });
+  expect(invalidConfig).toMatchObject({
+    bandReactivity: 1,
+    glowStrength: 0,
+    quality: "balanced",
+    rotationSpeed: 1,
+    thickness: 0.055,
+  });
+
+  await page.getByLabel("Load local audio").setInputFiles({
+    buffer: createWavFixture(),
+    mimeType: "audio/wav",
+    name: "webgl2-recorded-state.wav",
+  });
+  const recordedSeek = page.getByRole("slider", { name: "Seek webgl2-recorded-state.wav" });
+  await expect(recordedSeek).toBeVisible();
+  await recordedSeek.fill("0.4");
+  await engine.selectOption("webgl2");
+  await expect(
+    page.getByRole("region", { name: "webgl2-recorded-state.wav player" }),
+  ).toBeVisible();
+  await expect(recordedSeek).toHaveValue("0.4");
+  await expect(
+    page.getByRole("img", { name: /webgl2-recorded-state.wav local waveform preview/ }),
+  ).toHaveJSProperty("tagName", "CANVAS");
+  await expect(page.getByText("Canvas 2D fallback · WebGL2 is scoped to Pulse Ring")).toBeVisible();
+  if (evidence) await stage.screenshot({ path: `${evidence}/webgl2-recorded-canvas-fallback.png` });
+  expect(browserErrors).toEqual([]);
+
+  if (evidence)
+    await writeFile(
+      `${evidence}/browser-report.json`,
+      `${JSON.stringify(
+        {
+          browserErrors,
+          observerBaseline,
+          observerStats: await page.evaluate(() => Reflect.get(window, "__rendererObserverStats")),
+          resourceStats: await page.evaluate(() => Reflect.get(window, "__webglResourceStats")),
+        },
+        null,
+        2,
+      )}\n`,
+    );
+});
+
+test("keeps Pulse Ring bounded and static in a narrow reduced-motion viewport", async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  const browserErrors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") browserErrors.push(`console: ${message.text()}`);
+  });
+  page.on("pageerror", (error) => browserErrors.push(`pageerror: ${error.message}`));
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ forcedColors: "active", reducedMotion: "reduce" });
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.getByRole("combobox", { name: /Rendering engine/ }).selectOption("webgl2");
+  await page.getByRole("button", { name: "Pulse Ring" }).click();
+
+  const pulseRing = page.locator('.primary-waveform[data-renderer="webgl2"]');
+  const canvas = pulseRing.locator('canvas[data-webgl-canvas="pulse-ring"]');
+  await expect(pulseRing).toHaveAttribute("data-webgl-state", "ready");
+  await expect(pulseRing).toHaveAttribute("data-webgl-animation", "static");
+  const drawCalls = Number(await canvas.getAttribute("data-webgl-draw-calls"));
+  await page.waitForTimeout(250);
+  expect(Number(await canvas.getAttribute("data-webgl-draw-calls"))).toBe(drawCalls);
+  const buffer = await pulseRing.evaluate((node) => ({
+    height: Number(node.getAttribute("data-webgl-buffer-height")),
+    width: Number(node.getAttribute("data-webgl-buffer-width")),
+  }));
+  expect(buffer.height).toBeLessThanOrEqual(4096);
+  expect(buffer.width).toBeLessThanOrEqual(4096);
+  expect(buffer.height * buffer.width).toBeLessThanOrEqual(4_194_304);
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+  expect(browserErrors).toEqual([]);
+
+  if (process.env.CAPTURE_WEBGL_EVIDENCE) {
+    const evidence = ".scratch/evidence/013-webgl-pulse-ring";
+    await mkdir(evidence, { recursive: true });
+    await page.locator(".signal-stage").screenshot({
+      path: `${evidence}/webgl2-narrow-forced-colors.png`,
+    });
+  }
+});
+
+test("shows a visible Pulse Ring fallback when WebGL2 is unavailable", async ({ page }) => {
+  await page.addInitScript(() => {
+    const nativeGetContext = HTMLCanvasElement.prototype.getContext;
+    Object.defineProperty(HTMLCanvasElement.prototype, "getContext", {
+      configurable: true,
+      value(this: HTMLCanvasElement, type: string, ...attributes: unknown[]) {
+        if (type === "webgl2") return null;
+        return Reflect.apply(nativeGetContext, this, [type, ...attributes]);
+      },
+    });
+  });
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.getByRole("combobox", { name: /Rendering engine/ }).selectOption("webgl2");
+  await page.getByRole("button", { name: "Pulse Ring" }).click();
+
+  const pulseRing = page.locator('.primary-waveform[data-renderer="webgl2"]');
+  await expect(pulseRing).toHaveAttribute("data-webgl-state", "unavailable");
+  await expect(pulseRing.locator('[data-webgl-fallback="unavailable"]')).toBeVisible();
+  await expect(pulseRing.getByRole("status")).toContainText("WEBGL2_UNAVAILABLE");
+  await expect(pulseRing).toHaveAttribute("data-webgl-resources", "0/0/0");
+
+  if (process.env.CAPTURE_WEBGL_EVIDENCE) {
+    const evidence = ".scratch/evidence/013-webgl-pulse-ring";
+    await mkdir(evidence, { recursive: true });
+    await page.locator(".signal-stage").screenshot({ path: `${evidence}/webgl2-unavailable.png` });
+  }
 });
 
 test("switches DOM/CSS through bounded bars and meters with explicit capability recovery", async ({
@@ -1153,6 +1426,184 @@ async function installRendererObserverProbe(page: Page) {
 
 async function rendererObserverStat(page: Page, key: "active" | "created" | "disconnected") {
   return page.evaluate((property) => Reflect.get(window, "__rendererObserverStats")[property], key);
+}
+
+async function installWebglResourceProbe(page: Page) {
+  await page.addInitScript(() => {
+    const stats = {
+      activeBuffers: 0,
+      activePrograms: 0,
+      activeRafs: 0,
+      activeTextures: 0,
+      activeVertexArrays: 0,
+      buffersCreated: 0,
+      buffersDeleted: 0,
+      contextLosses: 0,
+      programsCreated: 0,
+      programsDeleted: 0,
+      texturesCreated: 0,
+      texturesDeleted: 0,
+      vertexArraysCreated: 0,
+      vertexArraysDeleted: 0,
+    };
+    const programs = new Set<WebGLProgram>();
+    const buffers = new Set<WebGLBuffer>();
+    const textures = new Set<WebGLTexture>();
+    const vertexArrays = new Set<WebGLVertexArrayObject>();
+    const rafs = new Set<number>();
+    const sync = () => {
+      stats.activePrograms = programs.size;
+      stats.activeBuffers = buffers.size;
+      stats.activeTextures = textures.size;
+      stats.activeVertexArrays = vertexArrays.size;
+      stats.activeRafs = rafs.size;
+    };
+
+    if (typeof WebGL2RenderingContext !== "undefined") {
+      const prototype = WebGL2RenderingContext.prototype;
+      const nativeCreateProgram = prototype.createProgram;
+      const nativeDeleteProgram = prototype.deleteProgram;
+      const nativeCreateBuffer = prototype.createBuffer;
+      const nativeDeleteBuffer = prototype.deleteBuffer;
+      const nativeCreateVertexArray = prototype.createVertexArray;
+      const nativeDeleteVertexArray = prototype.deleteVertexArray;
+      const nativeCreateTexture = prototype.createTexture;
+      const nativeDeleteTexture = prototype.deleteTexture;
+      Object.defineProperty(prototype, "createProgram", {
+        configurable: true,
+        value(this: WebGL2RenderingContext) {
+          const resource = nativeCreateProgram.call(this);
+          if (resource) {
+            programs.add(resource);
+            stats.programsCreated += 1;
+            sync();
+          }
+          return resource;
+        },
+      });
+      Object.defineProperty(prototype, "deleteProgram", {
+        configurable: true,
+        value(this: WebGL2RenderingContext, resource: WebGLProgram | null) {
+          if (resource && programs.delete(resource)) stats.programsDeleted += 1;
+          sync();
+          return nativeDeleteProgram.call(this, resource);
+        },
+      });
+      Object.defineProperty(prototype, "createBuffer", {
+        configurable: true,
+        value(this: WebGL2RenderingContext) {
+          const resource = nativeCreateBuffer.call(this);
+          if (resource) {
+            buffers.add(resource);
+            stats.buffersCreated += 1;
+            sync();
+          }
+          return resource;
+        },
+      });
+      Object.defineProperty(prototype, "deleteBuffer", {
+        configurable: true,
+        value(this: WebGL2RenderingContext, resource: WebGLBuffer | null) {
+          if (resource && buffers.delete(resource)) stats.buffersDeleted += 1;
+          sync();
+          return nativeDeleteBuffer.call(this, resource);
+        },
+      });
+      Object.defineProperty(prototype, "createTexture", {
+        configurable: true,
+        value(this: WebGL2RenderingContext) {
+          const resource = nativeCreateTexture.call(this);
+          if (resource) {
+            textures.add(resource);
+            stats.texturesCreated += 1;
+            sync();
+          }
+          return resource;
+        },
+      });
+      Object.defineProperty(prototype, "deleteTexture", {
+        configurable: true,
+        value(this: WebGL2RenderingContext, resource: WebGLTexture | null) {
+          if (resource && textures.delete(resource)) stats.texturesDeleted += 1;
+          sync();
+          return nativeDeleteTexture.call(this, resource);
+        },
+      });
+      Object.defineProperty(prototype, "createVertexArray", {
+        configurable: true,
+        value(this: WebGL2RenderingContext) {
+          const resource = nativeCreateVertexArray.call(this);
+          if (resource) {
+            vertexArrays.add(resource);
+            stats.vertexArraysCreated += 1;
+            sync();
+          }
+          return resource;
+        },
+      });
+      Object.defineProperty(prototype, "deleteVertexArray", {
+        configurable: true,
+        value(this: WebGL2RenderingContext, resource: WebGLVertexArrayObject | null) {
+          if (resource && vertexArrays.delete(resource)) stats.vertexArraysDeleted += 1;
+          sync();
+          return nativeDeleteVertexArray.call(this, resource);
+        },
+      });
+    }
+
+    document.addEventListener(
+      "webglcontextlost",
+      () => {
+        stats.contextLosses += 1;
+        programs.clear();
+        buffers.clear();
+        textures.clear();
+        vertexArrays.clear();
+        sync();
+      },
+      true,
+    );
+
+    const nativeRequestAnimationFrame = window.requestAnimationFrame.bind(window);
+    const nativeCancelAnimationFrame = window.cancelAnimationFrame.bind(window);
+    Object.defineProperty(window, "requestAnimationFrame", {
+      configurable: true,
+      value(callback: FrameRequestCallback) {
+        let handle = 0;
+        handle = nativeRequestAnimationFrame((timestamp) => {
+          rafs.delete(handle);
+          sync();
+          callback(timestamp);
+        });
+        rafs.add(handle);
+        sync();
+        return handle;
+      },
+    });
+    Object.defineProperty(window, "cancelAnimationFrame", {
+      configurable: true,
+      value(handle: number) {
+        rafs.delete(handle);
+        sync();
+        nativeCancelAnimationFrame(handle);
+      },
+    });
+    sync();
+    Reflect.set(window, "__webglResourceStats", stats);
+  });
+}
+
+async function webglProbeStat(
+  page: Page,
+  key:
+    | "activeBuffers"
+    | "activePrograms"
+    | "activeRafs"
+    | "activeTextures"
+    | "activeVertexArrays"
+    | "contextLosses",
+) {
+  return page.evaluate((property) => Reflect.get(window, "__webglResourceStats")[property], key);
 }
 
 function createWavFixture(): Buffer {

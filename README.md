@@ -1,6 +1,6 @@
 # waveform-component
 
-A headless-first audio visualization package with a React convenience layer and an artifact-dominant Signal Workbench. The current tracer slice renders deterministic signed static waveform data through Canvas 2D; the approved roadmap expands the same frame/config/session contracts across sources, DSP, renderers, and original VFX.
+A headless-first audio visualization package with a React convenience layer and an artifact-dominant Signal Workbench. Canonical waveform, envelope, spectrum, meter, and band-energy frames feed bounded Canvas 2D, SVG, DOM/CSS, and WebGL2 surfaces without coupling source ownership to rendering.
 
 ## Quick start
 
@@ -322,6 +322,43 @@ For headless or custom integrations, `SVG_RENDERER_ADAPTER`/`renderSvgFrame` rou
 
 DOM/CSS intentionally supports only rectangular spectrum `bars`, `meter`, and `stepped-meter`; waveform/envelope curves and every radial layout return a visible `DOM_RENDER_UNSUPPORTED` state. It preserves CSS-variable color roles without headless resolution, uses system colors under forced colors, samples at most 256 spectrum bars and four compatible history layers, supports eight channels, and never exposes more than 1,024 shape boxes. Excessive stepped density is rejected before geometry allocation. `DOM_RENDERER_ADAPTER`/`renderDomFrame`, `renderDomSpectrum`, and `renderDomMeter` return immutable `DomScene` descriptors, while React exposes matching `data-dom-*` counts/messages and mounts no renderer-specific interaction targets or animation work.
 
+## WebGL2 Pulse Ring
+
+WebGL2 is a VFX renderer rather than a silent substitute for the core adapters. `PulseRing` consumes a canonical `BandEnergyFrame`; `createBandEnergyFrameFromSpectrum` derives 1–16 ordered logarithmic bands from a `SpectrumFrame` by averaging bin power and returning RMS amplitude energy in `[0, 1]`.
+
+```tsx
+import {
+  PulseRing,
+  createBandEnergyFrameFromSpectrum,
+  type SpectrumFrame,
+} from "waveform-component";
+
+export function AudioRing({ spectrum }: { spectrum: SpectrumFrame }) {
+  const bands = createBandEnergyFrameFromSpectrum(spectrum, { bandCount: 8 });
+
+  return (
+    <PulseRing
+      data={bands}
+      config={{
+        thickness: 0.055,
+        glowStrength: 0.75,
+        rotationSpeed: 0.18,
+        bandReactivity: 1,
+        primaryColor: "#62dcf5",
+        secondaryColor: "#a7f59c",
+        tertiaryColor: "#ff7892",
+        sweepColor: "#f8d65c",
+        quality: "balanced",
+      }}
+    />
+  );
+}
+```
+
+The clean-room Pulse Ring owns one program, one vertex buffer, one vertex-array object, and no textures. Quality caps backing-buffer DPR at `1×`, `1.5×`, or `2×`, with absolute limits of 4,096 pixels per dimension and 4,194,304 total pixels. The adapter fully recreates GPU resources after `webglcontextrestored`; unavailable, compilation/link failure, context loss, restoration, and terminal error states keep a labeled CSS fallback visible instead of exposing a blank canvas. `destroy()` removes listeners and releases every live resource.
+
+`motion: "auto"` follows `prefers-reduced-motion`; reduced motion renders one deterministic static frame and starts no animation loop. Forced colors use a manual high-contrast pixel palette because browser system colors cannot be passed directly to GLSL. The React surface exposes `data-webgl-state`, generation, resource counts, backing-buffer size/DPR, degradation, animation state, and draw calls for host diagnostics. `WEBGL2_RENDERER_CAPABILITIES` and `BUILTIN_RENDERER_CATALOG` keep its `pulse-ring`-only scope explicit; the core `Waveform`, `Envelope`, `Spectrum`, and `Meter` configs continue to accept only `CoreRendererId`.
+
 ## Development
 
 Requires Bun 1.3.14.
@@ -333,12 +370,13 @@ bun run verify:tracer
 bun run test:e2e
 ```
 
-The playground imports `waveform-component` through the public entry point and drives its main artifact through a shared session. `fixtures/external-consumer` installs a freshly packed tarball and typechecks waveform/envelope layout, session, recorded-player, microphone, analyzer, spectrum-dynamics, Canvas/SVG/DOM renderers, meter-analysis, meter-history, and controlled overlay interfaces against generated declarations exactly as an external consumer would.
+The playground imports `waveform-component` through the public entry point and drives its main artifact through a shared session. `fixtures/external-consumer` installs a freshly packed tarball and typechecks waveform/envelope layout, session, recorded-player, microphone, analyzer, spectrum-dynamics, Canvas/SVG/DOM renderers, WebGL2 Pulse Ring and adapter APIs, meter-analysis, meter-history, and controlled overlay interfaces against generated declarations exactly as an external consumer would.
 
 ## Project records
 
 - Architecture: [`docs/architecture.md`](docs/architecture.md)
 - Research/provenance: [`docs/research/2026-07-16-waveform-component-foundations.md`](docs/research/2026-07-16-waveform-component-foundations.md)
+- WebGL2 lifecycle research: [`docs/research/2026-07-16-webgl2-pulse-ring-lifecycle.md`](docs/research/2026-07-16-webgl2-pulse-ring-lifecycle.md)
 - Product requirements: [`.scratch/waveform-component/PRD.md`](.scratch/waveform-component/PRD.md)
 - Execution frontier: [`.scratch/waveform-component/issues/`](.scratch/waveform-component/issues/)
 

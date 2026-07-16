@@ -264,6 +264,54 @@ describe("Signal Workbench tracer", () => {
     expect(engine).toHaveValue("canvas2d");
   });
 
+  it("exposes Pulse Ring as an honest WebGL2-only mode with a visible fallback", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<App />);
+    await screen.findByText("DEMO / READY");
+    const engine = screen.getByRole("combobox", { name: /Rendering engine/ });
+    const epoch = screen.getByText(/Epoch \d+/).textContent;
+
+    await user.selectOptions(engine, "webgl2");
+    expect(screen.getByText("Canvas 2D fallback · WebGL2 is scoped to Pulse Ring")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Waveform" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Pulse Ring" })).toBeEnabled();
+    expect(screen.getByText(epoch ?? "")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Pulse Ring" }));
+    const pulseRing = container.querySelector('[data-renderer="webgl2"][data-webgl-state]');
+    expect(pulseRing).toHaveAttribute("data-webgl-state", "unavailable");
+    expect(pulseRing).toHaveAttribute("data-webgl-resources", "0/0/0");
+    expect(screen.getByText("WEBGL2_UNAVAILABLE")).toBeVisible();
+    expect(
+      screen.queryByRole("group", { name: "pulse-ring semantic interaction overlay" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: /Semantic overlays/ })).toBeDisabled();
+
+    fireEvent.change(screen.getByRole("slider", { name: "Ring thickness" }), {
+      target: { value: "0.12" },
+    });
+    fireEvent.change(screen.getByRole("slider", { name: "Glow strength" }), {
+      target: { value: "1.4" },
+    });
+    await user.selectOptions(screen.getByRole("combobox", { name: /GPU quality/ }), "high");
+    expect(screen.getByText("12.0%")).toBeInTheDocument();
+    expect(screen.getByText("1.40×")).toBeInTheDocument();
+    expect(screen.getByText(/HIGH · 0.18 REV\/S/)).toBeInTheDocument();
+
+    const writeText = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue(undefined);
+    await user.click(screen.getByRole("button", { name: "Copy code" }));
+    expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining("<PulseRing"));
+    expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining('quality: "high"'));
+    expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining("thickness: 0.120"));
+
+    await user.click(screen.getByRole("button", { name: "Reset" }));
+    expect(engine).toHaveValue("canvas2d");
+    expect(screen.getByRole("button", { name: "Waveform" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
   it("keeps semantic seeking, regions, markers, and overlapping handles host-controlled", async () => {
     const user = userEvent.setup();
     render(<App />);

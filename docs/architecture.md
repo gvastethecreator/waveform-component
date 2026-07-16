@@ -10,6 +10,7 @@ The package has no browser side effects at module scope. Rendering and media wor
 
 - `WaveformFrame` preserves signed normalized channels and explicitly distinguishes empty and ready data.
 - `EnvelopeFrame` preserves non-negative magnitudes as a different canonical kind; conversion from signed PCM is explicit rather than hidden in geometry.
+- `BandEnergyFrame` preserves ordered named energy bands in normalized RMS amplitude. `createBandEnergyFrameFromSpectrum` is the explicit spectrum-to-VFX boundary: it groups logarithmic frequency ranges, averages power, and never gives the GPU access to source/session state.
 - `createStaticWaveformFrame` copies and validates caller data so later mutations cannot change a published frame.
 - `selectTimeDomainChannels` keeps source/stereo/single identity or performs a documented finite mono average before layout.
 - `buildTimeDomainSegments` is pure orientation-neutral geometry. It bins extrema per primary-axis pixel, retains source/display channel indices, applies only valid waveform/envelope amplitude placement, and lays out stacked/split/overlay channels without reading DOM or Canvas state.
@@ -24,6 +25,9 @@ The package has no browser side effects at module scope. Rendering and media wor
 - `syncCanvasSize` assigns the backing-store dimensions and an absolute DPR transform, avoiding cumulative scale.
 - Public React visualization interfaces share one frame/config seam. Canvas owns DPR bitmap synchronization; SVG owns a responsive viewBox and immutable shape scene; DOM/CSS owns an observed absolute-box scene and explicitly rejects time-domain curves. Every mounted adapter observes only its own surface and releases that observer on change.
 - `CORE_RENDERER_CATALOG` is the source of truth for Canvas/SVG/DOM modes, shared semantic overlays, and practical budgets. SVG composes pure time-domain, spectrum, meter, and color decisions into stable-key scene descriptors with instance-unique paint IDs. DOM/CSS composes only rectangular bars/meters, preserves CSS variables, preflights stepped density, and exposes every sampling or unsupported result under a 1,024-node ceiling. Neither adapter creates a source, clock, playback store, editor contract, or animation loop.
+- `BUILTIN_RENDERER_CATALOG` extends that capability query with a WebGL2 VFX surface without widening core visualization configs. WebGL2 accepts only `pulse-ring` plus `BandEnergyFrame`, reports a 16-band ceiling, and never silently impersonates Canvas/SVG/DOM.
+- `createWebglPulseRingRenderer` owns exactly one context listener set and one live program/buffer/vertex-array tuple. Context loss is cancelable and invalidates the tuple; restoration publishes `restoring`, recompiles and relinks from source, rebinds uniforms/attributes, and increments a generation. Unavailable/compile/link/restore failures remain visible statuses. Disposal is idempotent and textures remain at zero because Pulse Ring does not require them.
+- `resolveWebglDrawingBufferSize` isolates responsive CSS sizing from bounded GPU allocation. Quality caps DPR before the 4,096-dimension and 4,194,304-pixel ceilings. `PulseRing` owns one observer and, only in full motion, one requestAnimationFrame chain; reduced motion performs one deterministic draw. Context loss or adapter change cancels that chain and the React CSS fallback keeps the surface meaningful.
 
 ## Planned seams
 
@@ -43,7 +47,7 @@ Visual synchronization is also outside the renderer. Capability resolution rejec
 
 Meter analysis follows the same channel-selection seam as time-domain geometry. `analyzeMeterWindows` creates explicit measurement windows; `createMeterDynamicsProcessor` owns response and history; pure meter geometry maps configured dBFS to lanes, segments, or concentric arcs; Canvas owns only drawing and CSS/system-color resolution. The public capability catalog describes when stepped, radial, history, channel, and color controls apply.
 
-Later tickets add a WebGL2 adapter, original clean-room VFX, and standalone code export without changing the dependency direction established here. Those renderers consume the same overlay coordinate/value contract instead of duplicating editor interaction inside GPU code.
+Later tickets add further original clean-room VFX and standalone code export without changing the dependency direction established here. GPU effects continue to consume canonical frames and remain separate from editor interaction, source ownership, and host playback state.
 
 ## Provenance
 

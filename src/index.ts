@@ -9,6 +9,12 @@ export type { SelectedTimeDomainChannels } from "./analysis/channels";
 export { analyzeMeter, analyzeMeterWindows, linearAmplitudeToDbfs } from "./analysis/meter";
 export type { AnalyzeMeterOptions, AnalyzeMeterWindowsOptions } from "./analysis/meter";
 export {
+  BandEnergyInputError,
+  MAX_VFX_BANDS,
+  createBandEnergyFrameFromSpectrum,
+} from "./analysis/bands";
+export type { SpectrumBandEnergyOptions } from "./analysis/bands";
+export {
   DEFAULT_METER_DYNAMICS_CONFIG,
   METER_PRESETS,
   createMeterDynamicsProcessor,
@@ -108,18 +114,22 @@ export { renderCanvasMeter } from "./renderers/canvasMeter";
 export { renderCanvasSpectrum } from "./renderers/canvasSpectrum";
 export type { CanvasSize } from "./renderers/canvas2d";
 export {
+  BUILTIN_RENDERER_CATALOG,
   CANVAS2D_RENDERER_CAPABILITIES,
   CORE_RENDERER_CATALOG,
   DOM_RENDERER_CAPABILITIES,
   SVG_RENDERER_CAPABILITIES,
+  WEBGL2_RENDERER_CAPABILITIES,
   getRendererSupport,
 } from "./renderers/capabilities";
 export type {
   CoreRendererMode,
+  RendererMode,
   RendererCapabilities,
   RendererLimits,
   RendererSupport,
   RendererSupportQuery,
+  VfxRendererMode,
 } from "./renderers/capabilities";
 export { renderDomMeter } from "./renderers/domMeter";
 export { renderDomSpectrum } from "./renderers/domSpectrum";
@@ -148,6 +158,22 @@ export type {
   SvgRenderOptions,
   SvgScene,
 } from "./renderers/svgTypes";
+export { WebglRendererError, createWebglPulseRingRenderer } from "./renderers/webgl2PulseRing";
+export type {
+  WebglPulseRingRenderOptions,
+  WebglPulseRingRenderer,
+  WebglPulseRingRendererOptions,
+  WebglRendererDiagnostics,
+  WebglRendererErrorCode,
+  WebglRendererState,
+  WebglRendererStatus,
+} from "./renderers/webgl2PulseRing";
+export {
+  WEBGL2_MAX_DRAWING_BUFFER_DIMENSION,
+  WEBGL2_MAX_DRAWING_BUFFER_PIXELS,
+  resolveWebglDrawingBufferSize,
+} from "./renderers/webgl2Sizing";
+export type { WebglDrawingBufferSize } from "./renderers/webgl2Sizing";
 export { Waveform } from "./react/Waveform";
 export type { WaveformProps } from "./react/Waveform";
 export { Envelope } from "./react/Envelope";
@@ -156,6 +182,8 @@ export { Spectrum } from "./react/Spectrum";
 export type { SpectrumProps } from "./react/Spectrum";
 export { Meter } from "./react/Meter";
 export type { MeterProps } from "./react/Meter";
+export { PulseRing } from "./react/PulseRing";
+export type { PulseRingProps } from "./react/PulseRing";
 export { SignalOverlay } from "./react/SignalOverlay";
 export type {
   SignalOverlayChangeMeta,
@@ -260,6 +288,22 @@ export type {
   WaveformSourceState,
 } from "./session/types";
 export { WaveformInputError } from "./types";
+export {
+  DEFAULT_PULSE_RING_CONFIG,
+  PULSE_RING_CONTROL_DEFINITIONS,
+  createPulseRingUniformState,
+  parsePulseRingColor,
+  resolvePulseRingConfig,
+  resolvePulseRingTime,
+} from "./vfx/pulseRing";
+export type {
+  PulseRingConfig,
+  PulseRingConfigInput,
+  PulseRingControlDefinition,
+  PulseRingMotion,
+  PulseRingQuality,
+  PulseRingUniformState,
+} from "./vfx/pulseRing";
 export type {
   AnalysisFrame,
   BandEnergyFrame,
@@ -275,6 +319,7 @@ export type {
   CanvasWaveformConfigInput,
   CanvasWaveformModeConfig,
   EnergyBand,
+  BuiltinRendererId,
   CoreRendererId,
   CoreVisualizationConfigInput,
   CoreVisualizationConfig,

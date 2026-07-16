@@ -1,5 +1,6 @@
 import type {
   AnalysisFrame,
+  BuiltinRendererId,
   CoreRendererId,
   MeterColorMode,
   SpectrumColorMode,
@@ -9,8 +10,11 @@ import type {
 } from "../types";
 
 export type CoreRendererMode = "envelope" | "meter" | "spectrum" | "stepped-meter" | "waveform";
+export type VfxRendererMode = "pulse-ring";
+export type RendererMode = CoreRendererMode | VfxRendererMode;
 
 export interface RendererLimits {
+  readonly maximumBands: number;
   readonly maximumChannels: number;
   readonly maximumHistoryLayers: number;
   readonly maximumNodes: number;
@@ -21,15 +25,15 @@ export interface RendererLimits {
 export interface RendererCapabilities {
   readonly colorModes: readonly (MeterColorMode | SpectrumColorMode)[];
   readonly description: string;
-  readonly id: CoreRendererId;
+  readonly id: BuiltinRendererId;
   readonly label: string;
   readonly layouts: readonly (SpectrumLayout | WaveformChannelLayout)[];
   readonly limits: RendererLimits;
-  readonly modes: readonly CoreRendererMode[];
+  readonly modes: readonly RendererMode[];
   readonly semanticOverlays: "shared-dom";
   readonly spectrumGeometries: readonly SpectrumGeometry[];
   readonly supportsDenseRealtime: boolean;
-  readonly supportsVfx: false;
+  readonly supportsVfx: boolean;
 }
 
 export interface RendererSupportQuery {
@@ -37,7 +41,7 @@ export interface RendererSupportQuery {
   readonly frameKind: AnalysisFrame["kind"];
   readonly historyCount?: number;
   readonly layout?: SpectrumLayout | WaveformChannelLayout;
-  readonly mode: CoreRendererMode;
+  readonly mode: RendererMode;
   readonly pointCount?: number;
   readonly spectrumGeometry?: SpectrumGeometry;
   readonly colorMode?: MeterColorMode | SpectrumColorMode;
@@ -74,6 +78,7 @@ export const CANVAS2D_RENDERER_CAPABILITIES: RendererCapabilities = Object.freez
   label: "Canvas 2D",
   layouts: CORE_LAYOUTS,
   limits: Object.freeze({
+    maximumBands: 0,
     maximumChannels: Number.MAX_SAFE_INTEGER,
     maximumHistoryLayers: 64,
     maximumNodes: 0,
@@ -95,6 +100,7 @@ export const SVG_RENDERER_CAPABILITIES: RendererCapabilities = Object.freeze({
   label: "SVG",
   layouts: CORE_LAYOUTS,
   limits: Object.freeze({
+    maximumBands: 0,
     maximumChannels: 32,
     maximumHistoryLayers: 16,
     maximumNodes: 4096,
@@ -116,6 +122,7 @@ export const DOM_RENDERER_CAPABILITIES: RendererCapabilities = Object.freeze({
   label: "DOM/CSS",
   layouts: Object.freeze(["rectangular"] as const),
   limits: Object.freeze({
+    maximumBands: 0,
     maximumChannels: 8,
     maximumHistoryLayers: 4,
     maximumNodes: 1024,
@@ -129,6 +136,27 @@ export const DOM_RENDERER_CAPABILITIES: RendererCapabilities = Object.freeze({
   supportsVfx: false,
 });
 
+export const WEBGL2_RENDERER_CAPABILITIES: RendererCapabilities = Object.freeze({
+  colorModes: Object.freeze([]),
+  description: "GPU renderer for original clean-room VFX with explicit context-loss recovery.",
+  id: "webgl2",
+  label: "WebGL2",
+  layouts: Object.freeze(["radial"] as const),
+  limits: Object.freeze({
+    maximumBands: 16,
+    maximumChannels: 0,
+    maximumHistoryLayers: 0,
+    maximumNodes: 0,
+    maximumSpectrumPoints: 0,
+    maximumTimeDomainColumns: 0,
+  }),
+  modes: Object.freeze(["pulse-ring"] as const),
+  semanticOverlays: "shared-dom",
+  spectrumGeometries: Object.freeze([]),
+  supportsDenseRealtime: true,
+  supportsVfx: true,
+});
+
 export const CORE_RENDERER_CATALOG: Readonly<Record<CoreRendererId, RendererCapabilities>> =
   Object.freeze({
     canvas2d: CANVAS2D_RENDERER_CAPABILITIES,
@@ -136,11 +164,17 @@ export const CORE_RENDERER_CATALOG: Readonly<Record<CoreRendererId, RendererCapa
     svg: SVG_RENDERER_CAPABILITIES,
   });
 
+export const BUILTIN_RENDERER_CATALOG: Readonly<Record<BuiltinRendererId, RendererCapabilities>> =
+  Object.freeze({
+    ...CORE_RENDERER_CATALOG,
+    webgl2: WEBGL2_RENDERER_CAPABILITIES,
+  });
+
 export function getRendererSupport(
-  renderer: CoreRendererId,
+  renderer: BuiltinRendererId,
   query: RendererSupportQuery,
 ): RendererSupport {
-  const capabilities = CORE_RENDERER_CATALOG[renderer];
+  const capabilities = BUILTIN_RENDERER_CATALOG[renderer];
   const reasons: string[] = [];
   const warnings: string[] = [];
   const expectedKind = frameKindForMode(query.mode);
@@ -185,6 +219,10 @@ export function getRendererSupport(
     warnings.push(
       `${capabilities.label} samples meter history to ${capabilities.limits.maximumHistoryLayers} layers.`,
     );
+  if (expectedKind === "bands" && (query.pointCount ?? 0) > capabilities.limits.maximumBands)
+    warnings.push(
+      `${capabilities.label} samples band energy to ${capabilities.limits.maximumBands} bands.`,
+    );
 
   return Object.freeze({
     enabled: reasons.length === 0,
@@ -193,7 +231,8 @@ export function getRendererSupport(
   });
 }
 
-function frameKindForMode(mode: CoreRendererMode): AnalysisFrame["kind"] {
+function frameKindForMode(mode: RendererMode): AnalysisFrame["kind"] {
+  if (mode === "pulse-ring") return "bands";
   if (mode === "stepped-meter") return "meter";
   return mode;
 }

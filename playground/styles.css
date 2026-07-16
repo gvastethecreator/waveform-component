@@ -305,6 +305,40 @@ input:focus-visible {
   opacity: 0.08;
 }
 
+.pulse-ring-engine-fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 0.55rem;
+  padding: 2rem;
+  background: radial-gradient(circle at center, rgb(98 220 245 / 0.08), transparent 48%);
+  color: var(--text);
+  text-align: center;
+}
+
+.pulse-ring-engine-fallback > span {
+  width: min(8rem, 32vw);
+  aspect-ratio: 1;
+  border: 0.3rem solid var(--border-strong);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 0.7rem rgb(98 220 245 / 0.04),
+    0 0 2rem rgb(98 220 245 / 0.12);
+}
+
+.pulse-ring-engine-fallback strong {
+  font-size: 0.74rem;
+}
+
+.pulse-ring-engine-fallback small {
+  max-width: 24rem;
+  color: var(--muted);
+  font-size: 0.58rem;
+  line-height: 1.5;
+}
+
 .signal-policy-state {
   position: absolute;
   z-index: 3;
