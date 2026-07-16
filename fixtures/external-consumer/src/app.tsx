@@ -1,11 +1,13 @@
 import {
   SessionWaveform,
+  RecordedWaveformPlayer,
   Waveform,
   createDemoWaveform,
   createStaticWaveformFrame,
   createStaticWaveformSource,
   createWaveformSession,
   type WaveformFrame,
+  type RecordedAudioSource,
 } from "waveform-component";
 
 const samples = createDemoWaveform({ sampleCount: 512 });
@@ -25,4 +27,8 @@ export function ExternalConsumerExample() {
 
 export function SharedSessionExample() {
   return <SessionWaveform ariaLabel="Shared external session" session={session} />;
+}
+
+export function RecordedConsumerExample({ source }: { readonly source: RecordedAudioSource }) {
+  return <RecordedWaveformPlayer ariaLabel="Local recording" session={session} source={source} />;
 }

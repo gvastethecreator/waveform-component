@@ -29,4 +29,20 @@ describe("renderCanvasWaveform", () => {
     expect(context.fillRect).toHaveBeenCalledWith(0, 0, 120, 60);
     expect(context.stroke).toHaveBeenCalledTimes(3);
   });
+
+  it("draws played and unplayed waveform paths from one canonical frame", () => {
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d")!;
+    const frame = createStaticWaveformFrame([-1, -0.5, 0, 0.5, 1]);
+
+    renderCanvasWaveform(
+      context,
+      frame,
+      { width: 120, height: 60 },
+      { playbackProgress: 0.5, playedColor: "#ffffff" },
+    );
+
+    expect(context.stroke).toHaveBeenCalledTimes(5);
+    expect(context.strokeStyle).toBe("#ffffff");
+  });
 });

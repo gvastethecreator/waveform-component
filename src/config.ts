@@ -10,6 +10,8 @@ export const DEFAULT_WAVEFORM_CONFIG: CanvasWaveformConfig = Object.freeze({
   color: "#62dcf5",
   lineWidth: 1.5,
   padding: 20,
+  playbackProgress: 0,
+  playedColor: "#ecfdff",
   showCenterLine: true,
 });
 
@@ -28,6 +30,8 @@ export function resolveWaveformConfig(
     color: candidate.color || DEFAULT_WAVEFORM_CONFIG.color,
     lineWidth: clampFinite(candidate.lineWidth, 0.5, 12, DEFAULT_WAVEFORM_CONFIG.lineWidth),
     padding: clampFinite(candidate.padding, 0, 160, DEFAULT_WAVEFORM_CONFIG.padding),
+    playbackProgress: clampFinite(candidate.playbackProgress, 0, 1, 0),
+    playedColor: candidate.playedColor || DEFAULT_WAVEFORM_CONFIG.playedColor,
     showCenterLine: Boolean(candidate.showCenterLine),
   };
 }

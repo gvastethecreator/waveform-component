@@ -21,6 +21,8 @@ The package has no browser side effects at module scope. Rendering and media wor
 
 React uses `useSyncExternalStore` through `useWaveformSession`; `SessionWaveform` is a convenience view over waveform frames. The playground's artifact and status readout share one session connection.
 
+Recorded audio remains a source adapter rather than a special playground path. It resolves local or URL input lazily, owns its decoding context/media element/object URL, publishes a bounded min/max peak pyramid and signed display frame, and exposes a separate external-store transport snapshot. Source epochs suppress stale decode publication; late owned resources still dispose. `RecordedWaveformPlayer` composes the session frame with controlled transport rather than taking ownership away from the source.
+
 Later tickets add real decode/live analysis, pure DSP modules, SVG/DOM/WebGL2 adapters, capability-scoped schemas, original clean-room VFX, and standalone code export without changing the dependency direction established here.
 
 ## Provenance

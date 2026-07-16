@@ -71,7 +71,25 @@ export interface CanvasWaveformConfig {
   readonly color: string;
   readonly lineWidth: number;
   readonly padding: number;
+  readonly playbackProgress: number;
+  readonly playedColor: string;
   readonly showCenterLine: boolean;
+}
+
+export interface WaveformPeakChannel {
+  readonly maximums: Float32Array;
+  readonly minimums: Float32Array;
+}
+
+export interface WaveformPeakLevel {
+  readonly channels: readonly WaveformPeakChannel[];
+  readonly peakCount: number;
+  readonly samplesPerPeak: number;
+}
+
+export interface WaveformPeakPyramid {
+  readonly levels: readonly WaveformPeakLevel[];
+  readonly originalSampleCount: number;
 }
 
 export interface WaveformViewport {

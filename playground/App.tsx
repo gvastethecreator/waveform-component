@@ -10,13 +10,16 @@ import { useEffect, useId, useMemo, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import {
   DEFAULT_WAVEFORM_CONFIG,
+  RecordedWaveformPlayer,
   SessionWaveform,
   Waveform,
   createDemoWaveform,
   createDemoWaveformSource,
+  createRecordedAudioSource,
   createWaveformSession,
   useWaveformSession,
   type CanvasWaveformConfig,
+  type RecordedAudioSource,
   type WaveformFrame,
 } from "waveform-component";
 
@@ -37,26 +40,31 @@ export default function App() {
   const [lineWidth, setLineWidth] = useState(DEFAULT_WAVEFORM_CONFIG.lineWidth);
   const [showCenterLine, setShowCenterLine] = useState(true);
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
+  const [recordedSource, setRecordedSource] = useState<RecordedAudioSource | null>(null);
   const session = useMemo(() => createWaveformSession<WaveformFrame>(), []);
   const preset = PRESETS.find((candidate) => candidate.id === presetId) ?? PRESETS[0];
   const sessionSnapshot = useWaveformSession(session);
+  const demoSource = useMemo(
+    () =>
+      createDemoWaveformSource({
+        id: `${preset.id}-${sampleCount}`,
+        phase: preset.phase,
+        sampleCount,
+      }),
+    [preset.id, preset.phase, sampleCount],
+  );
+  const activeSource = recordedSource ?? demoSource;
   const config = useMemo<Partial<CanvasWaveformConfig>>(
     () => ({ amplitude, color: preset.color, lineWidth, showCenterLine }),
     [amplitude, lineWidth, preset.color, showCenterLine],
   );
 
   useEffect(() => {
-    void session.attach(
-      createDemoWaveformSource({
-        id: `${preset.id}-${sampleCount}`,
-        phase: preset.phase,
-        sampleCount,
-      }),
-    );
+    void session.attach(activeSource);
     return () => {
       void session.detach();
     };
-  }, [preset.id, preset.phase, sampleCount, session]);
+  }, [activeSource, session]);
 
   const reset = () => {
     setPresetId("broadcast");
@@ -64,6 +72,7 @@ export default function App() {
     setAmplitude(DEFAULT_WAVEFORM_CONFIG.amplitude);
     setLineWidth(DEFAULT_WAVEFORM_CONFIG.lineWidth);
     setShowCenterLine(true);
+    setRecordedSource(null);
     setCopyState("idle");
   };
 
@@ -120,7 +129,9 @@ export default function App() {
             <div className="artifact-meta">
               <div>
                 <span className="eyebrow">LIVE ARTIFACT</span>
-                <h2 id="artifact-title">{preset.label} waveform</h2>
+                <h2 id="artifact-title">
+                  {recordedSource?.getTransportSnapshot().name ?? preset.label} waveform
+                </h2>
               </div>
               <div className="artifact-badges" aria-label="Active visualization">
                 <span>WAVEFORM</span>
@@ -129,25 +140,40 @@ export default function App() {
               </div>
             </div>
             <div className="signal-stage">
-              <div className="signal-scale" aria-hidden="true">
-                <span>+1.0</span>
-                <span>0.0</span>
-                <span>−1.0</span>
-              </div>
-              <SessionWaveform
-                ariaLabel={`${preset.label} deterministic waveform preview`}
-                className="primary-waveform"
-                config={config}
-                height="100%"
-                session={session}
-              />
-              <div className="transient-guide" aria-hidden="true">
-                <span>TRANSIENT</span>
-                <i />
-              </div>
+              {recordedSource ? (
+                <RecordedWaveformPlayer
+                  ariaLabel={`${recordedSource.getTransportSnapshot().name} local waveform preview`}
+                  className="primary-waveform"
+                  config={config}
+                  height="100%"
+                  session={session}
+                  source={recordedSource}
+                />
+              ) : (
+                <>
+                  <div className="signal-scale" aria-hidden="true">
+                    <span>+1.0</span>
+                    <span>0.0</span>
+                    <span>−1.0</span>
+                  </div>
+                  <SessionWaveform
+                    ariaLabel={`${preset.label} deterministic waveform preview`}
+                    className="primary-waveform"
+                    config={config}
+                    height="100%"
+                    session={session}
+                  />
+                  <div className="transient-guide" aria-hidden="true">
+                    <span>TRANSIENT</span>
+                    <i />
+                  </div>
+                </>
+              )}
             </div>
             <div className="artifact-footer">
-              <span>{sampleCount.toLocaleString()} SAMPLES</span>
+              <span>
+                {(sessionSnapshot.frame?.sampleCount ?? 0).toLocaleString()} DISPLAY SAMPLES
+              </span>
               <span>PEAK +0.91 / −0.74</span>
               <span>PUBLIC PACKAGE PATH</span>
             </div>
@@ -209,8 +235,32 @@ export default function App() {
 
         <div className="inspector-scroll">
           <ControlSection title="Source & transport">
-            <StaticRow label="Source" value="Deterministic demo · session" />
-            <p className="control-note">No permission, network, or audio device required.</p>
+            <StaticRow
+              label="Source"
+              value={recordedSource ? "Local recorded audio" : "Deterministic demo · session"}
+            />
+            <label className="file-control">
+              <span>Load local audio</span>
+              <input
+                type="file"
+                accept="audio/*"
+                onChange={(event) => {
+                  const file = event.currentTarget.files?.[0];
+                  if (!file) return;
+                  setRecordedSource(
+                    createRecordedAudioSource(file, {
+                      id: `local-${file.name}-${file.lastModified}`,
+                      name: file.name,
+                    }),
+                  );
+                }}
+              />
+            </label>
+            <p className="control-note">
+              {recordedSource
+                ? "Decoded and played locally. The file never leaves this browser."
+                : "No permission, network, or audio device required."}
+            </p>
           </ControlSection>
 
           <ControlSection title="Visualization">

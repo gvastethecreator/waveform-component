@@ -58,11 +58,39 @@ export function renderCanvasWaveform(
   }
 
   if (columns.length === 0) return;
-  context.beginPath();
-  context.strokeStyle = resolved.color;
-  context.lineWidth = resolved.lineWidth;
   context.lineCap = "round";
-  for (const column of columns) {
+  const progressX = resolved.padding + (width - resolved.padding * 2) * resolved.playbackProgress;
+  strokeColumns(
+    context,
+    columns,
+    resolved.color,
+    resolved.lineWidth,
+    (column) => column.x > progressX,
+  );
+  strokeColumns(
+    context,
+    columns,
+    resolved.playedColor,
+    resolved.lineWidth,
+    (column) => column.x <= progressX,
+  );
+}
+
+function strokeColumns(
+  context: CanvasRenderingContext2D,
+  columns: readonly ReturnType<typeof buildWaveformColumns>[number][],
+  color: string,
+  lineWidth: number,
+  include: (column: ReturnType<typeof buildWaveformColumns>[number]) => boolean,
+): void {
+  const selected = columns
+    .map((column, index) => ({ column, index }))
+    .filter(({ column }) => include(column));
+  if (selected.length === 0) return;
+  context.strokeStyle = color;
+  context.lineWidth = lineWidth;
+  context.beginPath();
+  for (const { column } of selected) {
     context.moveTo(column.x, column.yMin);
     context.lineTo(column.x, column.yMax);
   }
@@ -70,14 +98,16 @@ export function renderCanvasWaveform(
 
   context.beginPath();
   let previousChannel = -1;
-  for (const column of columns) {
+  let previousIndex = -2;
+  for (const { column, index } of selected) {
     const midpoint = (column.yMin + column.yMax) / 2;
-    if (column.channelIndex !== previousChannel) {
+    if (column.channelIndex !== previousChannel || index !== previousIndex + 1) {
       context.moveTo(column.x, midpoint);
-      previousChannel = column.channelIndex;
     } else {
       context.lineTo(column.x, midpoint);
     }
+    previousChannel = column.channelIndex;
+    previousIndex = index;
   }
   context.stroke();
 }
