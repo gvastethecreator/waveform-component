@@ -30,6 +30,49 @@ export interface SpectrumFrame {
   readonly maximumDecibels: number;
 }
 
+export type SpectrumWindow =
+  | "none"
+  | "hann"
+  | "hamming"
+  | "blackman"
+  | "blackman-harris"
+  | "power-of-sine";
+
+export type SpectrumFrequencyScale = "linear" | "log";
+export type SpectrumInterpolation = "nearest" | "lanczos" | "catmull-rom";
+export type SpectrumGeometry = "curve" | "bars";
+
+export interface SpectrumAnalysisConfig {
+  readonly allowLargeFft: boolean;
+  readonly fftSize: number;
+  readonly maximumDecibels: number;
+  readonly minimumDecibels: number;
+  readonly powerOfSineExponent: number;
+  readonly window: SpectrumWindow;
+}
+
+export interface CanvasSpectrumConfig {
+  readonly renderer: "canvas2d";
+  readonly mode: "spectrum";
+  readonly backgroundColor: string;
+  readonly barGap: number;
+  readonly barWidth: number;
+  readonly color: string;
+  readonly frequencyScale: SpectrumFrequencyScale;
+  readonly geometry: SpectrumGeometry;
+  readonly gridColor: string;
+  readonly highFrequency: number;
+  readonly interpolation: SpectrumInterpolation;
+  readonly lineWidth: number;
+  readonly lowFrequency: number;
+  readonly maximumDecibels: number;
+  readonly minimumDecibels: number;
+  readonly padding: number;
+  readonly showGrid: boolean;
+}
+
+export type CanvasVisualizationConfig = CanvasWaveformConfig | CanvasSpectrumConfig;
+
 export interface MeterChannel {
   readonly peak: number;
   readonly rms: number;
@@ -103,6 +146,18 @@ export interface WaveformColumn {
   readonly x: number;
   readonly yMax: number;
   readonly yMin: number;
+}
+
+export interface SpectrumPoint {
+  readonly decibels: number;
+  readonly frequency: number;
+  readonly x: number;
+  readonly y: number;
+}
+
+export interface SpectrumBar extends SpectrumPoint {
+  readonly height: number;
+  readonly width: number;
 }
 
 export class WaveformInputError extends TypeError {

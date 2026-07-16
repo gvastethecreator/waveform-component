@@ -82,6 +82,33 @@ await session.detach();
 
 Use `createLiveMediaStreamSource(stream)` for a host-owned stream. It disconnects its own analyser/context but leaves borrowed tracks running; pass `{ ownership: "owned" }` only when the package should stop them. Permission denial and device loss remain visible, recoverable session states while the waveform surface stays mounted.
 
+## Ordered spectrum
+
+`analyzeSpectrum` is a pure advanced analyzer for signed PCM. It applies an explicit None, Hann, Hamming, Blackman, Blackman-Harris, or Power-of-Sine window, runs a radix-2 FFT, and returns increasing frequency bins in dBFS. FFT sizes normalize to platform-style powers of two from 32 through 32,768; 65,536 requires `allowLargeFft: true`.
+
+```tsx
+const spectrum = analyzeSpectrum(samples, {
+  sampleRate: 48_000,
+  fftSize: 2048,
+  window: "hann",
+  minimumDecibels: -100,
+  maximumDecibels: 0,
+});
+
+<Spectrum
+  data={spectrum}
+  config={{
+    geometry: "curve", // or "bars"
+    frequencyScale: "log",
+    lowFrequency: 20,
+    highFrequency: 20_000,
+    interpolation: "catmull-rom",
+  }}
+/>;
+```
+
+Cutoffs remain in hertz and clamp against source Nyquist only when geometry is built; fractional bins are internal. `nearest`, `lanczos`, and `catmull-rom` change only display resampling. `SPECTRUM_CONTROL_DEFINITIONS` exposes typed labels, units, ranges, defaults, descriptions, and capability reasons for a custom inspector.
+
 ## Development
 
 Requires Bun 1.3.14.
@@ -93,7 +120,7 @@ bun run verify:tracer
 bun run test:e2e
 ```
 
-The playground imports `waveform-component` through the public entry point and drives its main artifact through a shared session. `fixtures/external-consumer` installs a freshly packed tarball and typechecks convenience, session, recorded-player, and microphone interfaces against generated declarations exactly as an external consumer would.
+The playground imports `waveform-component` through the public entry point and drives its main artifact through a shared session. `fixtures/external-consumer` installs a freshly packed tarball and typechecks convenience, session, recorded-player, microphone, analyzer, and spectrum-renderer interfaces against generated declarations exactly as an external consumer would.
 
 ## Project records
 

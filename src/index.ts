@@ -1,13 +1,46 @@
 export { DEFAULT_WAVEFORM_CONFIG, resolveWaveformConfig } from "./config";
+export {
+  analyzeSpectrum,
+  createSpectrumFrame,
+  createWindowCoefficients,
+  fractionalBinForFrequency,
+  frequencyForBin,
+  SpectrumAnalysisError,
+} from "./analysis/spectrum";
+export type { AnalyzeSpectrumOptions, SpectrumFrameOptions } from "./analysis/spectrum";
+export {
+  getSpectrumControlAvailability,
+  SPECTRUM_CONTROL_DEFINITIONS,
+} from "./capabilities/spectrumControls";
+export type {
+  SpectrumCapabilityContext,
+  SpectrumControlAvailability,
+  SpectrumControlDefinition,
+  SpectrumControlId,
+} from "./capabilities/spectrumControls";
 export { createDemoWaveform, createStaticWaveformFrame } from "./core/staticFrame";
 export type { DemoWaveformOptions, StaticWaveformOptions } from "./core/staticFrame";
 export { buildWaveformColumns } from "./core/waveformGeometry";
+export { buildSpectrumBars, buildSpectrumPoints, resampleSpectrum } from "./core/spectrumGeometry";
 export { createWaveformFrameFromPeakLevel, extractWaveformPeakPyramid } from "./core/waveformPeaks";
 export type { WaveformPeakOptions } from "./core/waveformPeaks";
 export { renderCanvasWaveform, syncCanvasSize } from "./renderers/canvas2d";
+export { renderCanvasSpectrum } from "./renderers/canvasSpectrum";
 export type { CanvasSize } from "./renderers/canvas2d";
 export { Waveform } from "./react/Waveform";
 export type { WaveformProps } from "./react/Waveform";
+export { Spectrum } from "./react/Spectrum";
+export type { SpectrumProps } from "./react/Spectrum";
+export {
+  DEFAULT_SPECTRUM_ANALYSIS_CONFIG,
+  DEFAULT_SPECTRUM_CONFIG,
+  GUARDED_SPECTRUM_FFT_SIZE,
+  resolveSpectrumAnalysisConfig,
+  resolveSpectrumConfig,
+  resolveSpectrumFrequencyRange,
+  SPECTRUM_FFT_SIZES,
+} from "./spectrumConfig";
+export type { SpectrumFrequencyRange } from "./spectrumConfig";
 export { SessionWaveform, useWaveformSession } from "./react/SessionWaveform";
 export type { SessionWaveformProps } from "./react/SessionWaveform";
 export {
@@ -63,12 +96,21 @@ export { WaveformInputError } from "./types";
 export type {
   AnalysisFrame,
   BandEnergyFrame,
+  CanvasSpectrumConfig,
+  CanvasVisualizationConfig,
   CanvasWaveformConfig,
   EnergyBand,
   EnvelopeFrame,
   MeterChannel,
   MeterFrame,
   SpectrumFrame,
+  SpectrumAnalysisConfig,
+  SpectrumBar,
+  SpectrumFrequencyScale,
+  SpectrumGeometry,
+  SpectrumInterpolation,
+  SpectrumPoint,
+  SpectrumWindow,
   StaticWaveformInput,
   WaveformChannelInput,
   WaveformColumn,

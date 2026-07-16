@@ -1,8 +1,10 @@
 import {
   SessionWaveform,
+  Spectrum,
   RecordedWaveformPlayer,
   Waveform,
   createDemoWaveform,
+  analyzeSpectrum,
   createMicrophoneSource,
   createStaticWaveformFrame,
   createStaticWaveformSource,
@@ -15,6 +17,11 @@ import {
 
 const samples = createDemoWaveform({ sampleCount: 512 });
 const frame = createStaticWaveformFrame(samples, { sampleRate: 48_000 });
+const spectrum = analyzeSpectrum(samples, {
+  fftSize: 512,
+  sampleRate: 48_000,
+  window: "blackman-harris",
+});
 const session = createWaveformSession<WaveformFrame>();
 void session.attach(createStaticWaveformSource(samples, { id: "external-static" }));
 
@@ -30,6 +37,22 @@ export function ExternalConsumerExample() {
 
 export function SharedSessionExample() {
   return <SessionWaveform ariaLabel="Shared external session" session={session} />;
+}
+
+export function SpectrumConsumerExample() {
+  return (
+    <Spectrum
+      ariaLabel="External ordered spectrum"
+      data={spectrum}
+      config={{
+        frequencyScale: "log",
+        geometry: "bars",
+        highFrequency: 20_000,
+        interpolation: "lanczos",
+        lowFrequency: 20,
+      }}
+    />
+  );
 }
 
 export function RecordedConsumerExample({ source }: { readonly source: RecordedAudioSource }) {
