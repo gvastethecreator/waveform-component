@@ -1,6 +1,6 @@
 # 008 — Add radial geometry and the complete color grammar
 
-Status: blocked
+Status: ready-for-agent
 
 Type: AFK  
 Blocked by: 005, 007  

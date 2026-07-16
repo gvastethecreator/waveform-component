@@ -1,6 +1,8 @@
 # 007 — Preserve channel meaning across time-domain layouts
 
-Status: ready-for-agent
+Status: ready-for-human
+
+Resolution: completed and verified in commit `73781a2`.
 
 Type: AFK  
 Blocked by: 003, 005  
@@ -25,3 +27,11 @@ Waveform and envelope modes preserve signed channel data across mono, stereo, an
 - Inapplicable layouts are unrepresentable or rejected with structured feedback.
 - Resize and DPR changes retain sharp, stable output without stale geometry.
 - Canonical geometry fixtures cover each public time-domain layout.
+
+## Verification
+
+- `bun run verify:tracer`: passed with 85/85 unit/component tests, type/lint/format, library/types/playground builds, SSR import, and a fresh packed consumer compiling both `Waveform` and `Envelope` paths.
+- Canonical fixtures cover source/mono/stereo/single selection, uneven tails, phase cancellation, signed versus magnitude frames, every layout and placement, both orientations, degenerate dimensions, extreme spacing, per-channel Canvas color, resize, and DPR replacement.
+- `bun run test:e2e`: passed 9/9 installed-Chrome paths. The channel path proves stacked/overlay pixel differences, mono capability blocking, stereo split panels, mirrored vertical envelope, fixed sizing, and no render error or horizontal overflow.
+- Browser inspection: 1440×960 renders two colored vertical split panels at a fixed 480 px width; 390×844 remains horizontally bounded. Both captures have finite Canvas bounds and no console/render errors.
+- Evidence: `.scratch/evidence/007-channels/desktop-final.png`, `narrow-final.png`, and `browser-report.json` (generated evidence is intentionally ignored by Git).

@@ -179,6 +179,31 @@ Ticket 006 is implemented and its focused, browser, packed-consumer, and rendere
 - Closing proof: nine independent DSP fixtures, 69/69 full unit/component tests, 8/8 Chrome E2E including pixel and mute-policy transitions, fresh packed consumer, SSR import, and inspected desktop/narrow evidence with zero horizontal overflow or console errors.
 - Unresolved severity: closed.
 
+## Loops 41–45
+
+|   N | Source finding                                                        | Artifact/proof delta                                                                                                                                            | Verdict  | Next                         |
+| --: | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ---------------------------- |
+|  41 | Signed samples, magnitudes, and channel selection need separate seams | Added discriminated time-domain configs, explicit envelope conversion, source/mono/stereo/single selection, finite uneven-tail mixing, and structured errors.   | continue | Prove canonical geometry     |
+|  42 | The first split branch produced the same partition as stacked         | Moved split stereo onto separate time-axis panels and added a fixture proving non-overlapping primary ranges instead of merely different config labels.         | continue | Integrate renderer and React |
+|  43 | Renderer parity requires one lifecycle, not duplicated components     | Added shared `TimeDomainCanvas`, channel-colored Canvas drawing, error overlays, DPR replacement checks, fixed/responsive sizing, and packed-consumer coverage. | continue | Pressure the real workbench  |
+|  44 | Vertical orientation made the old amplitude scale false               | Rotated the semantic scale, corrected mirrored center from `0.5` to `0.0`, renamed split as panels, and regenerated desktop/narrow evidence without overflow.   | continue | Run the complete gate        |
+|  45 | Green E2E still surfaced a React maximum-update-depth console warning | Removed the success-path state dispatch from every live Canvas frame via an error ref guard; the live microphone E2E rerun is green and console-clean.          | continue | Open radial/color 008        |
+
+## Loop 45 verdict
+
+`continue`
+
+Ticket 007 is implemented, verified, and committed. Radial/color 008 is next because it extends the now-canonical ordered spectrum and channel geometry with polar layout and a complete color grammar before renderer/VFX tickets multiply those contracts.
+
+## Channel-layout pressure record
+
+- Strongest observed defect: the first `split` implementation was geometrically identical to `stacked` despite exposing a distinct public option.
+- User harm: consumers could select a promised stereo layout and receive no distinct spatial meaning, while tests that only inspected labels would still pass.
+- Root cause: both branches partitioned only the amplitude/cross axis; the layout vocabulary had not been encoded as independent primary-axis versus cross-axis geometry.
+- Repair: stacked partitions the amplitude axis, split partitions the time axis into exactly two panels, and overlay preserves both channels in one lane with channel-specific strokes.
+- Closing proof: independent geometry ranges, browser pixel comparisons, fixed vertical envelope evidence, 85/85 tests, 9/9 Chrome E2E, packed consumer, and a console-clean live-source rerun.
+- Unresolved severity: closed.
+
 ## Pressure record
 
 Strongest current objection: the proposed package can become so broad that “super customizable” turns into a huge shallow config object and a playground parameter dump.  

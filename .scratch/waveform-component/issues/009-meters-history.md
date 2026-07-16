@@ -1,6 +1,6 @@
 # 009 — Add trustworthy meters, stepped meters, and bounded history
 
-Status: blocked
+Status: ready-for-agent
 
 Type: AFK  
 Blocked by: 002, 006, 007  
