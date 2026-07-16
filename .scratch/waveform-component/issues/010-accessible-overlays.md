@@ -1,6 +1,6 @@
 # 010 — Make seeking, regions, loops, markers, and signal handles accessible
 
-Status: blocked
+Status: ready-for-agent
 
 Type: AFK  
 Blocked by: 003, 007, 009  

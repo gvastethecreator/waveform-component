@@ -229,6 +229,31 @@ Ticket 008 is implemented, verified, and committed. Trustworthy meters/history 0
 - Closing proof: capability fixtures, component assertions, rectangular/radial pixel changes, 95/95 tests, 10/10 Chrome E2E, packed consumer, SSR import, and inspected normal/forced-colors captures.
 - Unresolved severity: closed.
 
+## Loops 51–55
+
+|   N | Source finding                                                         | Artifact/proof delta                                                                                                                                                  | Verdict  | Next                              |
+| --: | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | --------------------------------- |
+|  51 | A meter needs explicit measurement units, not a generic level          | Added immutable per-channel linear peak/RMS and peak/RMS dBFS fields, amplitude-1 reference metadata, mono/stereo selection, windows, and steady/sine/impulse/silence fixtures. | continue | Prove temporal response/history   |
+|  52 | Ballistics and history must remain stable under host cadence and time  | Added timestamp-derived attack/release/inertia, narrow fast-peak bypass, three named presets, duration/interval capacity, hard 16,384 ceiling, expiry, and incompatibility resets. | continue | Build pure geometry/rendering     |
+|  53 | Meter and stepped-meter must differ geometrically across layouts      | Added finite continuous/stepped horizontal/vertical and concentric radial geometry, minimum visible size, tracks, range/gradient/solid color, rounded caps, and 64-frame draw sampling. | continue | Integrate the public workbench    |
+|  54 | Capability reasons must follow real mode/layout/channel/history state | Added typed public meter control definitions/reasons, keyboard-native inspector controls, public React `Meter`, semantic RMS/peak dBFS canvas labels, external packed consumer, and deterministic presets. | continue | Pressure real browser output      |
+|  55 | Round Canvas caps closed small polar gaps and erased stepped meaning  | Rebased polar segment centerlines on visible width/gap, added a numeric visible-gap fixture, captured continuous/stepped/radial/narrow/forced-colors proof, and reran 122 tests plus 11 E2E. | continue | Open accessible overlays 010      |
+
+## Loop 55 verdict
+
+`continue`
+
+Ticket 009 is implemented, verified, documented, and committed. Accessible overlays 010 is next because controlled regions, loops, markers, inspection, and direct handles must establish one semantic interaction layer before SVG/DOM parity consumes it.
+
+## Meter/history pressure record
+
+- Strongest observed defect: rounded radial step strokes extended by half their thickness at both ends, closing the configured gaps and making stepped-meter output look continuous.
+- User harm: a named visualization mode became visually indistinguishable in a supported layout even though geometry/unit tests and E2E interaction checks were otherwise green.
+- Root cause: polar geometry interpreted `stepWidth` and `stepGap` as centerline lengths while rectangular geometry interpreted them as visible extents; Canvas round caps exposed the mismatch.
+- Repair: radial stepped geometry subtracts cap allowance from the centerline, preserves visible step/gap extents, limits stroke width to the requested step, and proves the resulting physical gap numerically.
+- Closing proof: 122/122 tests, verify:tracer build/SSR/fresh packed consumer, 11/11 installed-Chrome E2E, and inspected normal/narrow/forced-colors evidence with zero overflow or console errors.
+- Unresolved severity: closed.
+
 ## Pressure record
 
 Strongest current objection: the proposed package can become so broad that “super customizable” turns into a huge shallow config object and a playground parameter dump.  

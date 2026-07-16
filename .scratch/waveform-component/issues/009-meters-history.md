@@ -1,6 +1,8 @@
 # 009 — Add trustworthy meters, stepped meters, and bounded history
 
-Status: ready-for-agent
+Status: ready-for-human
+
+Resolution: completed and verified in commit `abbefad`.
 
 Type: AFK  
 Blocked by: 002, 006, 007  
