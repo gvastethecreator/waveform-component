@@ -3,7 +3,7 @@
 ## Contract
 
 Artifact and user outcome: a reusable, highly customizable waveform package plus a real-user-ready static playground based on `folders`, covering the portable OBS controls and learning from ElevenLabs UI.  
-Mission mode: goal after PRD/issues publication; current slice is planning/decision preparation.  
+Mission mode: durable goal; current slice is organic and particle VFX 017 after verified radial-spatial closure.
 In scope: research, architecture, product/design direction, spec, vertical issues, implementation, proof, docs, and logical commits.  
 Out of scope: GPL source reuse, OBS binaries, backend/cloud/accounts, DAW editing, deployment/publish/push without authorization.  
 Baseline or acceptance: rendered `folders` playground, local primary references, accepted PRD/tickets, and required gate manifest. Greenfield artifact comparison is `not-assessed` until the first runnable slice.  
@@ -20,13 +20,13 @@ Stop condition: accepted scope implemented; no blocker/P1; every applicable gate
 | Signature/subtraction     | required      | direction/kill records                                                       | direct signal overlays; remove hero/dashboard/fake signal           | passed for direction          |
 | Blind audience read       | required      | brief-hidden reviewer record                                                 | `.scratch/design/waveform-component/blind-read.md`                  | passed with accepted repair   |
 | Independent judgment      | required      | fresh delegated raw-artifact review                                          | independent direction read changed control labeling/primary route   | passed for planning           |
-| Package/public seam       | required      | external consumer build and runtime                                          | fresh packed declarations, SSR, and Canvas/SVG/DOM consumer pass    | passed through DOM renderer   |
-| Regression/runtime        | required      | focused tests and browser paths                                              | 173 unit/component + 17 isolated Chrome E2E pass                    | passed through DOM renderer   |
-| Hostile/boundary input    | required      | fixtures for invalid config, stale async, decode/permission/renderer failure | invalid config/source plus SVG/DOM budget and capability failures   | partial: WebGL/VFX pending    |
-| User states               | required      | rendered real states                                                         | source, analysis, renderer-ready/unsupported/recovery states        | partial: later VFX states     |
+| Package/public seam       | required      | external consumer build and runtime                                          | fresh packed declarations, SSR, and nine-VFX consumer pass          | passed through radial VFX     |
+| Regression/runtime        | required      | focused tests and browser paths                                              | 248 unit/component + 23 isolated Chrome E2E pass                    | passed through radial VFX     |
+| Hostile/boundary input    | required      | fixtures for invalid config, stale async, decode/permission/renderer failure | hostile source, geometry, WebGL, and capability boundaries          | partial: particle VFX pending |
+| User states               | required      | rendered real states                                                         | source, analysis, fallback, loss/recovery, zero/overload states     | partial: later VFX states     |
 | Viewport/platform         | required      | 1440, 390, 320, ultrawide captures                                           | desktop/narrow/200%-zoom/forced-colors renderer evidence            | partial: final matrix pending |
 | Accessibility             | required      | keyboard/pointer/focus/reduced-motion checks                                 | semantic overlays, disabled reasons, forced colors, zero DOM motion | partial: final audit pending  |
-| Performance/lifecycle     | required      | traces, active-resource audit, long-data scenario                            | bounded SVG/DOM scenes, exact node budget, observer baseline        | partial: traced load pending  |
+| Performance/lifecycle     | required      | traces, active-resource audit, long-data scenario                            | bounded scenes, observer 5→5, zero active GPU/RAF resources         | partial: traced load pending  |
 | Export                    | required      | isolated compile/runtime fixture                                             | contract only                                                       | blocked by implementation     |
 | Adversarial autopsy       | required      | fresh final artifact inspection                                              | not yet applicable                                                  | blocked by implementation     |
 
@@ -402,6 +402,31 @@ Ticket 015 is implemented, verified, documented, and committed across `45ee9f0` 
 - Root cause: internal collision avoidance was treated as the public product name instead of separating a stable implementation symbol from a preferred alias.
 - Repair: publish natural `SpectrumBars`, `SpectrumBarsConfig`, schema/preset/default/resolver, and renderer aliases while retaining every `*Vfx` export for compatibility; the playground and external consumer now use the preferred surface.
 - Closing proof: fresh packed-consumer declarations/typecheck; exact copied-code component assertion; inspected nine default/preset/zero/overload captures; every-control pixel proof; 228/228 tests; 22/22 Chrome E2E; exact 24/24 GPU resource cleanup; clean browser console.
+- Unresolved severity: closed.
+
+## Loops 86–90
+
+|   N | Source finding                                                                     | Artifact/proof delta                                                                                                                                                                                                         | Verdict  | Next                                  |
+| --: | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------- |
+|  86 | Spatial reach and frequency spacing need explicit pre-render contracts             | Added dependent radial reach resolution, hard spike/ring/radius/depth/twist bounds, and public log/linear band aggregation that retains monotonically ordered energy before any shader sees it.                              | continue | Build distinct procedural silhouettes |
+|  87 | Phase animation must not turn ordered frequency into moving random band identity   | Added three original O(1) GLSL designs whose arc, depth, and radius coordinates stay attached to stable band order while rotation/travel/spin only move phase and emphasis.                                                  | continue | Integrate every public surface        |
+|  88 | A valid shader family still needs complete consumer, fallback, and inspector seams | Added effect-specific adapters, React components, CSS fallbacks, nine-mode capability metadata, every control/preset/reset/copy path, SSR, docs, and a fresh packed-consumer fixture.                                        | continue | Pressure real Chrome state            |
+|  89 | Binary pixel inequality cannot establish a perceptible audio response              | Changed every control and both band scales in Chrome, inspected all states, rejected weak Tunnel silence/overload contrast, and repaired signal-driven width/luminance/halo/portal composition.                              | continue | Pressure lifecycle and regression     |
+|  90 | Context recovery and rapid switching must end at active-resource baselines         | Rebuilt Vortex generation 2 through real context loss, cycled all three effects, passed 248 tests and 23 Chrome paths, and ended at observer 5→5 with zero active programs/buffers/VAOs/textures/RAFs and no browser errors. | continue | Open organic/particle VFX 017         |
+
+## Loop 90 verdict
+
+`continue`
+
+Ticket 016 is implemented, verified, documented, and committed as `d3093ba`. Organic/particle VFX 017 is next because deterministic seeds, transient mapping, long-frame recovery, offscreen behavior, and particle/blob ceilings add new lifecycle and reproducibility pressure beyond the nine existing procedural effects.
+
+## Radial-spatial VFX pressure record
+
+- Strongest observed defect: the first Tunnel Waves shader produced screenshots that were technically different for silence and overload but nearly indistinguishable to visual inspection.
+- User harm: a user could configure and render the effect successfully yet receive little perceptible feedback that input energy had changed, undermining the component's core audio-reactive purpose.
+- Root cause: the structural ring core retained high base opacity while signal response contributed only a small width and intensity delta; the test asserted byte inequality instead of perceptual separation.
+- Repair: retain a faint intentional field at silence, then let band/global signal drive ring width, luminance, halo, and portal emphasis within the same bounded geometry. The evidence gate now includes human inspection alongside pixel assertions.
+- Closing proof: inspected repaired zero/overload/default/preset/lost/restored captures; every-control and log/linear pixel proof; 248/248 tests; typecheck/lint/format/build/SSR/fresh consumer; 23/23 Chrome E2E; generation-2 recovery; zero active GPU/RAF/texture resources; clean browser console.
 - Unresolved severity: closed.
 
 ## Pressure record

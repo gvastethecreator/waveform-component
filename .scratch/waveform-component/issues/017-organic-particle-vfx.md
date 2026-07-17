@@ -1,6 +1,6 @@
 # 017 — Add organic and particle VFX as original slices
 
-Status: blocked
+Status: ready-for-agent
 
 Type: AFK  
 Blocked by: 013  
