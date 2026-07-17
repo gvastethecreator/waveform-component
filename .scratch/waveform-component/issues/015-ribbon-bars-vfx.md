@@ -1,6 +1,6 @@
 # 015 — Add Ribbon and reactive bar VFX as original slices
 
-Status: blocked
+Status: ready-for-agent
 
 Type: AFK  
 Blocked by: 013  

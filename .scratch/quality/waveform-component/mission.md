@@ -354,6 +354,31 @@ Ticket 013 is implemented, verified, documented, and committed. Neon Lines/Equal
 - Closing proof: inspected normal/high-reactivity/context-lost/unavailable/recorded/narrow-forced-colors captures; 48 files and 194/194 tests; typecheck/lint/format/build/SSR/fresh consumer; 20/20 Chrome E2E; observer baseline 5→5; zero active programs, buffers, VAOs, textures, or RAFs; zero textures created; clean browser console.
 - Unresolved severity: closed.
 
+## Loops 76–80
+
+|   N | Source finding                                                                  | Artifact/proof delta                                                                                                                                                                                       | Verdict  | Next                                |
+| --: | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ----------------------------------- |
+|  76 | Multi-effect customization needs complete schemas, not anonymous option vectors | Added effect-specific typed controls with name/type/range/step/unit/default/description/constraints, hard line/grid counts, deterministic resolvers, and three immutable presets per effect.               | continue | Extract invariant GPU lifecycle     |
+|  77 | Sharing lifecycle code must not collapse effect identity or regress Pulse Ring  | Extracted one bounded program/buffer/VAO/observer/context-recovery runtime, kept thin typed adapters and distinct uniform mappers, and retained all prior Pulse Ring contracts/tests.                      | continue | Integrate public surfaces/workbench |
+|  78 | Source-valid shaders can still clip under hostile but public energy             | Added public React surfaces and every inspector control, compiled both programs in Chrome, then normalized Neon Lines and bounded displacement by remaining edge distance after overload captures clipped. | continue | Pressure deterministic/user states  |
+|  79 | Presets and named controls need rendered proof, not state-only assertions       | Proved every numeric/color control changes pixels, exact preset screenshot reproduction, Signal/Zero/Overload, low/high backing buffers, reduced motion, narrow bounds, and visible context-loss recovery. | continue | Run package and lifecycle gates     |
+|  80 | Context loss makes created/deleted totals misleading without active baselines   | Passed 209 tests and 21 Chrome paths; final teardown reports zero active programs/buffers/VAOs/textures/RAFs, zero textures created, observer 5→5, clean console, builds, SSR, and packed consumer.        | continue | Open Ribbon/reactive bar VFX 015    |
+
+## Loop 80 verdict
+
+`continue`
+
+Ticket 014 is implemented, verified, documented, and committed as `1480a89`. Ribbon/reactive bar VFX 015 is next because it can reuse the proven lifecycle while pressure-testing reflection, mirrored geometry, baseline semantics, larger element counts, and rapid three-effect switching.
+
+## Neon Lines/Grid pressure record
+
+- Strongest observed defect: public overload energy plus maximum wave height pushed the outer Neon Lines beyond the stage and visibly clipped their glow.
+- User harm: all typed bounds and WebGL resource checks passed, but a supported hostile fixture produced a composition that looked broken and hid part of the signal.
+- Root cause: displacement was numerically finite yet ignored how little vertical room remained for lines whose baseline already sat near the upper or lower edge.
+- Repair: normalize the sampled waveform, then scale displacement by each line's distance to the nearest edge so energy remains expressive without escaping the surface.
+- Closing proof: inspected default/preset/zero/overload/context-loss/recovery captures; every control changes pixels; exact preset reproduction; 51 files and 209/209 tests; typecheck/lint/format/build/SSR/fresh consumer; 21/21 Chrome E2E; observer 5→5; zero active GPU/RAF/texture resources; clean browser console.
+- Unresolved severity: closed.
+
 ## Pressure record
 
 Strongest current objection: the proposed package can become so broad that “super customizable” turns into a huge shallow config object and a playground parameter dump.  
