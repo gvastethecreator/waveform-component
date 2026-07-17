@@ -379,6 +379,31 @@ Ticket 014 is implemented, verified, documented, and committed as `1480a89`. Rib
 - Closing proof: inspected default/preset/zero/overload/context-loss/recovery captures; every control changes pixels; exact preset reproduction; 51 files and 209/209 tests; typecheck/lint/format/build/SSR/fresh consumer; 21/21 Chrome E2E; observer 5→5; zero active GPU/RAF/texture resources; clean browser console.
 - Unresolved severity: closed.
 
+## Loops 81–85
+
+|   N | Source finding                                                               | Artifact/proof delta                                                                                                                                                                                               | Verdict  | Next                                |
+| --: | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- | ----------------------------------- |
+|  81 | Reflection, mirror, and baseline are semantic controls, not generic options  | Added three complete typed schemas, a semantic boolean control kind, immutable resolved presets, hard 64/96 count ceilings, and composition-space clamps for reflection and baseline.                              | continue | Build distinct bounded shaders      |
+|  82 | Dense bar effects should not allocate geometry proportional to public counts | Added three original full-screen procedural GLSL programs over the shared recoverable lifecycle; bar identity comes from bounded fragment addressing with one static triangle and zero textures/shader variants.   | continue | Integrate preferred public surfaces |
+|  83 | Internal naming collisions should not leak into copied integration code      | Added preferred `SpectrumBars` component/config/schema/preset/renderer aliases while retaining explicit `*Vfx` compatibility, then proved them through the workbench and fresh tarball consumer.                   | continue | Pressure every public state         |
+|  84 | State assertions cannot prove spatial controls remain composed under stress  | Changed every numeric/color control plus mirror in Chrome; reproduced presets exactly; inspected default, zero, overload, high-density, low/high-quality, reduced-motion, and narrow states for all three effects. | continue | Cycle and audit ownership           |
+|  85 | Three valid effects can still leak if rapid switching outruns React teardown | Cycled all three effects three times and passed 228 tests plus 22 Chrome paths; final teardown reports 24/24 program/buffer/VAO cleanup, zero active GPU/RAF/texture resources, observer 5→5, and clean console.   | continue | Open radial spatial VFX 016         |
+
+## Loop 85 verdict
+
+`continue`
+
+Ticket 015 is implemented, verified, documented, and committed across `45ee9f0` and `e0fb26d`. Radial spatial VFX 016 is next because it must preserve ordered band placement while pressure-testing arcs, depth, twist, rotation, higher spatial repetition, and context restoration through three materially different silhouettes.
+
+## Ribbon/reactive-bars pressure record
+
+- Strongest observed defect: the first public surface exposed `SpectrumBarsVfx` as the preferred component and copied example even though “Vfx” only existed to avoid an internal collision with the core `Spectrum` vocabulary.
+- User harm: consumers would learn implementation-disambiguation terminology, producing awkward imports and making the workbench's “Spectrum Bars” effect disagree with its generated integration code.
+- Root cause: internal collision avoidance was treated as the public product name instead of separating a stable implementation symbol from a preferred alias.
+- Repair: publish natural `SpectrumBars`, `SpectrumBarsConfig`, schema/preset/default/resolver, and renderer aliases while retaining every `*Vfx` export for compatibility; the playground and external consumer now use the preferred surface.
+- Closing proof: fresh packed-consumer declarations/typecheck; exact copied-code component assertion; inspected nine default/preset/zero/overload captures; every-control pixel proof; 228/228 tests; 22/22 Chrome E2E; exact 24/24 GPU resource cleanup; clean browser console.
+- Unresolved severity: closed.
+
 ## Pressure record
 
 Strongest current objection: the proposed package can become so broad that “super customizable” turns into a huge shallow config object and a playground parameter dump.  

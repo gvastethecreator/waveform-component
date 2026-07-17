@@ -1,6 +1,6 @@
 # 016 — Add radial spatial VFX as original slices
 
-Status: blocked
+Status: ready-for-agent
 
 Type: AFK  
 Blocked by: 013  
