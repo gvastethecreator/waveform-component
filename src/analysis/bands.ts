@@ -1,9 +1,10 @@
-import type { BandEnergyFrame, EnergyBand, SpectrumFrame } from "../types";
+import type { BandEnergyFrame, EnergyBand, SpectrumFrame, SpectrumFrequencyScale } from "../types";
 
 export const MAX_VFX_BANDS = 16;
 
 export interface SpectrumBandEnergyOptions {
   readonly bandCount?: number;
+  readonly frequencyScale?: SpectrumFrequencyScale;
   readonly highFrequency?: number;
   readonly lowFrequency?: number;
 }
@@ -30,10 +31,15 @@ export function createBandEnergyFrameFromSpectrum(
   validateFrequencyRange(lowFrequency, highFrequency, nyquist);
   if (frame.state === "empty" || frame.bins.length === 0) return EMPTY_BAND_ENERGY_FRAME;
 
+  const frequencyScale = options.frequencyScale ?? "log";
   const ratio = highFrequency / lowFrequency;
-  const edges = Array.from({ length: bandCount + 1 }, (_, index) =>
-    index === bandCount ? highFrequency : lowFrequency * Math.pow(ratio, index / bandCount),
-  );
+  const edges = Array.from({ length: bandCount + 1 }, (_, index) => {
+    if (index === bandCount) return highFrequency;
+    const position = index / bandCount;
+    return frequencyScale === "linear"
+      ? lowFrequency + (highFrequency - lowFrequency) * position
+      : lowFrequency * Math.pow(ratio, position);
+  });
   const bands = Array.from({ length: bandCount }, (_, index) =>
     createBand(frame, index, edges[index], edges[index + 1]),
   );

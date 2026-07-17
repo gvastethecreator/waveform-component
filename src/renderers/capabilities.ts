@@ -14,8 +14,11 @@ export type VfxRendererMode =
   | "equalizer-grid"
   | "neon-lines"
   | "pulse-ring"
+  | "radial-spikes"
   | "rounded-wobble-bars"
   | "spectrum-bars"
+  | "tunnel-waves"
+  | "vortex-rings"
   | "waveform-ribbon";
 export type RendererMode = CoreRendererMode | VfxRendererMode;
 
@@ -163,6 +166,9 @@ export const WEBGL2_RENDERER_CAPABILITIES: RendererCapabilities = Object.freeze(
     "waveform-ribbon",
     "rounded-wobble-bars",
     "spectrum-bars",
+    "radial-spikes",
+    "tunnel-waves",
+    "vortex-rings",
   ] as const),
   semanticOverlays: "shared-dom",
   spectrumGeometries: Object.freeze([]),
@@ -251,7 +257,10 @@ function frameKindForMode(mode: RendererMode): AnalysisFrame["kind"] {
     mode === "equalizer-grid" ||
     mode === "waveform-ribbon" ||
     mode === "rounded-wobble-bars" ||
-    mode === "spectrum-bars"
+    mode === "spectrum-bars" ||
+    mode === "radial-spikes" ||
+    mode === "tunnel-waves" ||
+    mode === "vortex-rings"
   )
     return "bands";
   if (mode === "stepped-meter") return "meter";

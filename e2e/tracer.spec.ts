@@ -1383,6 +1383,276 @@ test("proves Ribbon and reactive bar controls, deterministic presets, rapid swit
     );
 });
 
+test("proves radial spatial controls, ordered band scales, context recovery, and bounded cleanup", async ({
+  page,
+}) => {
+  test.setTimeout(300_000);
+  const browserErrors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") browserErrors.push(`console: ${message.text()}`);
+  });
+  page.on("pageerror", (error) => browserErrors.push(`pageerror: ${error.message}`));
+  await installRendererObserverProbe(page);
+  await installWebglResourceProbe(page);
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: 2 });
+  });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+
+  const evidence = process.env.CAPTURE_WEBGL_EVIDENCE ? ".scratch/evidence/016-radial-vfx" : null;
+  if (evidence) await mkdir(evidence, { recursive: true });
+  await page.goto("/", { timeout: 60_000, waitUntil: "domcontentloaded" });
+  await expect(page.getByLabel("Signal status")).toContainText("DEMO / READY");
+  const stage = page.locator(".signal-stage");
+  const engine = page.getByRole("combobox", { name: /Rendering engine/ });
+  const observerBaseline = await rendererObserverStat(page, "active");
+  const rafBaseline = await webglProbeStat(page, "activeRafs");
+  await engine.selectOption("webgl2");
+
+  const openEffect = async (buttonName: string, mode: string, stateAttribute: string) => {
+    await page.getByRole("button", { name: buttonName, exact: true }).click();
+    const surface = page.locator(`.primary-waveform[data-vfx-mode="${mode}"]`);
+    const canvas = surface.locator(`canvas[data-webgl-canvas="${mode}"]`);
+    await expect(surface).toHaveAttribute("data-webgl-state", "ready");
+    await expect(surface).toHaveAttribute("data-webgl-resources", "1/1/1");
+    await expect(surface).toHaveAttribute(stateAttribute, "ready");
+    await expect(surface).toHaveAttribute("data-webgl-animation", "static");
+    await expect.poll(() => webglProbeStat(page, "activePrograms")).toBe(1);
+    await expect.poll(() => webglProbeStat(page, "activeTextures")).toBe(0);
+    await expect.poll(() => rendererObserverStat(page, "active")).toBe(observerBaseline);
+    return { canvas, surface };
+  };
+
+  const assertPixelsChange = async (
+    surfaceName: string,
+    canvas: ReturnType<typeof page.locator>,
+    controlName: string,
+    action: () => Promise<void>,
+  ) => {
+    const before = await stage.screenshot();
+    const drawCalls = Number(await canvas.getAttribute("data-webgl-draw-calls"));
+    await action();
+    await expect
+      .poll(async () => Number(await canvas.getAttribute("data-webgl-draw-calls")))
+      .toBeGreaterThan(drawCalls);
+    const after = await stage.screenshot();
+    expect(after.equals(before), `${controlName} must change ${surfaceName} pixels`).toBe(false);
+  };
+
+  const energyFixture = page.getByRole("combobox", { name: /Energy fixture/ });
+  const bandSpacing = page.getByRole("combobox", { name: /Band spacing/ });
+  const radial = await openEffect("Radial Spikes", "radial-spikes", "data-radial-spikes-state");
+  if (evidence) await stage.screenshot({ path: `${evidence}/radial-spikes-default.png` });
+  for (const [name, value] of [
+    ["Spike count", "128"],
+    ["Base radius", "0.42"],
+    ["Spike height", "0.34"],
+    ["Spike width", "0.32"],
+    ["Arc", "210"],
+    ["Rotation", "-35"],
+    ["Energy reactivity", "1.75"],
+    ["Glow strength", "2.2"],
+  ] as const)
+    await assertPixelsChange("Radial Spikes", radial.canvas, name, () =>
+      page.getByRole("slider", { name }).fill(value),
+    );
+  for (const [name, value] of [
+    ["Background color", "#10031b"],
+    ["Base color", "#37ffb4"],
+    ["Tip color", "#ffffff"],
+  ] as const)
+    await assertPixelsChange("Radial Spikes", radial.canvas, name, () =>
+      page.getByLabel(name, { exact: true }).fill(value),
+    );
+  await assertPixelsChange("Radial Spikes", radial.canvas, "Band spacing", () =>
+    bandSpacing.selectOption("linear"),
+  );
+  const balancedWidth = Number(await radial.surface.getAttribute("data-webgl-buffer-width"));
+  await page.getByRole("combobox", { name: /GPU quality/ }).selectOption("low");
+  await expect
+    .poll(async () => Number(await radial.surface.getAttribute("data-webgl-buffer-width")))
+    .toBeLessThan(balancedWidth);
+  await page.getByRole("combobox", { name: /Motion/ }).selectOption("full");
+  await expect(radial.surface).toHaveAttribute("data-webgl-animation", "running");
+  await expect.poll(() => webglProbeStat(page, "activeRafs")).toBeGreaterThan(rafBaseline);
+  await page.getByRole("combobox", { name: /Motion/ }).selectOption("reduced");
+  await expect.poll(() => webglProbeStat(page, "activeRafs")).toBe(rafBaseline);
+  await energyFixture.selectOption("zero");
+  const radialZero = await stage.screenshot();
+  if (evidence) await stage.screenshot({ path: `${evidence}/radial-spikes-zero.png` });
+  await energyFixture.selectOption("overload");
+  expect(
+    (await stage.screenshot()).equals(radialZero),
+    "Radial Spikes zero and overload differ",
+  ).toBe(false);
+  if (evidence) await stage.screenshot({ path: `${evidence}/radial-spikes-overload.png` });
+  const radialPreset = page.getByRole("combobox", { name: /VFX preset/ });
+  await radialPreset.selectOption("signal-arc");
+  const radialPresetPixels = await stage.screenshot();
+  await page.getByRole("slider", { name: "Rotation" }).fill("12");
+  await expect(radialPreset).toHaveValue("custom");
+  await radialPreset.selectOption("signal-arc");
+  expect((await stage.screenshot()).equals(radialPresetPixels)).toBe(true);
+  if (evidence) await stage.screenshot({ path: `${evidence}/radial-spikes-preset.png` });
+
+  const tunnel = await openEffect("Tunnel Waves", "tunnel-waves", "data-tunnel-waves-state");
+  await expect(radial.surface).toHaveCount(0);
+  if (evidence) await stage.screenshot({ path: `${evidence}/tunnel-waves-default.png` });
+  for (const [name, value] of [
+    ["Ring density", "48"],
+    ["Tunnel speed", "-1.1"],
+    ["Tunnel depth", "0.88"],
+    ["Energy reactivity", "0.5"],
+    ["Glow strength", "2.4"],
+  ] as const)
+    await assertPixelsChange("Tunnel Waves", tunnel.canvas, name, () =>
+      page.getByRole("slider", { name }).fill(value),
+    );
+  for (const [name, value] of [
+    ["Background color", "#120401"],
+    ["Center color", "#ffffff"],
+    ["Mid color", "#ffb23f"],
+    ["Outer color", "#ff3b6a"],
+  ] as const)
+    await assertPixelsChange("Tunnel Waves", tunnel.canvas, name, () =>
+      page.getByLabel(name, { exact: true }).fill(value),
+    );
+  await energyFixture.selectOption("signal");
+  await assertPixelsChange("Tunnel Waves", tunnel.canvas, "Band spacing", () =>
+    bandSpacing.selectOption("log"),
+  );
+  await energyFixture.selectOption("zero");
+  const tunnelZero = await stage.screenshot();
+  if (evidence) await stage.screenshot({ path: `${evidence}/tunnel-waves-zero.png` });
+  await energyFixture.selectOption("overload");
+  expect(
+    (await stage.screenshot()).equals(tunnelZero),
+    "Tunnel Waves zero and overload differ",
+  ).toBe(false);
+  if (evidence) await stage.screenshot({ path: `${evidence}/tunnel-waves-overload.png` });
+  const tunnelPreset = page.getByRole("combobox", { name: /VFX preset/ });
+  await tunnelPreset.selectOption("deep-signal");
+  const tunnelPresetPixels = await stage.screenshot();
+  await page.getByRole("slider", { name: "Tunnel depth" }).fill("0.4");
+  await expect(tunnelPreset).toHaveValue("custom");
+  await tunnelPreset.selectOption("deep-signal");
+  expect((await stage.screenshot()).equals(tunnelPresetPixels)).toBe(true);
+  if (evidence) await stage.screenshot({ path: `${evidence}/tunnel-waves-preset.png` });
+
+  const vortex = await openEffect("Vortex Rings", "vortex-rings", "data-vortex-rings-state");
+  await expect(tunnel.surface).toHaveCount(0);
+  if (evidence) await stage.screenshot({ path: `${evidence}/vortex-rings-default.png` });
+  for (const [name, value] of [
+    ["Twist amount", "-2.6"],
+    ["Spin speed", "-1.2"],
+    ["Ring density", "48"],
+    ["Vortex radius", "0.55"],
+    ["Energy reactivity", "1.8"],
+    ["Glow strength", "2.5"],
+  ] as const)
+    await assertPixelsChange("Vortex Rings", vortex.canvas, name, () =>
+      page.getByRole("slider", { name }).fill(value),
+    );
+  for (const [name, value] of [
+    ["Background color", "#010714"],
+    ["Primary color", "#2ee8ff"],
+    ["Secondary color", "#ff45c8"],
+    ["Accent color", "#ffffff"],
+  ] as const)
+    await assertPixelsChange("Vortex Rings", vortex.canvas, name, () =>
+      page.getByLabel(name, { exact: true }).fill(value),
+    );
+  await energyFixture.selectOption("zero");
+  const vortexZero = await stage.screenshot();
+  if (evidence) await stage.screenshot({ path: `${evidence}/vortex-rings-zero.png` });
+  await energyFixture.selectOption("overload");
+  expect(
+    (await stage.screenshot()).equals(vortexZero),
+    "Vortex Rings zero and overload differ",
+  ).toBe(false);
+  if (evidence) await stage.screenshot({ path: `${evidence}/vortex-rings-overload.png` });
+  const vortexPreset = page.getByRole("combobox", { name: /VFX preset/ });
+  await vortexPreset.selectOption("prism-vortex");
+  const vortexPresetPixels = await stage.screenshot();
+  await page.getByRole("slider", { name: "Twist amount" }).fill("0.5");
+  await expect(vortexPreset).toHaveValue("custom");
+  await vortexPreset.selectOption("prism-vortex");
+  expect((await stage.screenshot()).equals(vortexPresetPixels)).toBe(true);
+  if (evidence) await stage.screenshot({ path: `${evidence}/vortex-rings-preset.png` });
+
+  const lossExtensionAvailable = await vortex.canvas.evaluate((element) => {
+    const context = (element as HTMLCanvasElement).getContext("webgl2");
+    const extension = context?.getExtension("WEBGL_lose_context") ?? null;
+    if (extension) {
+      Reflect.set(window, "__radialSpatialLossExtension", extension);
+      extension.loseContext();
+    }
+    return Boolean(extension);
+  });
+  expect(lossExtensionAvailable).toBe(true);
+  await expect(vortex.surface).toHaveAttribute("data-webgl-state", "context-lost");
+  await expect(vortex.surface).toHaveAttribute("data-webgl-resources", "0/0/0");
+  await expect(vortex.surface.locator('[data-webgl-fallback="context-lost"]')).toBeVisible();
+  await expect.poll(() => webglProbeStat(page, "activePrograms")).toBe(0);
+  if (evidence) await stage.screenshot({ path: `${evidence}/vortex-rings-context-lost.png` });
+  await page.evaluate(() => Reflect.get(window, "__radialSpatialLossExtension").restoreContext());
+  await expect(vortex.surface).toHaveAttribute("data-webgl-state", "ready");
+  await expect(vortex.surface).toHaveAttribute("data-webgl-generation", "2");
+  await expect(vortex.surface).toHaveAttribute("data-webgl-resources", "1/1/1");
+  if (evidence) await stage.screenshot({ path: `${evidence}/vortex-rings-recovered.png` });
+
+  for (let cycle = 0; cycle < 3; cycle += 1) {
+    for (const buttonName of ["Radial Spikes", "Tunnel Waves", "Vortex Rings"] as const) {
+      await page.getByRole("button", { name: buttonName, exact: true }).click();
+      await expect(page.locator("canvas[data-webgl-canvas]")).toHaveCount(1);
+      await expect.poll(() => webglProbeStat(page, "activePrograms")).toBe(1);
+      await expect.poll(() => webglProbeStat(page, "activeBuffers")).toBe(1);
+      await expect.poll(() => webglProbeStat(page, "activeVertexArrays")).toBe(1);
+      await expect.poll(() => rendererObserverStat(page, "active")).toBe(observerBaseline);
+    }
+  }
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const activeSurface = page.locator('.primary-waveform[data-vfx-mode="vortex-rings"]');
+  const boundedBuffer = await activeSurface.evaluate((node) => ({
+    height: Number(node.getAttribute("data-webgl-buffer-height")),
+    width: Number(node.getAttribute("data-webgl-buffer-width")),
+  }));
+  expect(boundedBuffer.height).toBeLessThanOrEqual(4096);
+  expect(boundedBuffer.width).toBeLessThanOrEqual(4096);
+  expect(boundedBuffer.height * boundedBuffer.width).toBeLessThanOrEqual(4_194_304);
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth - innerWidth),
+  ).toBeLessThanOrEqual(0);
+
+  await engine.selectOption("canvas2d");
+  await expect(activeSurface).toHaveCount(0);
+  await expect.poll(() => webglProbeStat(page, "activePrograms")).toBe(0);
+  await expect.poll(() => webglProbeStat(page, "activeBuffers")).toBe(0);
+  await expect.poll(() => webglProbeStat(page, "activeVertexArrays")).toBe(0);
+  await expect.poll(() => webglProbeStat(page, "activeTextures")).toBe(0);
+  await expect.poll(() => webglProbeStat(page, "activeRafs")).toBe(rafBaseline);
+  await expect.poll(() => rendererObserverStat(page, "active")).toBe(observerBaseline - 1);
+  await page.getByRole("button", { name: "Waveform", exact: true }).click();
+  await expect.poll(() => rendererObserverStat(page, "active")).toBe(observerBaseline);
+  expect(browserErrors).toEqual([]);
+
+  if (evidence)
+    await writeFile(
+      `${evidence}/browser-report.json`,
+      `${JSON.stringify(
+        {
+          browserErrors,
+          observerBaseline,
+          observerStats: await page.evaluate(() => Reflect.get(window, "__rendererObserverStats")),
+          resourceStats: await page.evaluate(() => Reflect.get(window, "__webglResourceStats")),
+        },
+        null,
+        2,
+      )}\n`,
+    );
+});
+
 test("switches DOM/CSS through bounded bars and meters with explicit capability recovery", async ({
   page,
 }) => {

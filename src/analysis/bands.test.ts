@@ -43,6 +43,28 @@ describe("canonical band energy", () => {
     expect(frame.bands.every((band) => band.energy >= 0 && band.energy <= 1)).toBe(true);
   });
 
+  it("supports explicit logarithmic and linear fixtures without changing band order", () => {
+    const source = spectrum(Array.from({ length: 16 }, (_, index) => -96 + index * 6));
+    const logarithmic = createBandEnergyFrameFromSpectrum(source, {
+      bandCount: 3,
+      frequencyScale: "log",
+      highFrequency: 4_000,
+      lowFrequency: 400,
+    });
+    const linear = createBandEnergyFrameFromSpectrum(source, {
+      bandCount: 3,
+      frequencyScale: "linear",
+      highFrequency: 4_000,
+      lowFrequency: 400,
+    });
+    expect(logarithmic.bands[0].lowFrequency).toBe(400);
+    expect(logarithmic.bands[1].lowFrequency).toBeCloseTo(400 * Math.pow(10, 1 / 3));
+    expect(logarithmic.bands[2].lowFrequency).toBeCloseTo(400 * Math.pow(10, 2 / 3));
+    expect(linear.bands.map((band) => band.lowFrequency)).toEqual([400, 1_600, 2_800]);
+    expect(logarithmic.bands.at(-1)!.energy).toBeGreaterThan(logarithmic.bands[0].energy);
+    expect(linear.bands.at(-1)!.energy).toBeGreaterThan(linear.bands[0].energy);
+  });
+
   it("returns one immutable empty frame without inventing energy", () => {
     const empty = createSpectrumFrame(new Float32Array(), {
       fftSize: 32,

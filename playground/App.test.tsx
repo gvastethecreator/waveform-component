@@ -434,6 +434,59 @@ describe("Signal Workbench tracer", () => {
     );
   });
 
+  it("keeps radial spatial schemas, presets, and copy output isolated", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<App />);
+    await screen.findByText("DEMO / READY");
+    await user.selectOptions(screen.getByRole("combobox", { name: /Rendering engine/ }), "webgl2");
+    const writeText = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue(undefined);
+
+    await user.click(screen.getByRole("button", { name: "Radial Spikes" }));
+    expect(
+      container.querySelector("canvas[data-webgl-canvas='radial-spikes']"),
+    ).toBeInTheDocument();
+    const radialPreset = screen.getByRole("combobox", { name: /VFX preset/ });
+    await user.selectOptions(radialPreset, "signal-arc");
+    expect(screen.getByRole("slider", { name: "Spike count" })).toHaveValue("24");
+    expect(screen.getByRole("slider", { name: "Arc" })).toHaveValue("190");
+    fireEvent.change(screen.getByRole("slider", { name: "Rotation" }), {
+      target: { value: "45" },
+    });
+    await user.selectOptions(screen.getByRole("combobox", { name: /Band spacing/ }), "linear");
+    expect(radialPreset).toHaveValue("custom");
+    await user.click(screen.getByRole("button", { name: "Copy code" }));
+    expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining("<RadialSpikes"));
+    expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining("rotationDegrees: 45"));
+    expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining('frequencyScale: "linear"'));
+
+    await user.click(screen.getByRole("button", { name: "Tunnel Waves" }));
+    expect(container.querySelector("canvas[data-webgl-canvas='tunnel-waves']")).toBeInTheDocument();
+    await user.selectOptions(screen.getByRole("combobox", { name: /VFX preset/ }), "deep-signal");
+    expect(screen.getByRole("slider", { name: "Ring density" })).toHaveValue("9");
+    expect(screen.getByRole("slider", { name: "Tunnel depth" })).toHaveValue("0.92");
+    await user.click(screen.getByRole("button", { name: /Copy code|Copied/ }));
+    expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining("<TunnelWaves"));
+    expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining("ringDensity: 9"));
+
+    await user.click(screen.getByRole("button", { name: "Vortex Rings" }));
+    expect(container.querySelector("canvas[data-webgl-canvas='vortex-rings']")).toBeInTheDocument();
+    await user.selectOptions(screen.getByRole("combobox", { name: /VFX preset/ }), "prism-vortex");
+    expect(screen.getByRole("slider", { name: "Ring density" })).toHaveValue("32");
+    expect(screen.getByRole("slider", { name: "Twist amount" })).toHaveValue("3.1");
+    await user.selectOptions(screen.getByRole("combobox", { name: /Energy fixture/ }), "zero");
+    expect(container.querySelector(".signal-stage")).toHaveAttribute("data-vfx-scenario", "zero");
+    expect(container.querySelectorAll("canvas[data-webgl-canvas]")).toHaveLength(1);
+    await user.click(screen.getByRole("button", { name: /Copy code|Copied/ }));
+    expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining("<VortexRings"));
+    expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining("twistAmount: 3.10"));
+
+    await user.click(screen.getByRole("button", { name: "Reset" }));
+    expect(screen.getByRole("button", { name: "Waveform" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
   it("keeps semantic seeking, regions, markers, and overlapping handles host-controlled", async () => {
     const user = userEvent.setup();
     render(<App />);

@@ -18,8 +18,11 @@ import {
   DEFAULT_EQUALIZER_GRID_CONFIG,
   DEFAULT_NEON_LINES_CONFIG,
   DEFAULT_PULSE_RING_CONFIG,
+  DEFAULT_RADIAL_SPIKES_CONFIG,
   DEFAULT_ROUNDED_WOBBLE_BARS_CONFIG,
   DEFAULT_SPECTRUM_BARS_VFX_CONFIG,
+  DEFAULT_TUNNEL_WAVES_CONFIG,
+  DEFAULT_VORTEX_RINGS_CONFIG,
   DEFAULT_WAVEFORM_RIBBON_CONFIG,
   DEFAULT_WAVEFORM_CONFIG,
   BUILTIN_RENDERER_CATALOG,
@@ -32,6 +35,8 @@ import {
   NEON_LINES_PRESETS,
   NeonLines,
   PulseRing,
+  RADIAL_SPIKES_PRESETS,
+  RadialSpikes,
   ROUNDED_WOBBLE_BARS_PRESETS,
   RecordedWaveformPlayer,
   RoundedWobbleBars,
@@ -42,6 +47,10 @@ import {
   SpectrumFrameDelay,
   SPECTRUM_BARS_VFX_PRESETS,
   SPECTRUM_CONTROL_DEFINITIONS,
+  TUNNEL_WAVES_PRESETS,
+  TunnelWaves,
+  VORTEX_RINGS_PRESETS,
+  VortexRings,
   Waveform,
   WaveformRibbon,
   WAVEFORM_RIBBON_PRESETS,
@@ -66,12 +75,15 @@ import {
   resolveMeterDynamicsConfig,
   resolveEqualizerGridConfig,
   resolveNeonLinesConfig,
+  resolveRadialSpikesConfig,
   resolveRoundedWobbleBarsConfig,
   resolveSpectrumBarsVfxConfig,
   resolveSpectrumConfig,
   resolveSpectrumDynamicsConfig,
   resolveSpectrumFrequencyRange,
   resolveVisualSyncOffset,
+  resolveTunnelWavesConfig,
+  resolveVortexRingsConfig,
   resolveWaveformRibbonConfig,
   useWaveformSession,
   useMicrophoneSource,
@@ -94,6 +106,8 @@ import {
   type NeonLinesPresetId,
   type PulseRingConfigInput,
   type PulseRingQuality,
+  type RadialSpikesConfig,
+  type RadialSpikesPresetId,
   type RoundedWobbleBarsConfig,
   type RoundedWobbleBarsPresetId,
   type SpectrumControlDefinition,
@@ -111,10 +125,14 @@ import {
   type SpectrumSmoothingMode,
   type SpectrumBarsVfxConfig,
   type SpectrumBarsVfxPresetId,
+  type TunnelWavesConfig,
+  type TunnelWavesPresetId,
   type VisualSyncCapability,
   type VfxMotion,
   type VfxQuality,
   type VfxRendererMode,
+  type VortexRingsConfig,
+  type VortexRingsPresetId,
   type WaveformSessionStatus,
   type WaveformRibbonConfig,
   type WaveformRibbonPresetId,
@@ -204,7 +222,26 @@ export default function App() {
   const [spectrumBarsVfxConfig, setSpectrumBarsVfxConfig] = useState<SpectrumBarsVfxConfig>(
     DEFAULT_SPECTRUM_BARS_VFX_CONFIG,
   );
+  const [radialSpikesPresetId, setRadialSpikesPresetId] = useState<RadialSpikesPresetId | "custom">(
+    RADIAL_SPIKES_PRESETS[0].id as RadialSpikesPresetId,
+  );
+  const [radialSpikesConfig, setRadialSpikesConfig] = useState<RadialSpikesConfig>(
+    DEFAULT_RADIAL_SPIKES_CONFIG,
+  );
+  const [tunnelWavesPresetId, setTunnelWavesPresetId] = useState<TunnelWavesPresetId | "custom">(
+    TUNNEL_WAVES_PRESETS[0].id as TunnelWavesPresetId,
+  );
+  const [tunnelWavesConfig, setTunnelWavesConfig] = useState<TunnelWavesConfig>(
+    DEFAULT_TUNNEL_WAVES_CONFIG,
+  );
+  const [vortexRingsPresetId, setVortexRingsPresetId] = useState<VortexRingsPresetId | "custom">(
+    VORTEX_RINGS_PRESETS[0].id as VortexRingsPresetId,
+  );
+  const [vortexRingsConfig, setVortexRingsConfig] = useState<VortexRingsConfig>(
+    DEFAULT_VORTEX_RINGS_CONFIG,
+  );
   const [vfxEnergyScenario, setVfxEnergyScenario] = useState<VfxEnergyScenario>("signal");
+  const [vfxBandScale, setVfxBandScale] = useState<SpectrumFrequencyScale>("log");
   const [sampleCount, setSampleCount] = useState(2048);
   const [amplitude, setAmplitude] = useState(DEFAULT_WAVEFORM_CONFIG.amplitude);
   const [lineWidth, setLineWidth] = useState(DEFAULT_WAVEFORM_CONFIG.lineWidth);
@@ -324,13 +361,19 @@ export default function App() {
   const isWaveformRibbonMode = visualMode === "waveform-ribbon";
   const isRoundedWobbleBarsMode = visualMode === "rounded-wobble-bars";
   const isSpectrumBarsVfxMode = visualMode === "spectrum-bars";
+  const isRadialSpikesMode = visualMode === "radial-spikes";
+  const isTunnelWavesMode = visualMode === "tunnel-waves";
+  const isVortexRingsMode = visualMode === "vortex-rings";
   const isVfxMode =
     isPulseRingMode ||
     isNeonLinesMode ||
     isEqualizerGridMode ||
     isWaveformRibbonMode ||
     isRoundedWobbleBarsMode ||
-    isSpectrumBarsVfxMode;
+    isSpectrumBarsVfxMode ||
+    isRadialSpikesMode ||
+    isTunnelWavesMode ||
+    isVortexRingsMode;
   const coreRenderer = renderer === "webgl2" ? "canvas2d" : renderer;
   const sessionSnapshot = useWaveformSession(session);
   const demoSource = useMemo(
@@ -456,10 +499,11 @@ export default function App() {
       vfxScenarioFrame(
         createBandEnergyFrameFromSpectrum(spectrumPresentation.frame, {
           bandCount: 8,
+          frequencyScale: vfxBandScale,
         }),
         vfxEnergyScenario,
       ),
-    [spectrumPresentation.frame, vfxEnergyScenario],
+    [spectrumPresentation.frame, vfxBandScale, vfxEnergyScenario],
   );
   const pulseRingConfig = useMemo<PulseRingConfigInput>(
     () => ({
@@ -499,7 +543,13 @@ export default function App() {
           ? waveformRibbonConfig.quality
           : isRoundedWobbleBarsMode
             ? roundedWobbleBarsConfig.quality
-            : spectrumBarsVfxConfig.quality;
+            : isSpectrumBarsVfxMode
+              ? spectrumBarsVfxConfig.quality
+              : isRadialSpikesMode
+                ? radialSpikesConfig.quality
+                : isTunnelWavesMode
+                  ? tunnelWavesConfig.quality
+                  : vortexRingsConfig.quality;
   const activeVfxMotion: VfxMotion = isPulseRingMode
     ? pulseRingMotion
     : isNeonLinesMode
@@ -510,7 +560,13 @@ export default function App() {
           ? waveformRibbonConfig.motion
           : isRoundedWobbleBarsMode
             ? roundedWobbleBarsConfig.motion
-            : spectrumBarsVfxConfig.motion;
+            : isSpectrumBarsVfxMode
+              ? spectrumBarsVfxConfig.motion
+              : isRadialSpikesMode
+                ? radialSpikesConfig.motion
+                : isTunnelWavesMode
+                  ? tunnelWavesConfig.motion
+                  : vortexRingsConfig.motion;
   const spectrumConfig = useMemo<SpectrumConfigInput>(
     () => ({
       barGap,
@@ -1061,7 +1117,14 @@ export default function App() {
     setRoundedWobbleBarsConfig(DEFAULT_ROUNDED_WOBBLE_BARS_CONFIG);
     setSpectrumBarsVfxPresetId(SPECTRUM_BARS_VFX_PRESETS[0].id as SpectrumBarsVfxPresetId);
     setSpectrumBarsVfxConfig(DEFAULT_SPECTRUM_BARS_VFX_CONFIG);
+    setRadialSpikesPresetId(RADIAL_SPIKES_PRESETS[0].id as RadialSpikesPresetId);
+    setRadialSpikesConfig(DEFAULT_RADIAL_SPIKES_CONFIG);
+    setTunnelWavesPresetId(TUNNEL_WAVES_PRESETS[0].id as TunnelWavesPresetId);
+    setTunnelWavesConfig(DEFAULT_TUNNEL_WAVES_CONFIG);
+    setVortexRingsPresetId(VORTEX_RINGS_PRESETS[0].id as VortexRingsPresetId);
+    setVortexRingsConfig(DEFAULT_VORTEX_RINGS_CONFIG);
     setVfxEnergyScenario("signal");
+    setVfxBandScale("log");
     setSampleCount(2048);
     setAmplitude(DEFAULT_WAVEFORM_CONFIG.amplitude);
     setLineWidth(DEFAULT_WAVEFORM_CONFIG.lineWidth);
@@ -1218,9 +1281,45 @@ export default function App() {
     setSpectrumBarsVfxConfig(next.config);
   };
 
+  const updateRadialSpikes = (patch: Partial<RadialSpikesConfig>) => {
+    setRadialSpikesConfig((current) => resolveRadialSpikesConfig({ ...current, ...patch }));
+    setRadialSpikesPresetId("custom");
+  };
+
+  const loadRadialSpikesPreset = (id: string) => {
+    const next = RADIAL_SPIKES_PRESETS.find((candidate) => candidate.id === id);
+    if (!next) return;
+    setRadialSpikesPresetId(next.id as RadialSpikesPresetId);
+    setRadialSpikesConfig(next.config);
+  };
+
+  const updateTunnelWaves = (patch: Partial<TunnelWavesConfig>) => {
+    setTunnelWavesConfig((current) => resolveTunnelWavesConfig({ ...current, ...patch }));
+    setTunnelWavesPresetId("custom");
+  };
+
+  const loadTunnelWavesPreset = (id: string) => {
+    const next = TUNNEL_WAVES_PRESETS.find((candidate) => candidate.id === id);
+    if (!next) return;
+    setTunnelWavesPresetId(next.id as TunnelWavesPresetId);
+    setTunnelWavesConfig(next.config);
+  };
+
+  const updateVortexRings = (patch: Partial<VortexRingsConfig>) => {
+    setVortexRingsConfig((current) => resolveVortexRingsConfig({ ...current, ...patch }));
+    setVortexRingsPresetId("custom");
+  };
+
+  const loadVortexRingsPreset = (id: string) => {
+    const next = VORTEX_RINGS_PRESETS.find((candidate) => candidate.id === id);
+    if (!next) return;
+    setVortexRingsPresetId(next.id as VortexRingsPresetId);
+    setVortexRingsConfig(next.config);
+  };
+
   const copyCode = async () => {
     const code = isPulseRingMode
-      ? `const bands = createBandEnergyFrameFromSpectrum(spectrum, { bandCount: 8 });
+      ? `const bands = createBandEnergyFrameFromSpectrum(spectrum, { bandCount: 8, frequencyScale: "${vfxBandScale}" });
 
 <PulseRing
   data={bands}
@@ -1241,7 +1340,7 @@ export default function App() {
   }}
 />`
       : isNeonLinesMode
-        ? `const bands = createBandEnergyFrameFromSpectrum(spectrum, { bandCount: 8 });
+        ? `const bands = createBandEnergyFrameFromSpectrum(spectrum, { bandCount: 8, frequencyScale: "${vfxBandScale}" });
 
 <NeonLines
   data={bands}
@@ -1263,7 +1362,7 @@ export default function App() {
   }}
 />`
         : isEqualizerGridMode
-          ? `const bands = createBandEnergyFrameFromSpectrum(spectrum, { bandCount: 8 });
+          ? `const bands = createBandEnergyFrameFromSpectrum(spectrum, { bandCount: 8, frequencyScale: "${vfxBandScale}" });
 
 <EqualizerGrid
   data={bands}
@@ -1285,7 +1384,7 @@ export default function App() {
   }}
 />`
           : isWaveformRibbonMode
-            ? `const bands = createBandEnergyFrameFromSpectrum(spectrum, { bandCount: 8 });
+            ? `const bands = createBandEnergyFrameFromSpectrum(spectrum, { bandCount: 8, frequencyScale: "${vfxBandScale}" });
 
 <WaveformRibbon
   data={bands}
@@ -1307,7 +1406,7 @@ export default function App() {
   }}
 />`
             : isRoundedWobbleBarsMode
-              ? `const bands = createBandEnergyFrameFromSpectrum(spectrum, { bandCount: 8 });
+              ? `const bands = createBandEnergyFrameFromSpectrum(spectrum, { bandCount: 8, frequencyScale: "${vfxBandScale}" });
 
 <RoundedWobbleBars
   data={bands}
@@ -1329,7 +1428,7 @@ export default function App() {
   }}
 />`
               : isSpectrumBarsVfxMode
-                ? `const bands = createBandEnergyFrameFromSpectrum(spectrum, { bandCount: 8 });
+                ? `const bands = createBandEnergyFrameFromSpectrum(spectrum, { bandCount: 8, frequencyScale: "${vfxBandScale}" });
 
 <SpectrumBars
   data={bands}
@@ -1351,8 +1450,74 @@ export default function App() {
     gradientColor4: "${spectrumBarsVfxConfig.gradientColor4}"
   }}
 />`
-                : isMeterMode
-                  ? `const meter = createMeterDynamicsProcessor();
+                : isRadialSpikesMode
+                  ? `const bands = createBandEnergyFrameFromSpectrum(spectrum, { bandCount: 8, frequencyScale: "${vfxBandScale}" });
+
+<RadialSpikes
+  data={bands}
+  config={{
+    renderer: "webgl2",
+    mode: "radial-spikes",
+    backgroundColor: "${radialSpikesConfig.backgroundColor}",
+    spikeCount: ${radialSpikesConfig.spikeCount},
+    baseRadius: ${radialSpikesConfig.baseRadius.toFixed(2)},
+    spikeHeight: ${radialSpikesConfig.spikeHeight.toFixed(2)},
+    spikeWidth: ${radialSpikesConfig.spikeWidth.toFixed(2)},
+    arcDegrees: ${radialSpikesConfig.arcDegrees},
+    rotationDegrees: ${radialSpikesConfig.rotationDegrees},
+    energyReactivity: ${radialSpikesConfig.energyReactivity.toFixed(2)},
+    glowStrength: ${radialSpikesConfig.glowStrength.toFixed(2)},
+    motion: "${radialSpikesConfig.motion}",
+    quality: "${radialSpikesConfig.quality}",
+    baseColor: "${radialSpikesConfig.baseColor}",
+    tipColor: "${radialSpikesConfig.tipColor}"
+  }}
+/>`
+                  : isTunnelWavesMode
+                    ? `const bands = createBandEnergyFrameFromSpectrum(spectrum, { bandCount: 8, frequencyScale: "${vfxBandScale}" });
+
+<TunnelWaves
+  data={bands}
+  config={{
+    renderer: "webgl2",
+    mode: "tunnel-waves",
+    backgroundColor: "${tunnelWavesConfig.backgroundColor}",
+    ringDensity: ${tunnelWavesConfig.ringDensity},
+    tunnelSpeed: ${tunnelWavesConfig.tunnelSpeed.toFixed(2)},
+    tunnelDepth: ${tunnelWavesConfig.tunnelDepth.toFixed(2)},
+    energyReactivity: ${tunnelWavesConfig.energyReactivity.toFixed(2)},
+    glowStrength: ${tunnelWavesConfig.glowStrength.toFixed(2)},
+    motion: "${tunnelWavesConfig.motion}",
+    quality: "${tunnelWavesConfig.quality}",
+    centerColor: "${tunnelWavesConfig.centerColor}",
+    midColor: "${tunnelWavesConfig.midColor}",
+    outerColor: "${tunnelWavesConfig.outerColor}"
+  }}
+/>`
+                    : isVortexRingsMode
+                      ? `const bands = createBandEnergyFrameFromSpectrum(spectrum, { bandCount: 8, frequencyScale: "${vfxBandScale}" });
+
+<VortexRings
+  data={bands}
+  config={{
+    renderer: "webgl2",
+    mode: "vortex-rings",
+    backgroundColor: "${vortexRingsConfig.backgroundColor}",
+    twistAmount: ${vortexRingsConfig.twistAmount.toFixed(2)},
+    spinSpeed: ${vortexRingsConfig.spinSpeed.toFixed(2)},
+    ringDensity: ${vortexRingsConfig.ringDensity},
+    vortexRadius: ${vortexRingsConfig.vortexRadius.toFixed(2)},
+    energyReactivity: ${vortexRingsConfig.energyReactivity.toFixed(2)},
+    glowStrength: ${vortexRingsConfig.glowStrength.toFixed(2)},
+    motion: "${vortexRingsConfig.motion}",
+    quality: "${vortexRingsConfig.quality}",
+    primaryColor: "${vortexRingsConfig.primaryColor}",
+    secondaryColor: "${vortexRingsConfig.secondaryColor}",
+    accentColor: "${vortexRingsConfig.accentColor}"
+  }}
+/>`
+                      : isMeterMode
+                        ? `const meter = createMeterDynamicsProcessor();
 const result = meter.process(
   analyzeMeter(samples, {
     channelMode: "${channelMode}",
@@ -1390,11 +1555,11 @@ const result = meter.process(
     showHistory: ${showMeterHistory}
   }}
 />`
-                  : visualMode === "spectrum"
-                    ? `const dynamics = createSpectrumDynamicsProcessor();\n\n<Spectrum\n  data={dynamics.process(\n    analyzeSpectrum(samples, {\n      sampleRate: ${sampleRate},\n      fftSize: ${spectrumAnalysis.fftSize},\n      allowLargeFft: ${spectrumAnalysis.allowLargeFft},\n      window: "${spectrumAnalysis.window}",\n      powerOfSineExponent: ${spectrumAnalysis.powerOfSineExponent},\n      minimumDecibels: ${spectrumAnalysis.minimumDecibels},\n      maximumDecibels: ${spectrumAnalysis.maximumDecibels}\n    }),\n    {\n      smoothingMode: "${dynamicsSettings.smoothingMode}",\n      smoothingFactor: ${dynamicsSettings.smoothingFactor},\n      attackMs: ${dynamicsSettings.attackMs},\n      releaseMs: ${dynamicsSettings.releaseMs},\n      inertiaMs: ${dynamicsSettings.inertiaMs},\n      fastPeaks: ${dynamicsSettings.fastPeaks},\n      normalizationEnabled: ${dynamicsSettings.normalizationEnabled},\n      normalizationTargetDb: ${dynamicsSettings.normalizationTargetDb},\n      normalizationMaxGainDb: ${dynamicsSettings.normalizationMaxGainDb},\n      gaussianRadius: ${dynamicsSettings.gaussianRadius},\n      highFrequencySlopeDbPerOctave: ${dynamicsSettings.highFrequencySlopeDbPerOctave},\n      rolloffBandwidthHz: ${dynamicsSettings.rolloffBandwidthHz},\n      rolloffAttenuationDb: ${dynamicsSettings.rolloffAttenuationDb}\n    },\n    { timestampMs: performance.now(), sourceState: "ready" }\n  ).frame}\n  config={{\n    renderer: "canvas2d",\n    mode: "spectrum",\n    geometry: "${spectrumGeometry}",\n    layout: "${spectrumLayout}",\n    radialInvert: ${radialInvert},\n    radialDeadzone: ${radialDeadzone.toFixed(2)},\n    radialArc: ${radialArc},\n    radialRotation: ${radialRotation},\n    roundedCaps: ${roundedCaps},\n    cornerRadius: ${cornerRadius},\n    frequencyScale: "${frequencyScale}",\n    lowFrequency: ${lowFrequency},\n    highFrequency: ${highFrequency},\n    minimumDecibels: ${minimumDecibels},\n    maximumDecibels: ${maximumDecibels},\n    interpolation: "${spectrumInterpolation}",\n    lineWidth: ${lineWidth},\n    barWidth: ${barWidth},\n    barGap: ${barGap},\n    colorMode: "${spectrumColorMode}",\n    pulseMode: "${spectrumPulseMode}",\n    colorRoles: {\n      base: { color: "${signalColor}", alpha: ${baseAlpha.toFixed(2)} },\n      middle: { color: "${middleColor}", alpha: ${middleAlpha.toFixed(2)} },\n      crest: { color: "${crestColor}", alpha: ${crestAlpha.toFixed(2)} },\n      accent: { color: "${accentColor}", alpha: ${accentAlpha.toFixed(2)} }\n    },\n    gradientRatio: ${gradientRatio.toFixed(2)},\n    middleDecibels: ${middleDecibels},\n    crestDecibels: ${crestDecibels},\n    showGrid: ${showSpectrumGrid}\n  }}\n/>`
-                    : visualMode === "envelope"
-                      ? `<Envelope\n  data={magnitudes}\n  ${timeDomainSizing === "fixed" ? `width={${fixedTimeDomainWidth}}\n  ` : ""}config={{\n    renderer: "canvas2d",\n    mode: "envelope",\n    channelMode: "${channelMode}",${channelMode === "single" ? `\n    channelIndex: ${channelIndex},` : ""}\n    channelLayout: "${channelLayout}",\n    channelGap: ${channelGap},\n    amplitudePlacement: "${envelopePlacement}",\n    orientation: "${orientation}",\n    amplitude: ${amplitude.toFixed(2)},\n    lineWidth: ${lineWidth.toFixed(1)},\n    color: "${signalColor}",\n    showCenterLine: ${showCenterLine}\n  }}\n/>`
-                      : `<Waveform\n  data={channels}\n  ${timeDomainSizing === "fixed" ? `width={${fixedTimeDomainWidth}}\n  ` : ""}config={{\n    renderer: "canvas2d",\n    mode: "waveform",\n    channelMode: "${channelMode}",${channelMode === "single" ? `\n    channelIndex: ${channelIndex},` : ""}\n    channelLayout: "${channelLayout}",\n    channelGap: ${channelGap},\n    amplitudePlacement: "${waveformPlacement}",\n    orientation: "${orientation}",\n    amplitude: ${amplitude.toFixed(2)},\n    lineWidth: ${lineWidth.toFixed(1)},\n    color: "${signalColor}",\n    showCenterLine: ${showCenterLine}\n  }}\n/>`;
+                        : visualMode === "spectrum"
+                          ? `const dynamics = createSpectrumDynamicsProcessor();\n\n<Spectrum\n  data={dynamics.process(\n    analyzeSpectrum(samples, {\n      sampleRate: ${sampleRate},\n      fftSize: ${spectrumAnalysis.fftSize},\n      allowLargeFft: ${spectrumAnalysis.allowLargeFft},\n      window: "${spectrumAnalysis.window}",\n      powerOfSineExponent: ${spectrumAnalysis.powerOfSineExponent},\n      minimumDecibels: ${spectrumAnalysis.minimumDecibels},\n      maximumDecibels: ${spectrumAnalysis.maximumDecibels}\n    }),\n    {\n      smoothingMode: "${dynamicsSettings.smoothingMode}",\n      smoothingFactor: ${dynamicsSettings.smoothingFactor},\n      attackMs: ${dynamicsSettings.attackMs},\n      releaseMs: ${dynamicsSettings.releaseMs},\n      inertiaMs: ${dynamicsSettings.inertiaMs},\n      fastPeaks: ${dynamicsSettings.fastPeaks},\n      normalizationEnabled: ${dynamicsSettings.normalizationEnabled},\n      normalizationTargetDb: ${dynamicsSettings.normalizationTargetDb},\n      normalizationMaxGainDb: ${dynamicsSettings.normalizationMaxGainDb},\n      gaussianRadius: ${dynamicsSettings.gaussianRadius},\n      highFrequencySlopeDbPerOctave: ${dynamicsSettings.highFrequencySlopeDbPerOctave},\n      rolloffBandwidthHz: ${dynamicsSettings.rolloffBandwidthHz},\n      rolloffAttenuationDb: ${dynamicsSettings.rolloffAttenuationDb}\n    },\n    { timestampMs: performance.now(), sourceState: "ready" }\n  ).frame}\n  config={{\n    renderer: "canvas2d",\n    mode: "spectrum",\n    geometry: "${spectrumGeometry}",\n    layout: "${spectrumLayout}",\n    radialInvert: ${radialInvert},\n    radialDeadzone: ${radialDeadzone.toFixed(2)},\n    radialArc: ${radialArc},\n    radialRotation: ${radialRotation},\n    roundedCaps: ${roundedCaps},\n    cornerRadius: ${cornerRadius},\n    frequencyScale: "${frequencyScale}",\n    lowFrequency: ${lowFrequency},\n    highFrequency: ${highFrequency},\n    minimumDecibels: ${minimumDecibels},\n    maximumDecibels: ${maximumDecibels},\n    interpolation: "${spectrumInterpolation}",\n    lineWidth: ${lineWidth},\n    barWidth: ${barWidth},\n    barGap: ${barGap},\n    colorMode: "${spectrumColorMode}",\n    pulseMode: "${spectrumPulseMode}",\n    colorRoles: {\n      base: { color: "${signalColor}", alpha: ${baseAlpha.toFixed(2)} },\n      middle: { color: "${middleColor}", alpha: ${middleAlpha.toFixed(2)} },\n      crest: { color: "${crestColor}", alpha: ${crestAlpha.toFixed(2)} },\n      accent: { color: "${accentColor}", alpha: ${accentAlpha.toFixed(2)} }\n    },\n    gradientRatio: ${gradientRatio.toFixed(2)},\n    middleDecibels: ${middleDecibels},\n    crestDecibels: ${crestDecibels},\n    showGrid: ${showSpectrumGrid}\n  }}\n/>`
+                          : visualMode === "envelope"
+                            ? `<Envelope\n  data={magnitudes}\n  ${timeDomainSizing === "fixed" ? `width={${fixedTimeDomainWidth}}\n  ` : ""}config={{\n    renderer: "canvas2d",\n    mode: "envelope",\n    channelMode: "${channelMode}",${channelMode === "single" ? `\n    channelIndex: ${channelIndex},` : ""}\n    channelLayout: "${channelLayout}",\n    channelGap: ${channelGap},\n    amplitudePlacement: "${envelopePlacement}",\n    orientation: "${orientation}",\n    amplitude: ${amplitude.toFixed(2)},\n    lineWidth: ${lineWidth.toFixed(1)},\n    color: "${signalColor}",\n    showCenterLine: ${showCenterLine}\n  }}\n/>`
+                            : `<Waveform\n  data={channels}\n  ${timeDomainSizing === "fixed" ? `width={${fixedTimeDomainWidth}}\n  ` : ""}config={{\n    renderer: "canvas2d",\n    mode: "waveform",\n    channelMode: "${channelMode}",${channelMode === "single" ? `\n    channelIndex: ${channelIndex},` : ""}\n    channelLayout: "${channelLayout}",\n    channelGap: ${channelGap},\n    amplitudePlacement: "${waveformPlacement}",\n    orientation: "${orientation}",\n    amplitude: ${amplitude.toFixed(2)},\n    lineWidth: ${lineWidth.toFixed(1)},\n    color: "${signalColor}",\n    showCenterLine: ${showCenterLine}\n  }}\n/>`;
     const rendererCode = isVfxMode
       ? code
       : code.includes("renderer:")
@@ -1594,11 +1759,35 @@ const result = meter.process(
                       data={vfxFrame}
                       height="100%"
                     />
-                  ) : (
+                  ) : isSpectrumBarsVfxMode ? (
                     <SpectrumBars
                       ariaLabel={`${microphoneSource ? "Live microphone" : preset.label} audio-reactive Spectrum Bars preview`}
                       className="primary-waveform"
                       config={spectrumBarsVfxConfig}
+                      data={vfxFrame}
+                      height="100%"
+                    />
+                  ) : isRadialSpikesMode ? (
+                    <RadialSpikes
+                      ariaLabel={`${microphoneSource ? "Live microphone" : preset.label} audio-reactive Radial Spikes preview`}
+                      className="primary-waveform"
+                      config={radialSpikesConfig}
+                      data={vfxFrame}
+                      height="100%"
+                    />
+                  ) : isTunnelWavesMode ? (
+                    <TunnelWaves
+                      ariaLabel={`${microphoneSource ? "Live microphone" : preset.label} audio-reactive Tunnel Waves preview`}
+                      className="primary-waveform"
+                      config={tunnelWavesConfig}
+                      data={vfxFrame}
+                      height="100%"
+                    />
+                  ) : (
+                    <VortexRings
+                      ariaLabel={`${microphoneSource ? "Live microphone" : preset.label} audio-reactive Vortex Rings preview`}
+                      className="primary-waveform"
+                      config={vortexRingsConfig}
                       data={vfxFrame}
                       height="100%"
                     />
@@ -1881,15 +2070,21 @@ const result = meter.process(
                           ? `${roundedWobbleBarsConfig.barCount} BARS · ${roundedWobbleBarsConfig.mirrorVertically ? "MIRRORED" : "BASELINE"} · GAP ${roundedWobbleBarsConfig.barGap.toFixed(2)}`
                           : isSpectrumBarsVfxMode
                             ? `${spectrumBarsVfxConfig.barCount} BARS · BASELINE ${spectrumBarsVfxConfig.verticalPosition.toFixed(2)} · GAP ${spectrumBarsVfxConfig.gapSize.toFixed(2)}`
-                            : visualMode === "spectrum"
-                              ? spectrumPresentation.result
-                                ? `PEAK ${spectrumPresentation.result.peakDb.toFixed(1)} dBFS · ${spectrumPresentation.result.reacting ? "REACTING" : "IDLE"}`
-                                : "DYNAMICS INITIALIZING"
-                              : isMeterMode
-                                ? `${meterMeasurement.toUpperCase()} ${meterPresentation.frame.channels[0]?.[meterMeasurement === "rms" ? "rmsDbfs" : "peakDbfs"].toFixed(1) ?? meterMinimumDecibels} dBFS · ${meterPresentation.peaking ? "PEAKING" : meterPresentation.reacting ? "REACTING" : "IDLE"}`
-                                : visualMode === "envelope"
-                                  ? "MAGNITUDE 0…1 · POLARITY SEPARATE"
-                                  : "SIGNED −1…+1 · POLARITY PRESERVED"}
+                            : isRadialSpikesMode
+                              ? `${radialSpikesConfig.spikeCount} SPIKES · ARC ${radialSpikesConfig.arcDegrees}° · RADIUS ${radialSpikesConfig.baseRadius.toFixed(2)}`
+                              : isTunnelWavesMode
+                                ? `${tunnelWavesConfig.ringDensity} RINGS · DEPTH ${tunnelWavesConfig.tunnelDepth.toFixed(2)} · SPEED ${tunnelWavesConfig.tunnelSpeed.toFixed(2)}`
+                                : isVortexRingsMode
+                                  ? `${vortexRingsConfig.ringDensity} RINGS · TWIST ${vortexRingsConfig.twistAmount.toFixed(2)} · RADIUS ${vortexRingsConfig.vortexRadius.toFixed(2)}`
+                                  : visualMode === "spectrum"
+                                    ? spectrumPresentation.result
+                                      ? `PEAK ${spectrumPresentation.result.peakDb.toFixed(1)} dBFS · ${spectrumPresentation.result.reacting ? "REACTING" : "IDLE"}`
+                                      : "DYNAMICS INITIALIZING"
+                                    : isMeterMode
+                                      ? `${meterMeasurement.toUpperCase()} ${meterPresentation.frame.channels[0]?.[meterMeasurement === "rms" ? "rmsDbfs" : "peakDbfs"].toFixed(1) ?? meterMinimumDecibels} dBFS · ${meterPresentation.peaking ? "PEAKING" : meterPresentation.reacting ? "REACTING" : "IDLE"}`
+                                      : visualMode === "envelope"
+                                        ? "MAGNITUDE 0…1 · POLARITY SEPARATE"
+                                        : "SIGNED −1…+1 · POLARITY PRESERVED"}
               </span>
               <span>
                 {isPulseRingMode
@@ -2182,6 +2377,39 @@ const result = meter.process(
                 onClick={() => setVisualMode("spectrum-bars")}
               >
                 Spectrum Bars VFX
+              </button>
+              <button
+                type="button"
+                aria-describedby={
+                  recordedSource ? "time-domain-source-limit" : "renderer-support-note"
+                }
+                aria-pressed={visualMode === "radial-spikes"}
+                disabled={Boolean(recordedSource) || renderer !== "webgl2"}
+                onClick={() => setVisualMode("radial-spikes")}
+              >
+                Radial Spikes
+              </button>
+              <button
+                type="button"
+                aria-describedby={
+                  recordedSource ? "time-domain-source-limit" : "renderer-support-note"
+                }
+                aria-pressed={visualMode === "tunnel-waves"}
+                disabled={Boolean(recordedSource) || renderer !== "webgl2"}
+                onClick={() => setVisualMode("tunnel-waves")}
+              >
+                Tunnel Waves
+              </button>
+              <button
+                type="button"
+                aria-describedby={
+                  recordedSource ? "time-domain-source-limit" : "renderer-support-note"
+                }
+                aria-pressed={visualMode === "vortex-rings"}
+                disabled={Boolean(recordedSource) || renderer !== "webgl2"}
+                onClick={() => setVisualMode("vortex-rings")}
+              >
+                Vortex Rings
               </button>
             </div>
             <SelectControl
@@ -2829,20 +3057,35 @@ const result = meter.process(
 
           <ControlSection title="Geometry">
             {isVfxMode ? (
-              <SelectControl
-                definition={{
-                  description:
-                    "Deterministic energy input for normal, silent, and hostile-overload proof.",
-                  label: "Energy fixture",
-                  options: [
-                    { label: "Signal · analyzed bands", value: "signal" },
-                    { label: "Zero · silent bands", value: "zero" },
-                    { label: "Overload · clipped bounds", value: "overload" },
-                  ],
-                }}
-                value={vfxEnergyScenario}
-                onChange={(value) => setVfxEnergyScenario(value as VfxEnergyScenario)}
-              />
+              <>
+                <SelectControl
+                  definition={{
+                    description:
+                      "Deterministic energy input for normal, silent, and hostile-overload proof.",
+                    label: "Energy fixture",
+                    options: [
+                      { label: "Signal · analyzed bands", value: "signal" },
+                      { label: "Zero · silent bands", value: "zero" },
+                      { label: "Overload · clipped bounds", value: "overload" },
+                    ],
+                  }}
+                  value={vfxEnergyScenario}
+                  onChange={(value) => setVfxEnergyScenario(value as VfxEnergyScenario)}
+                />
+                <SelectControl
+                  definition={{
+                    description:
+                      "Build ordered VFX bands from logarithmic musical spacing or equal-width frequency intervals.",
+                    label: "Band spacing",
+                    options: [
+                      { label: "Logarithmic", value: "log" },
+                      { label: "Linear", value: "linear" },
+                    ],
+                  }}
+                  value={vfxBandScale}
+                  onChange={(value) => setVfxBandScale(value as SpectrumFrequencyScale)}
+                />
+              </>
             ) : null}
             {isPulseRingMode ? (
               <>
@@ -3417,6 +3660,321 @@ const result = meter.process(
                 <p className="control-note">
                   Procedural O(1) addressing · maximum 96 bars · 16 ordered bands · no density-sized
                   buffers or textures.
+                </p>
+              </>
+            ) : isRadialSpikesMode ? (
+              <>
+                <SelectControl
+                  definition={{
+                    description: "Load an immutable, fully specified Radial Spikes configuration.",
+                    label: "VFX preset",
+                    options: [
+                      ...RADIAL_SPIKES_PRESETS.map((candidate) => ({
+                        label: candidate.label,
+                        value: candidate.id,
+                      })),
+                      { disabled: true, label: "Custom", value: "custom" },
+                    ],
+                  }}
+                  value={radialSpikesPresetId}
+                  onChange={loadRadialSpikesPreset}
+                />
+                <RangeControl
+                  label="Spike count"
+                  min={4}
+                  max={128}
+                  step={1}
+                  value={radialSpikesConfig.spikeCount}
+                  valueLabel={`${radialSpikesConfig.spikeCount} spikes`}
+                  onChange={(spikeCount) => updateRadialSpikes({ spikeCount })}
+                />
+                <RangeControl
+                  label="Base radius"
+                  min={0.12}
+                  max={0.62}
+                  step={0.01}
+                  value={radialSpikesConfig.baseRadius}
+                  valueLabel={`${Math.round(radialSpikesConfig.baseRadius * 100)}% half-stage`}
+                  onChange={(baseRadius) => updateRadialSpikes({ baseRadius })}
+                />
+                <RangeControl
+                  label="Spike height"
+                  min={0.02}
+                  max={Math.min(0.6, 0.92 - radialSpikesConfig.baseRadius)}
+                  step={0.01}
+                  value={radialSpikesConfig.spikeHeight}
+                  valueLabel={`${Math.round(radialSpikesConfig.spikeHeight * 100)}% half-stage`}
+                  onChange={(spikeHeight) => updateRadialSpikes({ spikeHeight })}
+                />
+                <RangeControl
+                  label="Spike width"
+                  min={0.08}
+                  max={0.92}
+                  step={0.01}
+                  value={radialSpikesConfig.spikeWidth}
+                  valueLabel={`${Math.round(radialSpikesConfig.spikeWidth * 100)}% cell`}
+                  onChange={(spikeWidth) => updateRadialSpikes({ spikeWidth })}
+                />
+                <RangeControl
+                  label="Arc"
+                  min={30}
+                  max={360}
+                  step={1}
+                  value={radialSpikesConfig.arcDegrees}
+                  valueLabel={`${radialSpikesConfig.arcDegrees}°`}
+                  onChange={(arcDegrees) => updateRadialSpikes({ arcDegrees })}
+                />
+                <RangeControl
+                  label="Rotation"
+                  min={-180}
+                  max={180}
+                  step={1}
+                  value={radialSpikesConfig.rotationDegrees}
+                  valueLabel={`${radialSpikesConfig.rotationDegrees}°`}
+                  onChange={(rotationDegrees) => updateRadialSpikes({ rotationDegrees })}
+                />
+                <RangeControl
+                  label="Energy reactivity"
+                  min={0}
+                  max={2}
+                  step={0.05}
+                  value={radialSpikesConfig.energyReactivity}
+                  valueLabel={`${radialSpikesConfig.energyReactivity.toFixed(2)}×`}
+                  onChange={(energyReactivity) => updateRadialSpikes({ energyReactivity })}
+                />
+                <RangeControl
+                  label="Glow strength"
+                  min={0}
+                  max={3}
+                  step={0.05}
+                  value={radialSpikesConfig.glowStrength}
+                  valueLabel={`${radialSpikesConfig.glowStrength.toFixed(2)}×`}
+                  onChange={(glowStrength) => updateRadialSpikes({ glowStrength })}
+                />
+                <SelectControl
+                  definition={{
+                    description: "Follow the OS preference, animate brightness, or freeze phase.",
+                    label: "Motion",
+                    options: [
+                      { label: "Auto · follow system", value: "auto" },
+                      { label: "Full · animate", value: "full" },
+                      { label: "Reduced · static", value: "reduced" },
+                    ],
+                  }}
+                  value={radialSpikesConfig.motion}
+                  onChange={(motion) => updateRadialSpikes({ motion: motion as VfxMotion })}
+                />
+                <SelectControl
+                  definition={{
+                    description: "Cap DPR before absolute dimension and pixel ceilings.",
+                    label: "GPU quality",
+                    options: [
+                      { label: "Low · 1× cap", value: "low" },
+                      { label: "Balanced · 1.5× cap", value: "balanced" },
+                      { label: "High · 2× cap", value: "high" },
+                    ],
+                  }}
+                  value={radialSpikesConfig.quality}
+                  onChange={(quality) => updateRadialSpikes({ quality: quality as VfxQuality })}
+                />
+                <p className="control-note">
+                  Procedural angular addressing · maximum 128 spikes · combined reach capped at 0.92
+                  half-stage · 16 ordered bands · no density-sized buffers or textures.
+                </p>
+              </>
+            ) : isTunnelWavesMode ? (
+              <>
+                <SelectControl
+                  definition={{
+                    description: "Load an immutable, fully specified Tunnel Waves configuration.",
+                    label: "VFX preset",
+                    options: [
+                      ...TUNNEL_WAVES_PRESETS.map((candidate) => ({
+                        label: candidate.label,
+                        value: candidate.id,
+                      })),
+                      { disabled: true, label: "Custom", value: "custom" },
+                    ],
+                  }}
+                  value={tunnelWavesPresetId}
+                  onChange={loadTunnelWavesPreset}
+                />
+                <RangeControl
+                  label="Ring density"
+                  min={3}
+                  max={48}
+                  step={1}
+                  value={tunnelWavesConfig.ringDensity}
+                  valueLabel={`${tunnelWavesConfig.ringDensity} rings`}
+                  onChange={(ringDensity) => updateTunnelWaves({ ringDensity })}
+                />
+                <RangeControl
+                  label="Tunnel speed"
+                  min={-2}
+                  max={2}
+                  step={0.05}
+                  value={tunnelWavesConfig.tunnelSpeed}
+                  valueLabel={`${tunnelWavesConfig.tunnelSpeed.toFixed(2)} cycles/s`}
+                  onChange={(tunnelSpeed) => updateTunnelWaves({ tunnelSpeed })}
+                />
+                <RangeControl
+                  label="Tunnel depth"
+                  min={0.1}
+                  max={1}
+                  step={0.01}
+                  value={tunnelWavesConfig.tunnelDepth}
+                  valueLabel={`${Math.round(tunnelWavesConfig.tunnelDepth * 100)}%`}
+                  onChange={(tunnelDepth) => updateTunnelWaves({ tunnelDepth })}
+                />
+                <RangeControl
+                  label="Energy reactivity"
+                  min={0}
+                  max={2}
+                  step={0.05}
+                  value={tunnelWavesConfig.energyReactivity}
+                  valueLabel={`${tunnelWavesConfig.energyReactivity.toFixed(2)}×`}
+                  onChange={(energyReactivity) => updateTunnelWaves({ energyReactivity })}
+                />
+                <RangeControl
+                  label="Glow strength"
+                  min={0}
+                  max={3}
+                  step={0.05}
+                  value={tunnelWavesConfig.glowStrength}
+                  valueLabel={`${tunnelWavesConfig.glowStrength.toFixed(2)}×`}
+                  onChange={(glowStrength) => updateTunnelWaves({ glowStrength })}
+                />
+                <SelectControl
+                  definition={{
+                    description: "Follow the OS preference, travel, or freeze the tunnel phase.",
+                    label: "Motion",
+                    options: [
+                      { label: "Auto · follow system", value: "auto" },
+                      { label: "Full · animate", value: "full" },
+                      { label: "Reduced · static", value: "reduced" },
+                    ],
+                  }}
+                  value={tunnelWavesConfig.motion}
+                  onChange={(motion) => updateTunnelWaves({ motion: motion as VfxMotion })}
+                />
+                <SelectControl
+                  definition={{
+                    description: "Cap DPR before absolute dimension and pixel ceilings.",
+                    label: "GPU quality",
+                    options: [
+                      { label: "Low · 1× cap", value: "low" },
+                      { label: "Balanced · 1.5× cap", value: "balanced" },
+                      { label: "High · 2× cap", value: "high" },
+                    ],
+                  }}
+                  value={tunnelWavesConfig.quality}
+                  onChange={(quality) => updateTunnelWaves({ quality: quality as VfxQuality })}
+                />
+                <p className="control-note">
+                  Perspective field with maximum 48 procedural intervals · radial band order stays
+                  fixed while phase travels · no density-sized buffers or textures.
+                </p>
+              </>
+            ) : isVortexRingsMode ? (
+              <>
+                <SelectControl
+                  definition={{
+                    description: "Load an immutable, fully specified Vortex Rings configuration.",
+                    label: "VFX preset",
+                    options: [
+                      ...VORTEX_RINGS_PRESETS.map((candidate) => ({
+                        label: candidate.label,
+                        value: candidate.id,
+                      })),
+                      { disabled: true, label: "Custom", value: "custom" },
+                    ],
+                  }}
+                  value={vortexRingsPresetId}
+                  onChange={loadVortexRingsPreset}
+                />
+                <RangeControl
+                  label="Twist amount"
+                  min={-4}
+                  max={4}
+                  step={0.05}
+                  value={vortexRingsConfig.twistAmount}
+                  valueLabel={`${vortexRingsConfig.twistAmount.toFixed(2)} turns`}
+                  onChange={(twistAmount) => updateVortexRings({ twistAmount })}
+                />
+                <RangeControl
+                  label="Spin speed"
+                  min={-2}
+                  max={2}
+                  step={0.05}
+                  value={vortexRingsConfig.spinSpeed}
+                  valueLabel={`${vortexRingsConfig.spinSpeed.toFixed(2)} cycles/s`}
+                  onChange={(spinSpeed) => updateVortexRings({ spinSpeed })}
+                />
+                <RangeControl
+                  label="Ring density"
+                  min={3}
+                  max={48}
+                  step={1}
+                  value={vortexRingsConfig.ringDensity}
+                  valueLabel={`${vortexRingsConfig.ringDensity} rings`}
+                  onChange={(ringDensity) => updateVortexRings({ ringDensity })}
+                />
+                <RangeControl
+                  label="Vortex radius"
+                  min={0.25}
+                  max={0.95}
+                  step={0.01}
+                  value={vortexRingsConfig.vortexRadius}
+                  valueLabel={`${Math.round(vortexRingsConfig.vortexRadius * 100)}% half-stage`}
+                  onChange={(vortexRadius) => updateVortexRings({ vortexRadius })}
+                />
+                <RangeControl
+                  label="Energy reactivity"
+                  min={0}
+                  max={2}
+                  step={0.05}
+                  value={vortexRingsConfig.energyReactivity}
+                  valueLabel={`${vortexRingsConfig.energyReactivity.toFixed(2)}×`}
+                  onChange={(energyReactivity) => updateVortexRings({ energyReactivity })}
+                />
+                <RangeControl
+                  label="Glow strength"
+                  min={0}
+                  max={3}
+                  step={0.05}
+                  value={vortexRingsConfig.glowStrength}
+                  valueLabel={`${vortexRingsConfig.glowStrength.toFixed(2)}×`}
+                  onChange={(glowStrength) => updateVortexRings({ glowStrength })}
+                />
+                <SelectControl
+                  definition={{
+                    description: "Follow the OS preference, spin, or freeze the spiral phase.",
+                    label: "Motion",
+                    options: [
+                      { label: "Auto · follow system", value: "auto" },
+                      { label: "Full · animate", value: "full" },
+                      { label: "Reduced · static", value: "reduced" },
+                    ],
+                  }}
+                  value={vortexRingsConfig.motion}
+                  onChange={(motion) => updateVortexRings({ motion: motion as VfxMotion })}
+                />
+                <SelectControl
+                  definition={{
+                    description: "Cap DPR before absolute dimension and pixel ceilings.",
+                    label: "GPU quality",
+                    options: [
+                      { label: "Low · 1× cap", value: "low" },
+                      { label: "Balanced · 1.5× cap", value: "balanced" },
+                      { label: "High · 2× cap", value: "high" },
+                    ],
+                  }}
+                  value={vortexRingsConfig.quality}
+                  onChange={(quality) => updateVortexRings({ quality: quality as VfxQuality })}
+                />
+                <p className="control-note">
+                  Seam-free periodic angular warp · maximum 48 spiral intervals · stable
+                  center-to-edge bands · no density-sized buffers or textures.
                 </p>
               </>
             ) : visualMode === "spectrum" ? (
@@ -4082,6 +4640,82 @@ const result = meter.process(
                 <p className="control-note">
                   Ordered bar position traverses all four gradient roles; peak energy reinforces the
                   fourth stop without reordering bars.
+                </p>
+              </>
+            ) : isRadialSpikesMode ? (
+              <>
+                <VfxColorControl
+                  label="Background color"
+                  value={radialSpikesConfig.backgroundColor}
+                  onChange={(backgroundColor) => updateRadialSpikes({ backgroundColor })}
+                />
+                <VfxColorControl
+                  label="Base color"
+                  value={radialSpikesConfig.baseColor}
+                  onChange={(baseColor) => updateRadialSpikes({ baseColor })}
+                />
+                <VfxColorControl
+                  label="Tip color"
+                  value={radialSpikesConfig.tipColor}
+                  onChange={(tipColor) => updateRadialSpikes({ tipColor })}
+                />
+                <p className="control-note">
+                  The continuous base ring and spike roots use the base role; ordered energetic
+                  reach blends toward the tip role.
+                </p>
+              </>
+            ) : isTunnelWavesMode ? (
+              <>
+                <VfxColorControl
+                  label="Background color"
+                  value={tunnelWavesConfig.backgroundColor}
+                  onChange={(backgroundColor) => updateTunnelWaves({ backgroundColor })}
+                />
+                <VfxColorControl
+                  label="Center color"
+                  value={tunnelWavesConfig.centerColor}
+                  onChange={(centerColor) => updateTunnelWaves({ centerColor })}
+                />
+                <VfxColorControl
+                  label="Mid color"
+                  value={tunnelWavesConfig.midColor}
+                  onChange={(midColor) => updateTunnelWaves({ midColor })}
+                />
+                <VfxColorControl
+                  label="Outer color"
+                  value={tunnelWavesConfig.outerColor}
+                  onChange={(outerColor) => updateTunnelWaves({ outerColor })}
+                />
+                <p className="control-note">
+                  Fixed center-to-edge depth traverses the three roles; animation moves phase only,
+                  never the source ordering.
+                </p>
+              </>
+            ) : isVortexRingsMode ? (
+              <>
+                <VfxColorControl
+                  label="Background color"
+                  value={vortexRingsConfig.backgroundColor}
+                  onChange={(backgroundColor) => updateVortexRings({ backgroundColor })}
+                />
+                <VfxColorControl
+                  label="Primary color"
+                  value={vortexRingsConfig.primaryColor}
+                  onChange={(primaryColor) => updateVortexRings({ primaryColor })}
+                />
+                <VfxColorControl
+                  label="Secondary color"
+                  value={vortexRingsConfig.secondaryColor}
+                  onChange={(secondaryColor) => updateVortexRings({ secondaryColor })}
+                />
+                <VfxColorControl
+                  label="Accent color"
+                  value={vortexRingsConfig.accentColor}
+                  onChange={(accentColor) => updateVortexRings({ accentColor })}
+                />
+                <p className="control-note">
+                  Alternating radial intervals blend primary and secondary roles; the central eye
+                  and peak energy receive the accent role.
                 </p>
               </>
             ) : visualMode === "spectrum" ? (

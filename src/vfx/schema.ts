@@ -4,8 +4,11 @@ export type VfxEffectId =
   | "equalizer-grid"
   | "neon-lines"
   | "pulse-ring"
+  | "radial-spikes"
   | "rounded-wobble-bars"
   | "spectrum-bars"
+  | "tunnel-waves"
+  | "vortex-rings"
   | "waveform-ribbon";
 export type VfxMotion = "auto" | "full" | "reduced";
 export type VfxQuality = "balanced" | "high" | "low";

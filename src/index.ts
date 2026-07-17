@@ -204,6 +204,24 @@ export type {
   WebglSpectrumBarsVfxRendererOptions,
   WebglSpectrumBarsVfxRendererOptions as WebglSpectrumBarsRendererOptions,
 } from "./renderers/webgl2SpectrumBarsVfx";
+export { createWebglRadialSpikesRenderer } from "./renderers/webgl2RadialSpikes";
+export type {
+  WebglRadialSpikesRenderOptions,
+  WebglRadialSpikesRenderer,
+  WebglRadialSpikesRendererOptions,
+} from "./renderers/webgl2RadialSpikes";
+export { createWebglTunnelWavesRenderer } from "./renderers/webgl2TunnelWaves";
+export type {
+  WebglTunnelWavesRenderOptions,
+  WebglTunnelWavesRenderer,
+  WebglTunnelWavesRendererOptions,
+} from "./renderers/webgl2TunnelWaves";
+export { createWebglVortexRingsRenderer } from "./renderers/webgl2VortexRings";
+export type {
+  WebglVortexRingsRenderOptions,
+  WebglVortexRingsRenderer,
+  WebglVortexRingsRendererOptions,
+} from "./renderers/webgl2VortexRings";
 export {
   WEBGL2_MAX_DRAWING_BUFFER_DIMENSION,
   WEBGL2_MAX_DRAWING_BUFFER_PIXELS,
@@ -233,6 +251,12 @@ export type {
   SpectrumBarsVfxProps,
   SpectrumBarsVfxProps as SpectrumBarsProps,
 } from "./react/SpectrumBarsVfx";
+export { RadialSpikes } from "./react/RadialSpikes";
+export type { RadialSpikesProps } from "./react/RadialSpikes";
+export { TunnelWaves } from "./react/TunnelWaves";
+export type { TunnelWavesProps } from "./react/TunnelWaves";
+export { VortexRings } from "./react/VortexRings";
+export type { VortexRingsProps } from "./react/VortexRings";
 export { SignalOverlay } from "./react/SignalOverlay";
 export type {
   SignalOverlayChangeMeta,
@@ -440,6 +464,58 @@ export type {
   SpectrumBarsVfxUniformState,
   SpectrumBarsVfxUniformState as SpectrumBarsUniformState,
 } from "./vfx/spectrumBarsVfx";
+export {
+  DEFAULT_RADIAL_SPIKES_CONFIG,
+  MAX_RADIAL_SPIKE_COUNT,
+  MAX_RADIAL_SPIKE_REACH,
+  MIN_RADIAL_SPIKE_COUNT,
+  RADIAL_SPIKES_CONTROL_DEFINITIONS,
+  RADIAL_SPIKES_PRESETS,
+  createRadialSpikesUniformState,
+  getRadialSpikesPreset,
+  resolveRadialSpikesConfig,
+} from "./vfx/radialSpikes";
+export type {
+  RadialSpikesConfig,
+  RadialSpikesConfigInput,
+  RadialSpikesControlDefinition,
+  RadialSpikesPresetId,
+  RadialSpikesUniformState,
+} from "./vfx/radialSpikes";
+export {
+  DEFAULT_TUNNEL_WAVES_CONFIG,
+  MAX_TUNNEL_RING_DENSITY,
+  MIN_TUNNEL_RING_DENSITY,
+  TUNNEL_WAVES_CONTROL_DEFINITIONS,
+  TUNNEL_WAVES_PRESETS,
+  createTunnelWavesUniformState,
+  getTunnelWavesPreset,
+  resolveTunnelWavesConfig,
+} from "./vfx/tunnelWaves";
+export type {
+  TunnelWavesConfig,
+  TunnelWavesConfigInput,
+  TunnelWavesControlDefinition,
+  TunnelWavesPresetId,
+  TunnelWavesUniformState,
+} from "./vfx/tunnelWaves";
+export {
+  DEFAULT_VORTEX_RINGS_CONFIG,
+  MAX_VORTEX_RING_DENSITY,
+  MIN_VORTEX_RING_DENSITY,
+  VORTEX_RINGS_CONTROL_DEFINITIONS,
+  VORTEX_RINGS_PRESETS,
+  createVortexRingsUniformState,
+  getVortexRingsPreset,
+  resolveVortexRingsConfig,
+} from "./vfx/vortexRings";
+export type {
+  VortexRingsConfig,
+  VortexRingsConfigInput,
+  VortexRingsControlDefinition,
+  VortexRingsPresetId,
+  VortexRingsUniformState,
+} from "./vfx/vortexRings";
 export type {
   VfxBooleanControlDefinition,
   VfxColorControlDefinition,

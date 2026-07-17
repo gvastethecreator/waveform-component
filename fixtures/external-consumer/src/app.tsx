@@ -10,6 +10,9 @@ import {
   NEON_LINES_CONTROL_DEFINITIONS,
   NEON_LINES_PRESETS,
   PulseRing,
+  RadialSpikes,
+  RADIAL_SPIKES_CONTROL_DEFINITIONS,
+  RADIAL_SPIKES_PRESETS,
   RoundedWobbleBars,
   ROUNDED_WOBBLE_BARS_CONTROL_DEFINITIONS,
   ROUNDED_WOBBLE_BARS_PRESETS,
@@ -22,6 +25,12 @@ import {
   SpectrumBars,
   SPECTRUM_BARS_CONTROL_DEFINITIONS,
   SPECTRUM_BARS_PRESETS,
+  TunnelWaves,
+  TUNNEL_WAVES_CONTROL_DEFINITIONS,
+  TUNNEL_WAVES_PRESETS,
+  VortexRings,
+  VORTEX_RINGS_CONTROL_DEFINITIONS,
+  VORTEX_RINGS_PRESETS,
   RecordedWaveformPlayer,
   Waveform,
   WaveformRibbon,
@@ -39,21 +48,27 @@ import {
   createStaticWaveformSource,
   createWaveformSession,
   createWebglPulseRingRenderer,
+  createWebglRadialSpikesRenderer,
   createWebglEqualizerGridRenderer,
   createWebglNeonLinesRenderer,
   createWebglRoundedWobbleBarsRenderer,
   createWebglSpectrumBarsRenderer,
   createWebglWaveformRibbonRenderer,
+  createWebglTunnelWavesRenderer,
+  createWebglVortexRingsRenderer,
   renderSvgMeter,
   renderSvgSpectrum,
   renderDomMeter,
   renderDomSpectrum,
   resolvePulseRingConfig,
+  resolveRadialSpikesConfig,
   resolveEqualizerGridConfig,
   resolveNeonLinesConfig,
   resolveRoundedWobbleBarsConfig,
   resolveSpectrumBarsConfig,
   resolveWaveformRibbonConfig,
+  resolveTunnelWavesConfig,
+  resolveVortexRingsConfig,
   useMicrophoneSource,
   type MicrophoneSource,
   type WaveformFrame,
@@ -70,6 +85,10 @@ const spectrum = analyzeSpectrum(samples, {
 });
 const pulseRingBands = createBandEnergyFrameFromSpectrum(spectrum, {
   bandCount: 8,
+});
+const linearSpatialBands = createBandEnergyFrameFromSpectrum(spectrum, {
+  bandCount: 8,
+  frequencyScale: "linear",
 });
 const pulseRingConfig = resolvePulseRingConfig({
   bandReactivity: 1.2,
@@ -98,6 +117,18 @@ const roundedWobbleBarsConfig = resolveRoundedWobbleBarsConfig({
 const spectrumBarsVfxConfig = resolveSpectrumBarsConfig({
   ...SPECTRUM_BARS_PRESETS[2].config,
   barCount: 80,
+});
+const radialSpikesConfig = resolveRadialSpikesConfig({
+  ...RADIAL_SPIKES_PRESETS[2].config,
+  spikeCount: 30,
+});
+const tunnelWavesConfig = resolveTunnelWavesConfig({
+  ...TUNNEL_WAVES_PRESETS[1].config,
+  motion: "reduced",
+});
+const vortexRingsConfig = resolveVortexRingsConfig({
+  ...VORTEX_RINGS_PRESETS[2].config,
+  ringDensity: 36,
 });
 const dynamics = createSpectrumDynamicsProcessor();
 const meterDynamics = createMeterDynamicsProcessor();
@@ -355,6 +386,44 @@ export function createExternalRibbonBarsRenderers(
     ribbon: createWebglWaveformRibbonRenderer(ribbon),
     spectrumBars: createWebglSpectrumBarsRenderer(spectrumBars),
     wobble: createWebglRoundedWobbleBarsRenderer(wobble),
+  };
+}
+
+export function RadialSpatialConsumerExample() {
+  return (
+    <section
+      data-radial-spikes-controls={RADIAL_SPIKES_CONTROL_DEFINITIONS.length}
+      data-tunnel-waves-controls={TUNNEL_WAVES_CONTROL_DEFINITIONS.length}
+      data-vortex-rings-controls={VORTEX_RINGS_CONTROL_DEFINITIONS.length}
+    >
+      <RadialSpikes
+        ariaLabel="External Radial Spikes"
+        config={radialSpikesConfig}
+        data={linearSpatialBands}
+      />
+      <TunnelWaves
+        ariaLabel="External Tunnel Waves"
+        config={tunnelWavesConfig}
+        data={pulseRingBands}
+      />
+      <VortexRings
+        ariaLabel="External Vortex Rings"
+        config={vortexRingsConfig}
+        data={linearSpatialBands}
+      />
+    </section>
+  );
+}
+
+export function createExternalRadialSpatialRenderers(
+  radialSpikes: HTMLCanvasElement,
+  tunnelWaves: HTMLCanvasElement,
+  vortexRings: HTMLCanvasElement,
+) {
+  return {
+    radialSpikes: createWebglRadialSpikesRenderer(radialSpikes),
+    tunnelWaves: createWebglTunnelWavesRenderer(tunnelWaves),
+    vortexRings: createWebglVortexRingsRenderer(vortexRings),
   };
 }
 

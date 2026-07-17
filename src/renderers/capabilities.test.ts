@@ -37,6 +37,9 @@ describe("renderer capabilities", () => {
       "waveform-ribbon",
       "rounded-wobble-bars",
       "spectrum-bars",
+      "radial-spikes",
+      "tunnel-waves",
+      "vortex-rings",
     ]);
     expect(WEBGL2_RENDERER_CAPABILITIES.layouts).toEqual(["radial", "rectangular"]);
     expect(WEBGL2_RENDERER_CAPABILITIES.limits.maximumBands).toBe(16);
@@ -137,6 +140,9 @@ describe("renderer capabilities", () => {
       "waveform-ribbon",
       "rounded-wobble-bars",
       "spectrum-bars",
+      "radial-spikes",
+      "tunnel-waves",
+      "vortex-rings",
     ] as const) {
       expect(
         getRendererSupport("webgl2", {
