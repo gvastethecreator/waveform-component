@@ -105,7 +105,9 @@ describe("Signal Workbench tracer", () => {
 
     await user.click(screen.getByRole("button", { name: "Meter" }));
     expect(screen.getByRole("heading", { name: "Broadcast meter" })).toBeInTheDocument();
-    const meter = screen.getByRole("img", { name: /Broadcast rms meter preview.*RMS display/i });
+    const meter = screen.getByRole("img", {
+      name: /Broadcast rms meter preview.*RMS display/i,
+    });
     expect(meter).toHaveAttribute("data-meter-mode", "meter");
     expect(meter).toHaveAttribute("data-meter-measurement", "rms");
     expect(screen.getByRole("slider", { name: "Step width" })).toBeDisabled();
@@ -211,7 +213,9 @@ describe("Signal Workbench tracer", () => {
     const { container } = render(<App />);
     await screen.findByText("DEMO / READY");
     const engine = screen.getByRole("combobox", { name: /Rendering engine/ });
-    const playheadControl = screen.getByRole("slider", { name: "Overlay playhead" });
+    const playheadControl = screen.getByRole("slider", {
+      name: "Overlay playhead",
+    });
     fireEvent.change(playheadControl, { target: { value: "0.63" } });
     const epoch = screen.getByText(/Epoch \d+/).textContent;
 
@@ -235,7 +239,7 @@ describe("Signal Workbench tracer", () => {
     expect(screen.getByRole("img", { name: /ordered spectrum preview/ }).tagName).toBe("svg");
     expect(screen.getByText(/SVG samples spectrum geometry to 512 points/)).toBeInTheDocument();
     const writeText = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue(undefined);
-    await user.click(screen.getByRole("button", { name: "Copy code" }));
+    await user.click(screen.getByRole("button", { name: /Copy code|Copied/ }));
     expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining('renderer: "svg"'));
 
     await user.selectOptions(engine, "dom");
@@ -272,7 +276,9 @@ describe("Signal Workbench tracer", () => {
     const epoch = screen.getByText(/Epoch \d+/).textContent;
 
     await user.selectOptions(engine, "webgl2");
-    expect(screen.getByText("Canvas 2D fallback · WebGL2 is scoped to Pulse Ring")).toBeVisible();
+    expect(
+      screen.getByText("Canvas 2D fallback · WebGL2 is scoped to clean-room VFX modes"),
+    ).toBeVisible();
     expect(screen.getByRole("button", { name: "Waveform" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Pulse Ring" })).toBeEnabled();
     expect(screen.getByText(epoch ?? "")).toBeInTheDocument();
@@ -283,7 +289,9 @@ describe("Signal Workbench tracer", () => {
     expect(pulseRing).toHaveAttribute("data-webgl-resources", "0/0/0");
     expect(screen.getByText("WEBGL2_UNAVAILABLE")).toBeVisible();
     expect(
-      screen.queryByRole("group", { name: "pulse-ring semantic interaction overlay" }),
+      screen.queryByRole("group", {
+        name: "pulse-ring semantic interaction overlay",
+      }),
     ).not.toBeInTheDocument();
     expect(screen.getByRole("checkbox", { name: /Semantic overlays/ })).toBeDisabled();
 
@@ -312,6 +320,57 @@ describe("Signal Workbench tracer", () => {
     );
   });
 
+  it("configures reproducible Neon Lines and Equalizer Grid presets plus proof fixtures", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<App />);
+    await screen.findByText("DEMO / READY");
+    await user.selectOptions(screen.getByRole("combobox", { name: /Rendering engine/ }), "webgl2");
+
+    await user.click(screen.getByRole("button", { name: "Neon Lines" }));
+    expect(container.querySelector("canvas[data-webgl-canvas='neon-lines']")).toBeInTheDocument();
+    expect(container.querySelector("[data-neon-lines-state='ready']")).toHaveAttribute(
+      "data-webgl-state",
+      "unavailable",
+    );
+    const neonPreset = screen.getByRole("combobox", { name: /VFX preset/ });
+    await user.selectOptions(neonPreset, "ember");
+    expect(screen.getByRole("slider", { name: "Line count" })).toHaveValue("6");
+    expect(screen.getByRole("slider", { name: "Wave height" })).toHaveValue("0.2");
+    fireEvent.change(screen.getByRole("slider", { name: "Line count" }), {
+      target: { value: "12" },
+    });
+    expect(neonPreset).toHaveValue("custom");
+    await user.selectOptions(screen.getByRole("combobox", { name: /Energy fixture/ }), "zero");
+    expect(container.querySelector(".signal-stage")).toHaveAttribute("data-vfx-scenario", "zero");
+
+    const writeText = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue(undefined);
+    await user.click(screen.getByRole("button", { name: "Copy code" }));
+    expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining("<NeonLines"));
+    expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining("lineCount: 12"));
+
+    await user.click(screen.getByRole("button", { name: "Equalizer Grid" }));
+    expect(
+      container.querySelector("canvas[data-webgl-canvas='equalizer-grid']"),
+    ).toBeInTheDocument();
+    await user.selectOptions(screen.getByRole("combobox", { name: /VFX preset/ }), "signal-radar");
+    expect(screen.getByRole("slider", { name: "Grid columns" })).toHaveValue("36");
+    expect(screen.getByRole("slider", { name: "Grid rows" })).toHaveValue("14");
+    await user.selectOptions(screen.getByRole("combobox", { name: /Energy fixture/ }), "overload");
+    expect(container.querySelector(".signal-stage")).toHaveAttribute(
+      "data-vfx-scenario",
+      "overload",
+    );
+    await user.click(screen.getByRole("button", { name: /Copy code|Copied/ }));
+    expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining("<EqualizerGrid"));
+    expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining("gridColumns: 36"));
+
+    await user.click(screen.getByRole("button", { name: "Reset" }));
+    expect(screen.getByRole("button", { name: "Waveform" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
   it("keeps semantic seeking, regions, markers, and overlapping handles host-controlled", async () => {
     const user = userEvent.setup();
     render(<App />);
@@ -319,7 +378,9 @@ describe("Signal Workbench tracer", () => {
     const overlay = screen.getByRole("group", {
       name: "waveform semantic interaction overlay",
     });
-    const seek = screen.getByRole("slider", { name: "Seek deterministic signal" });
+    const seek = screen.getByRole("slider", {
+      name: "Seek deterministic signal",
+    });
     const playhead = screen.getByRole("slider", { name: "Playhead handle" });
     expect(overlay).toHaveAttribute("data-overlay-orientation", "horizontal");
     expect(seek).toHaveAttribute("aria-valuenow", "0.32");
@@ -358,8 +419,12 @@ describe("Signal Workbench tracer", () => {
 
     await user.click(screen.getByRole("button", { name: "Spectrum" }));
     const lowHandle = screen.getByRole("slider", { name: "Low cutoff handle" });
-    const middleHandle = screen.getByRole("slider", { name: "Middle threshold handle" });
-    const crestHandle = screen.getByRole("slider", { name: "Crest threshold handle" });
+    const middleHandle = screen.getByRole("slider", {
+      name: "Middle threshold handle",
+    });
+    const crestHandle = screen.getByRole("slider", {
+      name: "Crest threshold handle",
+    });
     expect(middleHandle.getAttribute("aria-valuemax")).toBe(
       crestHandle.getAttribute("aria-valuenow"),
     );
@@ -374,7 +439,9 @@ describe("Signal Workbench tracer", () => {
 
     await user.selectOptions(screen.getByRole("combobox", { name: /^Layout/ }), "radial");
     expect(
-      screen.queryByRole("group", { name: "spectrum semantic interaction overlay" }),
+      screen.queryByRole("group", {
+        name: "spectrum semantic interaction overlay",
+      }),
     ).not.toBeInTheDocument();
     expect(screen.getByText("Unavailable · radial")).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: /Overlay direction/ })).toBeDisabled();
@@ -389,7 +456,9 @@ describe("Signal Workbench tracer", () => {
     expect(
       [...(meterScale?.querySelectorAll("span") ?? [])].map((label) => label.textContent),
     ).toEqual(["-60 dB", "-30 dB", "0 dB"]);
-    const reactHandle = screen.getByRole("slider", { name: "React threshold handle" });
+    const reactHandle = screen.getByRole("slider", {
+      name: "React threshold handle",
+    });
     const horizontalPosition = Number(reactHandle.getAttribute("data-overlay-position"));
     expect(reactHandle).toHaveAttribute("aria-orientation", "horizontal");
     expect(horizontalPosition).toBeGreaterThan(0);

@@ -1,11 +1,27 @@
 import type { BandEnergyFrame } from "../types";
-import { MAX_VFX_BANDS } from "../analysis/bands";
+import {
+  VFX_CONTROL_CONTEXT,
+  type VfxColorControlDefinition,
+  type VfxMotion,
+  type VfxNumericControlDefinition,
+  type VfxQuality,
+  type VfxSelectControlDefinition,
+  type VfxSurfaceConfig,
+} from "./schema";
+import {
+  clampFinite,
+  createBandUniformMetrics,
+  isVfxMotion,
+  isVfxQuality,
+  nonempty,
+  parseVfxColor,
+  resolveVfxTime,
+} from "./shared";
 
-export type PulseRingMotion = "auto" | "full" | "reduced";
-export type PulseRingQuality = "balanced" | "high" | "low";
+export type PulseRingMotion = VfxMotion;
+export type PulseRingQuality = VfxQuality;
 
-export interface PulseRingConfig {
-  readonly backgroundColor: string;
+export interface PulseRingConfig extends VfxSurfaceConfig {
   readonly bandReactivity: number;
   readonly glowStrength: number;
   readonly mode: "pulse-ring";
@@ -22,39 +38,13 @@ export interface PulseRingConfig {
 
 export type PulseRingConfigInput = Partial<PulseRingConfig>;
 
-interface NumericPulseRingControlDefinition {
-  readonly defaultValue: number;
-  readonly description: string;
-  readonly id: "bandReactivity" | "glowStrength" | "rotationSpeed" | "thickness";
-  readonly label: string;
-  readonly maximum: number;
-  readonly minimum: number;
-  readonly step: number;
-  readonly type: "number";
-  readonly unit: string;
-}
-
-interface ColorPulseRingControlDefinition {
-  readonly defaultValue: string;
-  readonly description: string;
-  readonly id: "primaryColor" | "secondaryColor" | "sweepColor" | "tertiaryColor";
-  readonly label: string;
-  readonly type: "color";
-}
-
-interface QualityPulseRingControlDefinition {
-  readonly defaultValue: PulseRingQuality;
-  readonly description: string;
-  readonly id: "quality";
-  readonly label: string;
-  readonly options: readonly PulseRingQuality[];
-  readonly type: "select";
-}
-
 export type PulseRingControlDefinition =
-  | ColorPulseRingControlDefinition
-  | NumericPulseRingControlDefinition
-  | QualityPulseRingControlDefinition;
+  | VfxColorControlDefinition<
+      "backgroundColor" | "primaryColor" | "secondaryColor" | "sweepColor" | "tertiaryColor"
+    >
+  | VfxNumericControlDefinition<"bandReactivity" | "glowStrength" | "rotationSpeed" | "thickness">
+  | VfxSelectControlDefinition<"motion", PulseRingMotion>
+  | VfxSelectControlDefinition<"quality", PulseRingQuality>;
 
 export interface PulseRingUniformState {
   readonly backgroundColor: readonly [number, number, number, number];
@@ -91,6 +81,8 @@ export const DEFAULT_PULSE_RING_CONFIG: PulseRingConfig = Object.freeze({
 
 export const PULSE_RING_CONTROL_DEFINITIONS: readonly PulseRingControlDefinition[] = Object.freeze([
   Object.freeze({
+    ...VFX_CONTROL_CONTEXT,
+    constraints: Object.freeze(["0.01 <= thickness <= 0.18"]),
     defaultValue: DEFAULT_PULSE_RING_CONFIG.thickness,
     description: "Visible core width as a fraction of the shorter stage dimension.",
     id: "thickness",
@@ -102,6 +94,8 @@ export const PULSE_RING_CONTROL_DEFINITIONS: readonly PulseRingControlDefinition
     unit: "ratio",
   }),
   Object.freeze({
+    ...VFX_CONTROL_CONTEXT,
+    constraints: Object.freeze(["0 disables the halo", "2 is the maximum halo gain"]),
     defaultValue: DEFAULT_PULSE_RING_CONFIG.glowStrength,
     description: "Energy-scaled halo intensity around the ring core.",
     id: "glowStrength",
@@ -113,6 +107,11 @@ export const PULSE_RING_CONTROL_DEFINITIONS: readonly PulseRingControlDefinition
     unit: "x",
   }),
   Object.freeze({
+    ...VFX_CONTROL_CONTEXT,
+    constraints: Object.freeze([
+      "Negative values reverse direction",
+      "Reduced motion freezes time",
+    ]),
     defaultValue: DEFAULT_PULSE_RING_CONFIG.rotationSpeed,
     description: "Angular sweep rate; negative values reverse direction.",
     id: "rotationSpeed",
@@ -124,6 +123,8 @@ export const PULSE_RING_CONTROL_DEFINITIONS: readonly PulseRingControlDefinition
     unit: "rev/s",
   }),
   Object.freeze({
+    ...VFX_CONTROL_CONTEXT,
+    constraints: Object.freeze(["Input energy is clamped to 0..1", "At most 16 bands are sampled"]),
     defaultValue: DEFAULT_PULSE_RING_CONFIG.bandReactivity,
     description: "How strongly ordered band energy deforms and colors the ring.",
     id: "bandReactivity",
@@ -136,6 +137,7 @@ export const PULSE_RING_CONTROL_DEFINITIONS: readonly PulseRingControlDefinition
   }),
   ...(
     [
+      ["backgroundColor", "Background color", "Opaque stage background color."],
       ["primaryColor", "Primary color", "Core ring color."],
       ["secondaryColor", "Secondary color", "Energy-blended ring color."],
       ["tertiaryColor", "Tertiary color", "Outer glow color."],
@@ -143,20 +145,45 @@ export const PULSE_RING_CONTROL_DEFINITIONS: readonly PulseRingControlDefinition
     ] as const
   ).map(([id, label, description]) =>
     Object.freeze({
+      ...VFX_CONTROL_CONTEXT,
+      constraints: Object.freeze([
+        "Must resolve to a CSS color; invalid values use the role default",
+      ]),
       defaultValue: DEFAULT_PULSE_RING_CONFIG[id],
       description,
       id,
       label,
       type: "color" as const,
+      unit: "css-color" as const,
     }),
   ),
   Object.freeze({
+    ...VFX_CONTROL_CONTEXT,
+    constraints: Object.freeze([
+      "auto follows prefers-reduced-motion",
+      "reduced draws one deterministic frame",
+    ]),
+    defaultValue: DEFAULT_PULSE_RING_CONFIG.motion,
+    description: "Controls continuous animation while preserving a deterministic static frame.",
+    id: "motion",
+    label: "Motion",
+    options: Object.freeze(["auto", "full", "reduced"] as const),
+    type: "select",
+    unit: "enum",
+  }),
+  Object.freeze({
+    ...VFX_CONTROL_CONTEXT,
+    constraints: Object.freeze([
+      "DPR caps are low=1, balanced=1.5, high=2",
+      "The absolute pixel and dimension ceilings always apply",
+    ]),
     defaultValue: DEFAULT_PULSE_RING_CONFIG.quality,
     description: "Caps actual backing-buffer DPR and pixel allocation.",
     id: "quality",
     label: "GPU quality",
     options: Object.freeze(["low", "balanced", "high"] as const),
     type: "select",
+    unit: "enum",
   }),
 ]);
 
@@ -166,9 +193,9 @@ export function resolvePulseRingConfig(input: PulseRingConfigInput = {}): PulseR
     bandReactivity: clampFinite(input.bandReactivity, 0, 2, 1),
     glowStrength: clampFinite(input.glowStrength, 0, 2, 0.75),
     mode: "pulse-ring",
-    motion: isMotion(input.motion) ? input.motion : DEFAULT_PULSE_RING_CONFIG.motion,
+    motion: isVfxMotion(input.motion) ? input.motion : DEFAULT_PULSE_RING_CONFIG.motion,
     primaryColor: nonempty(input.primaryColor, DEFAULT_PULSE_RING_CONFIG.primaryColor),
-    quality: isQuality(input.quality) ? input.quality : DEFAULT_PULSE_RING_CONFIG.quality,
+    quality: isVfxQuality(input.quality) ? input.quality : DEFAULT_PULSE_RING_CONFIG.quality,
     renderer: "webgl2",
     rotationSpeed: clampFinite(input.rotationSpeed, -1, 1, 0.18),
     secondaryColor: nonempty(input.secondaryColor, DEFAULT_PULSE_RING_CONFIG.secondaryColor),
@@ -183,30 +210,19 @@ export function createPulseRingUniformState(
   input: PulseRingConfigInput | PulseRingConfig = {},
 ): PulseRingUniformState {
   const config = resolvePulseRingConfig(input);
-  const bands = sampleBandEnergy(frame);
-  let squaredEnergy = 0;
-  let peak = 0;
-  let weightedPosition = 0;
-  let weight = 0;
-  bands.forEach((energy, index) => {
-    squaredEnergy += energy * energy;
-    peak = Math.max(peak, energy);
-    const position = bands.length <= 1 ? 0 : index / (bands.length - 1);
-    weightedPosition += position * energy;
-    weight += energy;
-  });
+  const metrics = createBandUniformMetrics(frame);
   return Object.freeze({
     backgroundColor: parsePulseRingColor(
       config.backgroundColor,
       DEFAULT_PULSE_RING_CONFIG.backgroundColor,
     ),
-    bandCount: bands.length,
+    bandCount: metrics.bandCount,
     bandReactivity: config.bandReactivity,
-    bands,
-    centroid: weight === 0 ? 0 : weightedPosition / weight,
-    energy: bands.length === 0 ? 0 : Math.sqrt(squaredEnergy / bands.length),
+    bands: metrics.bands,
+    centroid: metrics.centroid,
+    energy: metrics.energy,
     glowStrength: config.glowStrength,
-    peak,
+    peak: metrics.peak,
     primaryColor: parsePulseRingColor(config.primaryColor, DEFAULT_PULSE_RING_CONFIG.primaryColor),
     rotationSpeed: config.rotationSpeed,
     secondaryColor: parsePulseRingColor(
@@ -223,94 +239,12 @@ export function createPulseRingUniformState(
 }
 
 export function resolvePulseRingTime(timeSeconds: number, reducedMotion: boolean): number {
-  return reducedMotion || !Number.isFinite(timeSeconds) ? 0 : Math.max(0, timeSeconds);
+  return resolveVfxTime(timeSeconds, reducedMotion);
 }
 
 export function parsePulseRingColor(
   value: string,
   fallback = "#000000",
 ): readonly [number, number, number, number] {
-  const candidate = variableFallback(value) ?? value;
-  return parseColor(candidate) ?? parseColor(fallback) ?? Object.freeze([0, 0, 0, 1]);
-}
-
-function sampleBandEnergy(frame: BandEnergyFrame): readonly number[] {
-  if (frame.state === "empty" || frame.bands.length === 0) return Object.freeze([]);
-  if (frame.bands.length <= MAX_VFX_BANDS)
-    return Object.freeze(frame.bands.map((band) => clampFinite(band.energy, 0, 1, 0)));
-  return Object.freeze(
-    Array.from({ length: MAX_VFX_BANDS }, (_, index) => {
-      const start = Math.floor((index * frame.bands.length) / MAX_VFX_BANDS);
-      const end = Math.max(
-        start + 1,
-        Math.floor(((index + 1) * frame.bands.length) / MAX_VFX_BANDS),
-      );
-      let peak = 0;
-      for (let sourceIndex = start; sourceIndex < end; sourceIndex += 1)
-        peak = Math.max(peak, clampFinite(frame.bands[sourceIndex].energy, 0, 1, 0));
-      return peak;
-    }),
-  );
-}
-
-function parseColor(value: string): readonly [number, number, number, number] | null {
-  const color = value.trim();
-  if (color.startsWith("#")) return parseHex(color.slice(1));
-  const match =
-    /^rgba?\(\s*([\d.]+)\s*[, ]\s*([\d.]+)\s*[, ]\s*([\d.]+)(?:\s*[,/]\s*([\d.]+%?))?\s*\)$/i.exec(
-      color,
-    );
-  if (!match) return null;
-  const alpha = match[4]?.endsWith("%")
-    ? Number.parseFloat(match[4]) / 100
-    : Number.parseFloat(match[4] ?? "1");
-  return Object.freeze([
-    clampFinite(Number.parseFloat(match[1]) / 255, 0, 1, 0),
-    clampFinite(Number.parseFloat(match[2]) / 255, 0, 1, 0),
-    clampFinite(Number.parseFloat(match[3]) / 255, 0, 1, 0),
-    clampFinite(alpha, 0, 1, 1),
-  ]);
-}
-
-function parseHex(value: string): readonly [number, number, number, number] | null {
-  const expanded =
-    value.length === 3 || value.length === 4
-      ? [...value].map((character) => character.repeat(2)).join("")
-      : value;
-  if (expanded.length !== 6 && expanded.length !== 8) return null;
-  if (!/^[\da-f]+$/i.test(expanded)) return null;
-  return Object.freeze([
-    Number.parseInt(expanded.slice(0, 2), 16) / 255,
-    Number.parseInt(expanded.slice(2, 4), 16) / 255,
-    Number.parseInt(expanded.slice(4, 6), 16) / 255,
-    expanded.length === 8 ? Number.parseInt(expanded.slice(6, 8), 16) / 255 : 1,
-  ]);
-}
-
-function variableFallback(value: string): string | null {
-  return /^var\(\s*--[\w-]+\s*,\s*(.+)\)$/.exec(value.trim())?.[1]?.trim() ?? null;
-}
-
-function clampFinite(
-  value: number | undefined,
-  minimum: number,
-  maximum: number,
-  fallback: number,
-): number {
-  return Math.min(
-    maximum,
-    Math.max(minimum, typeof value === "number" && Number.isFinite(value) ? value : fallback),
-  );
-}
-
-function nonempty(value: string | undefined, fallback: string): string {
-  return typeof value === "string" && value.trim() ? value.trim() : fallback;
-}
-
-function isMotion(value: unknown): value is PulseRingMotion {
-  return value === "auto" || value === "full" || value === "reduced";
-}
-
-function isQuality(value: unknown): value is PulseRingQuality {
-  return value === "low" || value === "balanced" || value === "high";
+  return parseVfxColor(value, fallback);
 }

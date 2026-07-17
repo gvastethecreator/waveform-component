@@ -1,4 +1,4 @@
-import type { PulseRingQuality } from "../vfx/pulseRing";
+import type { VfxQuality } from "../vfx/schema";
 
 export const WEBGL2_MAX_DRAWING_BUFFER_DIMENSION = 4096;
 export const WEBGL2_MAX_DRAWING_BUFFER_PIXELS = 4_194_304;
@@ -11,14 +11,14 @@ export interface WebglDrawingBufferSize {
   readonly degraded: boolean;
   readonly devicePixelRatio: number;
   readonly effectivePixelRatio: number;
-  readonly quality: PulseRingQuality;
+  readonly quality: VfxQuality;
 }
 
 export function resolveWebglDrawingBufferSize(
   cssWidth: number,
   cssHeight: number,
   devicePixelRatio: number,
-  quality: PulseRingQuality,
+  quality: VfxQuality,
 ): WebglDrawingBufferSize {
   const width = finiteDimension(cssWidth);
   const height = finiteDimension(cssHeight);
@@ -48,7 +48,7 @@ export function resolveWebglDrawingBufferSize(
   });
 }
 
-function qualityPixelRatio(quality: PulseRingQuality): number {
+function qualityPixelRatio(quality: VfxQuality): number {
   if (quality === "low") return 1;
   if (quality === "high") return 2;
   return 1.5;

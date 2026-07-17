@@ -36,7 +36,9 @@ test("preserves stereo identity across layouts, envelope placement, and orientat
   await page.goto("/", { timeout: 60_000, waitUntil: "domcontentloaded" });
 
   const stage = page.locator(".signal-stage");
-  const waveform = page.getByRole("img", { name: /Broadcast deterministic waveform preview/ });
+  const waveform = page.getByRole("img", {
+    name: /Broadcast deterministic waveform preview/,
+  });
   await expect(waveform).toHaveAttribute("data-time-domain-mode", "waveform");
   await expect(page.getByText("2 CH · STACKED")).toBeVisible();
   const stacked = await stage.screenshot();
@@ -56,7 +58,9 @@ test("preserves stereo identity across layouts, envelope placement, and orientat
   await page.getByRole("combobox", { name: /Channel layout/ }).selectOption("split");
 
   await page.getByRole("button", { name: "Envelope" }).click();
-  const envelope = page.getByRole("img", { name: /Broadcast magnitude envelope preview/ });
+  const envelope = page.getByRole("img", {
+    name: /Broadcast magnitude envelope preview/,
+  });
   await expect(envelope).toHaveAttribute("data-time-domain-mode", "envelope");
   await page.getByRole("combobox", { name: /Amplitude placement/ }).selectOption("mirrored");
   await page.getByRole("combobox", { name: /Orientation/ }).selectOption("vertical");
@@ -103,7 +107,10 @@ test("operates seek, regions, markers, and direct handles through semantic overl
   const overlay = page.getByRole("group", {
     name: "waveform semantic interaction overlay",
   });
-  const seek = page.getByRole("slider", { name: "Seek deterministic signal", exact: true });
+  const seek = page.getByRole("slider", {
+    name: "Seek deterministic signal",
+    exact: true,
+  });
   const playheadInspector = page.getByRole("slider", {
     name: "Overlay playhead",
     exact: true,
@@ -117,14 +124,23 @@ test("operates seek, regions, markers, and direct handles through semantic overl
   await expect(playheadInspector).toHaveValue("0.33");
   await expect(page.getByText("Seek committed at 33%")).toBeVisible();
 
-  const loopRegion = page.getByRole("button", { name: "Playback loop region", exact: true });
+  const loopRegion = page.getByRole("button", {
+    name: "Playback loop region",
+    exact: true,
+  });
   await loopRegion.click();
   await expect(loopRegion).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "Transient marker", exact: true }).click();
   await expect(page.getByText("Transient marker activated", { exact: true })).toBeVisible();
 
-  const loopCue = page.getByRole("button", { name: "Loop cue marker", exact: true });
-  const loopStart = page.getByRole("slider", { name: "Loop start handle", exact: true });
+  const loopCue = page.getByRole("button", {
+    name: "Loop cue marker",
+    exact: true,
+  });
+  const loopStart = page.getByRole("slider", {
+    name: "Loop start handle",
+    exact: true,
+  });
   expect(await loopCue.getAttribute("data-overlay-lane")).not.toBe(
     await loopStart.getAttribute("data-overlay-lane"),
   );
@@ -253,7 +269,10 @@ test("keeps vertical overlays focused and bounded under forced colors and reduce
   const overlay = page.getByRole("group", {
     name: "waveform semantic interaction overlay",
   });
-  const seek = page.getByRole("slider", { name: "Seek deterministic signal", exact: true });
+  const seek = page.getByRole("slider", {
+    name: "Seek deterministic signal",
+    exact: true,
+  });
   await expect(overlay).toHaveAttribute("data-overlay-direction", "rtl");
   await expect(overlay).toHaveAttribute("data-overlay-orientation", "vertical");
   await expect(seek).toHaveAttribute("aria-orientation", "vertical");
@@ -403,7 +422,9 @@ test("switches Canvas and SVG through one frame/config/session contract", async 
   await page.getByRole("button", { name: "Spectrum" }).click();
   await page.getByRole("combobox", { name: /^Layout/ }).selectOption("radial");
   await page.getByRole("combobox", { name: /Color mode/ }).selectOption("gradient");
-  const svgSpectrum = page.getByRole("img", { name: /Broadcast ordered spectrum preview/ });
+  const svgSpectrum = page.getByRole("img", {
+    name: /Broadcast ordered spectrum preview/,
+  });
   await expect(svgSpectrum).toHaveAttribute("data-svg-render-status", "ready");
   await expect(page.getByText(/SVG samples spectrum geometry to 512 points/)).toBeVisible();
   const firstGradientId = await svgSpectrum.locator("radialGradient").getAttribute("id");
@@ -431,7 +452,9 @@ test("switches Canvas and SVG through one frame/config/session contract", async 
 
   await page.getByRole("button", { name: "Stepped meter" }).click();
   await page.getByRole("combobox", { name: /Meter layout/ }).selectOption("radial");
-  const svgMeter = page.getByRole("img", { name: /stepped-meter preview.*RMS display/i });
+  const svgMeter = page.getByRole("img", {
+    name: /stepped-meter preview.*RMS display/i,
+  });
   await expect(svgMeter).toHaveAttribute("data-svg-render-status", "ready");
   expect(Number(await svgMeter.getAttribute("data-svg-node-count"))).toBeLessThanOrEqual(4096);
   if (evidence) await stage.screenshot({ path: `${evidence}/svg-meter-radial.png` });
@@ -456,7 +479,9 @@ test("switches Canvas and SVG through one frame/config/session contract", async 
   await expect(page.getByRole("region", { name: "renderer-state.wav player" })).toBeVisible();
   await expect(seek).toHaveValue("0.4");
   await expect(
-    page.getByRole("img", { name: /renderer-state.wav local waveform preview/ }),
+    page.getByRole("img", {
+      name: /renderer-state.wav local waveform preview/,
+    }),
   ).toHaveAttribute("data-renderer", "svg");
   await expect.poll(() => rendererObserverStat(page, "active")).toBe(observerBaseline);
   expect(browserErrors).toEqual([]);
@@ -496,16 +521,23 @@ test("keeps SVG responsive, theme-aware, reduced-motion static, and forced-color
   await page.getByRole("combobox", { name: /Rendering engine/ }).selectOption("svg");
 
   const stage = page.locator(".signal-stage");
-  const waveform = page.getByRole("img", { name: /Broadcast deterministic waveform preview/ });
+  const waveform = page.getByRole("img", {
+    name: /Broadcast deterministic waveform preview/,
+  });
   await expect(waveform).toHaveAttribute("data-svg-render-status", "ready");
-  const seek = page.getByRole("slider", { name: "Seek deterministic signal", exact: true });
+  const seek = page.getByRole("slider", {
+    name: "Seek deterministic signal",
+    exact: true,
+  });
   await seek.focus();
   await seek.press("ArrowRight");
   await expect(seek).toHaveAttribute("aria-valuenow", "0.33");
 
   await page.getByRole("button", { name: "Spectrum" }).click();
   await page.getByRole("combobox", { name: /Color mode/ }).selectOption("gradient");
-  const spectrum = page.getByRole("img", { name: /Broadcast ordered spectrum preview/ });
+  const spectrum = page.getByRole("img", {
+    name: /Broadcast ordered spectrum preview/,
+  });
   const firstViewBox = await spectrum.getAttribute("viewBox");
   const themedBefore = await stage.screenshot();
   await page.evaluate(() => {
@@ -541,7 +573,10 @@ test("keeps SVG responsive, theme-aware, reduced-motion static, and forced-color
     () => document.documentElement.scrollWidth - window.innerWidth,
   );
   expect(horizontalOverflow).toBeLessThanOrEqual(0);
-  if (evidence) await stage.screenshot({ path: `${evidence}/svg-narrow-forced-colors.png` });
+  if (evidence)
+    await stage.screenshot({
+      path: `${evidence}/svg-narrow-forced-colors.png`,
+    });
   expect(browserErrors).toEqual([]);
 });
 
@@ -557,7 +592,10 @@ test("drives Pulse Ring controls and recovers WebGL2 resources after real contex
   await installRendererObserverProbe(page);
   await installWebglResourceProbe(page);
   await page.addInitScript(() => {
-    Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: 2 });
+    Object.defineProperty(window, "devicePixelRatio", {
+      configurable: true,
+      value: 2,
+    });
   });
   await page.emulateMedia({ reducedMotion: "reduce" });
 
@@ -576,7 +614,9 @@ test("drives Pulse Ring controls and recovers WebGL2 resources after real contex
 
   await engine.selectOption("webgl2");
   await expect(stage).toHaveAttribute("data-renderer", "webgl2");
-  await expect(page.getByText("Canvas 2D fallback · WebGL2 is scoped to Pulse Ring")).toBeVisible();
+  await expect(
+    page.getByText("Canvas 2D fallback · WebGL2 is scoped to clean-room VFX modes"),
+  ).toBeVisible();
   await expect(page.getByRole("button", { name: "Waveform" })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Pulse Ring" })).toBeEnabled();
   await expect(page.getByText(epoch ?? "Epoch 1")).toBeVisible();
@@ -594,7 +634,10 @@ test("drives Pulse Ring controls and recovers WebGL2 resources after real contex
   await expect.poll(() => webglProbeStat(page, "activeTextures")).toBe(0);
   await expect.poll(() => rendererObserverStat(page, "active")).toBe(observerBaseline);
   expect(await webglProbeStat(page, "activeRafs")).toBe(rafBaseline);
-  if (evidence) await stage.screenshot({ path: `${evidence}/webgl2-pulse-ring-static.png` });
+  if (evidence)
+    await stage.screenshot({
+      path: `${evidence}/webgl2-pulse-ring-static.png`,
+    });
 
   const assertControlChangesPixels = async (name: string, action: () => Promise<void>) => {
     const before = await stage.screenshot();
@@ -711,7 +754,9 @@ test("drives Pulse Ring controls and recovers WebGL2 resources after real contex
     mimeType: "audio/wav",
     name: "webgl2-recorded-state.wav",
   });
-  const recordedSeek = page.getByRole("slider", { name: "Seek webgl2-recorded-state.wav" });
+  const recordedSeek = page.getByRole("slider", {
+    name: "Seek webgl2-recorded-state.wav",
+  });
   await expect(recordedSeek).toBeVisible();
   await recordedSeek.fill("0.4");
   await engine.selectOption("webgl2");
@@ -720,10 +765,17 @@ test("drives Pulse Ring controls and recovers WebGL2 resources after real contex
   ).toBeVisible();
   await expect(recordedSeek).toHaveValue("0.4");
   await expect(
-    page.getByRole("img", { name: /webgl2-recorded-state.wav local waveform preview/ }),
+    page.getByRole("img", {
+      name: /webgl2-recorded-state.wav local waveform preview/,
+    }),
   ).toHaveJSProperty("tagName", "CANVAS");
-  await expect(page.getByText("Canvas 2D fallback · WebGL2 is scoped to Pulse Ring")).toBeVisible();
-  if (evidence) await stage.screenshot({ path: `${evidence}/webgl2-recorded-canvas-fallback.png` });
+  await expect(
+    page.getByText("Canvas 2D fallback · WebGL2 is scoped to clean-room VFX modes"),
+  ).toBeVisible();
+  if (evidence)
+    await stage.screenshot({
+      path: `${evidence}/webgl2-recorded-canvas-fallback.png`,
+    });
   expect(browserErrors).toEqual([]);
 
   if (evidence)
@@ -812,6 +864,269 @@ test("shows a visible Pulse Ring fallback when WebGL2 is unavailable", async ({ 
   }
 });
 
+test("proves Neon Lines and Equalizer Grid controls, presets, lifecycle, and GPU bounds", async ({
+  page,
+}) => {
+  test.setTimeout(240_000);
+  const browserErrors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") browserErrors.push(`console: ${message.text()}`);
+  });
+  page.on("pageerror", (error) => browserErrors.push(`pageerror: ${error.message}`));
+  await installRendererObserverProbe(page);
+  await installWebglResourceProbe(page);
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "devicePixelRatio", {
+      configurable: true,
+      value: 2,
+    });
+  });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+
+  const evidence = process.env.CAPTURE_WEBGL_EVIDENCE
+    ? ".scratch/evidence/014-neon-grid-vfx"
+    : null;
+  if (evidence) await mkdir(evidence, { recursive: true });
+  await page.goto("/", { timeout: 60_000, waitUntil: "domcontentloaded" });
+  await expect(page.getByLabel("Signal status")).toContainText("DEMO / READY");
+
+  const stage = page.locator(".signal-stage");
+  const engine = page.getByRole("combobox", { name: /Rendering engine/ });
+  const observerBaseline = await rendererObserverStat(page, "active");
+  const rafBaseline = await webglProbeStat(page, "activeRafs");
+  await engine.selectOption("webgl2");
+  await page.getByRole("button", { name: "Neon Lines" }).click();
+
+  const neon = page.locator('.primary-waveform[data-vfx-mode="neon-lines"]');
+  const neonCanvas = neon.locator('canvas[data-webgl-canvas="neon-lines"]');
+  await expect(neon).toHaveAttribute("data-webgl-state", "ready");
+  await expect(neon).toHaveAttribute("data-webgl-resources", "1/1/1");
+  await expect(neon).toHaveAttribute("data-webgl-animation", "static");
+  await expect(neon).toHaveAttribute("data-neon-lines-state", "ready");
+  await expect.poll(() => webglProbeStat(page, "activePrograms")).toBe(1);
+  await expect.poll(() => webglProbeStat(page, "activeTextures")).toBe(0);
+  await expect.poll(() => rendererObserverStat(page, "active")).toBe(observerBaseline);
+  expect(await webglProbeStat(page, "activeRafs")).toBe(rafBaseline);
+  if (evidence) await stage.screenshot({ path: `${evidence}/neon-lines-default.png` });
+
+  const assertPixelsChange = async (
+    surfaceName: string,
+    canvas: typeof neonCanvas,
+    controlName: string,
+    action: () => Promise<void>,
+  ) => {
+    const before = await stage.screenshot();
+    const drawCalls = Number(await canvas.getAttribute("data-webgl-draw-calls"));
+    await action();
+    await expect
+      .poll(async () => Number(await canvas.getAttribute("data-webgl-draw-calls")))
+      .toBeGreaterThan(drawCalls);
+    const after = await stage.screenshot();
+    expect(after.equals(before), `${controlName} must change ${surfaceName} pixels`).toBe(false);
+  };
+
+  for (const [name, value] of [
+    ["Line count", "11"],
+    ["Wave height", "0.34"],
+    ["Flow speed", "-1.25"],
+    ["Line thickness", "0.026"],
+    ["Glow size", "2.45"],
+    ["Energy reactivity", "1.85"],
+  ] as const)
+    await assertPixelsChange("Neon Lines", neonCanvas, name, () =>
+      page.getByRole("slider", { name }).fill(value),
+    );
+  for (const [name, value] of [
+    ["Background color", "#12051f"],
+    ["Left color", "#ff315f"],
+    ["Right color", "#36ffb1"],
+    ["Burst color", "#ffffff"],
+  ] as const)
+    await assertPixelsChange("Neon Lines", neonCanvas, name, () =>
+      page.getByLabel(name, { exact: true }).fill(value),
+    );
+
+  const balancedWidth = Number(await neon.getAttribute("data-webgl-buffer-width"));
+  await page.getByRole("combobox", { name: /GPU quality/ }).selectOption("low");
+  await expect
+    .poll(async () => Number(await neon.getAttribute("data-webgl-buffer-width")))
+    .toBeLessThan(balancedWidth);
+  const lowWidth = Number(await neon.getAttribute("data-webgl-buffer-width"));
+  await page.getByRole("combobox", { name: /GPU quality/ }).selectOption("high");
+  await expect
+    .poll(async () => Number(await neon.getAttribute("data-webgl-buffer-width")))
+    .toBeGreaterThan(lowWidth);
+
+  await page.getByRole("combobox", { name: /^Motion/ }).selectOption("full");
+  await expect(neon).toHaveAttribute("data-webgl-animation", "running");
+  await expect.poll(() => webglProbeStat(page, "activeRafs")).toBeGreaterThan(rafBaseline);
+  await page.getByRole("combobox", { name: /^Motion/ }).selectOption("reduced");
+  await expect(neon).toHaveAttribute("data-webgl-animation", "static");
+  await expect.poll(() => webglProbeStat(page, "activeRafs")).toBe(rafBaseline);
+
+  const energyFixture = page.getByRole("combobox", { name: /Energy fixture/ });
+  await energyFixture.selectOption("zero");
+  const zeroNeon = await stage.screenshot();
+  await energyFixture.selectOption("overload");
+  const overloadNeon = await stage.screenshot();
+  expect(overloadNeon.equals(zeroNeon), "zero and clipped overload Neon Lines must differ").toBe(
+    false,
+  );
+  if (evidence) {
+    await stage.screenshot({ path: `${evidence}/neon-lines-overload.png` });
+    await energyFixture.selectOption("zero");
+    await stage.screenshot({ path: `${evidence}/neon-lines-zero.png` });
+    await energyFixture.selectOption("overload");
+  }
+
+  const neonPreset = page.getByRole("combobox", { name: /VFX preset/ });
+  await neonPreset.selectOption("ember");
+  await expect(page.getByRole("slider", { name: "Line count" })).toHaveValue("6");
+  const emberBefore = await stage.screenshot();
+  await page.getByRole("slider", { name: "Line count" }).fill("12");
+  await expect(neonPreset).toHaveValue("custom");
+  await neonPreset.selectOption("ember");
+  const emberAfter = await stage.screenshot();
+  expect(
+    emberAfter.equals(emberBefore),
+    "reloading a Neon Lines preset must reproduce pixels",
+  ).toBe(true);
+  if (evidence) await stage.screenshot({ path: `${evidence}/neon-lines-ember-preset.png` });
+
+  await page.getByRole("button", { name: "Equalizer Grid" }).click();
+  await expect(neon).toHaveCount(0);
+  const grid = page.locator('.primary-waveform[data-vfx-mode="equalizer-grid"]');
+  const gridCanvas = grid.locator('canvas[data-webgl-canvas="equalizer-grid"]');
+  await expect(grid).toHaveAttribute("data-webgl-state", "ready");
+  await expect(grid).toHaveAttribute("data-webgl-resources", "1/1/1");
+  await expect(grid).toHaveAttribute("data-webgl-animation", "static");
+  await expect(grid).toHaveAttribute("data-equalizer-grid-state", "ready");
+  await expect.poll(() => webglProbeStat(page, "activePrograms")).toBe(1);
+  await expect.poll(() => webglProbeStat(page, "activeTextures")).toBe(0);
+  await expect.poll(() => rendererObserverStat(page, "active")).toBe(observerBaseline);
+  if (evidence) await stage.screenshot({ path: `${evidence}/equalizer-grid-default.png` });
+
+  for (const [name, value] of [
+    ["Grid columns", "17"],
+    ["Grid rows", "7"],
+    ["Cell gap", "0.31"],
+    ["Cell reactivity", "0.45"],
+    ["Shimmer speed", "1.7"],
+  ] as const)
+    await assertPixelsChange("Equalizer Grid", gridCanvas, name, () =>
+      page.getByRole("slider", { name }).fill(value),
+    );
+  for (const [name, value] of [
+    ["Background color", "#160202"],
+    ["Gradient color 1", "#ff312e"],
+    ["Gradient color 2", "#ffb52e"],
+    ["Gradient color 3", "#56ff9f"],
+    ["Gradient color 4", "#ffffff"],
+  ] as const)
+    await assertPixelsChange("Equalizer Grid", gridCanvas, name, () =>
+      page.getByLabel(name, { exact: true }).fill(value),
+    );
+
+  await energyFixture.selectOption("zero");
+  const zeroGrid = await stage.screenshot();
+  await energyFixture.selectOption("overload");
+  const overloadGrid = await stage.screenshot();
+  expect(
+    overloadGrid.equals(zeroGrid),
+    "zero and clipped overload Equalizer Grid must differ",
+  ).toBe(false);
+  if (evidence) {
+    await stage.screenshot({ path: `${evidence}/equalizer-grid-overload.png` });
+    await energyFixture.selectOption("zero");
+    await stage.screenshot({ path: `${evidence}/equalizer-grid-zero.png` });
+    await energyFixture.selectOption("overload");
+  }
+
+  const gridPreset = page.getByRole("combobox", { name: /VFX preset/ });
+  await gridPreset.selectOption("ember-matrix");
+  await expect(page.getByRole("slider", { name: "Grid columns" })).toHaveValue("18");
+  const gridPresetBefore = await stage.screenshot();
+  await page.getByRole("slider", { name: "Cell gap" }).fill("0.4");
+  await expect(gridPreset).toHaveValue("custom");
+  await gridPreset.selectOption("ember-matrix");
+  const gridPresetAfter = await stage.screenshot();
+  expect(
+    gridPresetAfter.equals(gridPresetBefore),
+    "reloading an Equalizer Grid preset must reproduce pixels",
+  ).toBe(true);
+  if (evidence)
+    await stage.screenshot({
+      path: `${evidence}/equalizer-grid-ember-preset.png`,
+    });
+
+  const lossExtensionAvailable = await gridCanvas.evaluate((element) => {
+    const context = (element as HTMLCanvasElement).getContext("webgl2");
+    const extension = context?.getExtension("WEBGL_lose_context") ?? null;
+    if (extension) {
+      Reflect.set(window, "__neonGridLossExtension", extension);
+      extension.loseContext();
+    }
+    return Boolean(extension);
+  });
+  expect(lossExtensionAvailable).toBe(true);
+  await expect(grid).toHaveAttribute("data-webgl-state", "context-lost");
+  await expect(grid).toHaveAttribute("data-webgl-resources", "0/0/0");
+  await expect(grid.locator('[data-webgl-fallback="context-lost"]')).toBeVisible();
+  await expect.poll(() => webglProbeStat(page, "activePrograms")).toBe(0);
+  if (evidence)
+    await stage.screenshot({
+      path: `${evidence}/equalizer-grid-context-lost.png`,
+    });
+  await page.evaluate(() => Reflect.get(window, "__neonGridLossExtension").restoreContext());
+  await expect(grid).toHaveAttribute("data-webgl-state", "ready");
+  await expect(grid).toHaveAttribute("data-webgl-generation", "2");
+  await expect(grid).toHaveAttribute("data-webgl-resources", "1/1/1");
+  await expect.poll(() => webglProbeStat(page, "activePrograms")).toBe(1);
+  if (evidence)
+    await stage.screenshot({
+      path: `${evidence}/equalizer-grid-recovered.png`,
+    });
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const boundedBuffer = await grid.evaluate((node) => ({
+    height: Number(node.getAttribute("data-webgl-buffer-height")),
+    width: Number(node.getAttribute("data-webgl-buffer-width")),
+  }));
+  expect(boundedBuffer.height).toBeLessThanOrEqual(4096);
+  expect(boundedBuffer.width).toBeLessThanOrEqual(4096);
+  expect(boundedBuffer.height * boundedBuffer.width).toBeLessThanOrEqual(4_194_304);
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth - innerWidth),
+  ).toBeLessThanOrEqual(0);
+
+  await engine.selectOption("canvas2d");
+  await expect(grid).toHaveCount(0);
+  await expect.poll(() => webglProbeStat(page, "activePrograms")).toBe(0);
+  await expect.poll(() => webglProbeStat(page, "activeBuffers")).toBe(0);
+  await expect.poll(() => webglProbeStat(page, "activeVertexArrays")).toBe(0);
+  await expect.poll(() => webglProbeStat(page, "activeTextures")).toBe(0);
+  await expect.poll(() => webglProbeStat(page, "activeRafs")).toBe(rafBaseline);
+  await expect.poll(() => rendererObserverStat(page, "active")).toBe(observerBaseline - 1);
+  await page.getByRole("button", { name: "Waveform" }).click();
+  await expect.poll(() => rendererObserverStat(page, "active")).toBe(observerBaseline);
+  expect(browserErrors).toEqual([]);
+
+  if (evidence)
+    await writeFile(
+      `${evidence}/browser-report.json`,
+      `${JSON.stringify(
+        {
+          browserErrors,
+          observerBaseline,
+          observerStats: await page.evaluate(() => Reflect.get(window, "__rendererObserverStats")),
+          resourceStats: await page.evaluate(() => Reflect.get(window, "__webglResourceStats")),
+        },
+        null,
+        2,
+      )}\n`,
+    );
+});
+
 test("switches DOM/CSS through bounded bars and meters with explicit capability recovery", async ({
   page,
 }) => {
@@ -848,7 +1163,9 @@ test("switches DOM/CSS through bounded bars and meters with explicit capability 
   await expect(layout.locator('option[value="radial"]')).toHaveAttribute("disabled", "");
   await geometry.selectOption("bars");
 
-  const domSpectrum = page.getByRole("img", { name: /Broadcast ordered spectrum preview/ });
+  const domSpectrum = page.getByRole("img", {
+    name: /Broadcast ordered spectrum preview/,
+  });
   await expect(domSpectrum).toHaveAttribute("data-dom-render-status", "ready");
   const spectrumIntegrity = await domSpectrum.evaluate((surface) => ({
     animationCount: surface.getAnimations({ subtree: true }).length,
@@ -875,7 +1192,10 @@ test("switches DOM/CSS through bounded bars and meters with explicit capability 
   await expect
     .poll(() => firstBar.evaluate((element) => getComputedStyle(element).borderTopColor))
     .not.toBe(colorBefore);
-  const cutoff = page.getByRole("slider", { name: "Low cutoff handle", exact: true });
+  const cutoff = page.getByRole("slider", {
+    name: "Low cutoff handle",
+    exact: true,
+  });
   const cutoffBefore = Number(await cutoff.getAttribute("aria-valuenow"));
   await cutoff.focus();
   await cutoff.press("ArrowRight");
@@ -887,7 +1207,9 @@ test("switches DOM/CSS through bounded bars and meters with explicit capability 
   await page.getByRole("button", { name: "Stepped meter" }).click();
   const meterLayout = page.getByRole("combobox", { name: /Meter layout/ });
   await expect(meterLayout.locator('option[value="radial"]')).toHaveAttribute("disabled", "");
-  const domMeter = page.getByRole("img", { name: /stepped-meter preview.*RMS display/i });
+  const domMeter = page.getByRole("img", {
+    name: /stepped-meter preview.*RMS display/i,
+  });
   await expect(domMeter).toHaveAttribute("data-dom-render-status", "ready");
   await page.getByRole("slider", { name: "Step width", exact: true }).fill("1");
   await page.getByRole("slider", { name: "Step gap", exact: true }).fill("0");
@@ -919,13 +1241,17 @@ test("switches DOM/CSS through bounded bars and meters with explicit capability 
     name: "dom-renderer-state.wav",
   });
   await expect(page.getByLabel("Signal status")).toContainText("RECORDED-AUDIO / READY");
-  const recordedSeek = page.getByRole("slider", { name: "Seek dom-renderer-state.wav" });
+  const recordedSeek = page.getByRole("slider", {
+    name: "Seek dom-renderer-state.wav",
+  });
   await recordedSeek.fill("0.4");
   await engine.selectOption("dom");
   await expect(page.getByRole("region", { name: "dom-renderer-state.wav player" })).toBeVisible();
   await expect(recordedSeek).toHaveValue("0.4");
   await expect(
-    page.getByRole("img", { name: /dom-renderer-state.wav local waveform preview/ }),
+    page.getByRole("img", {
+      name: /dom-renderer-state.wav local waveform preview/,
+    }),
   ).toHaveAttribute("data-dom-render-status", "unsupported");
   await expect.poll(() => rendererObserverStat(page, "active")).toBe(observerBaseline);
   if (evidence) await stage.screenshot({ path: `${evidence}/dom-recorded-state.png` });
@@ -968,7 +1294,9 @@ test("keeps DOM/CSS boxes responsive, zoom-safe, reduced-motion static, and forc
   await page.getByRole("combobox", { name: /Rendering engine/ }).selectOption("dom");
 
   const stage = page.locator(".signal-stage");
-  const spectrum = page.getByRole("img", { name: /Broadcast ordered spectrum preview/ });
+  const spectrum = page.getByRole("img", {
+    name: /Broadcast ordered spectrum preview/,
+  });
   await expect(spectrum).toHaveAttribute("data-dom-render-status", "ready");
   const themedBefore = await stage.screenshot();
   await page.evaluate(() => {
@@ -997,7 +1325,10 @@ test("keeps DOM/CSS boxes responsive, zoom-safe, reduced-motion static, and forc
     () => document.documentElement.scrollWidth - window.innerWidth,
   );
   expect(horizontalOverflow).toBeLessThanOrEqual(0);
-  if (evidence) await stage.screenshot({ path: `${evidence}/dom-narrow-forced-colors.png` });
+  if (evidence)
+    await stage.screenshot({
+      path: `${evidence}/dom-narrow-forced-colors.png`,
+    });
 
   const devtools = await page.context().newCDPSession(page);
   await devtools.send("Emulation.setPageScaleFactor", { pageScaleFactor: 2 });
@@ -1007,7 +1338,10 @@ test("keeps DOM/CSS boxes responsive, zoom-safe, reduced-motion static, and forc
     () => document.documentElement.scrollWidth - window.innerWidth,
   );
   expect(zoomOverflow).toBeLessThanOrEqual(0);
-  if (evidence) await stage.screenshot({ path: `${evidence}/dom-narrow-forced-colors-zoom.png` });
+  if (evidence)
+    await stage.screenshot({
+      path: `${evidence}/dom-narrow-forced-colors-zoom.png`,
+    });
   expect(browserErrors).toEqual([]);
 });
 
@@ -1017,7 +1351,9 @@ test("renders ordered spectrum controls through the public Canvas path", async (
   await page.getByRole("button", { name: "Spectrum" }).click();
 
   await expect(page.getByRole("heading", { name: "Broadcast spectrum" })).toBeVisible();
-  const spectrum = page.getByRole("img", { name: /Broadcast ordered spectrum preview/ });
+  const spectrum = page.getByRole("img", {
+    name: /Broadcast ordered spectrum preview/,
+  });
   await expect(spectrum).toHaveAttribute("data-spectrum-state", "ready");
   const curve = await spectrum.screenshot();
 
@@ -1066,7 +1402,9 @@ test("renders trustworthy continuous, stepped, and radial meters with bounded hi
   await page.getByRole("button", { name: "Meter", exact: true }).click();
 
   const stage = page.locator(".signal-stage");
-  const meter = page.getByRole("img", { name: /Broadcast rms meter preview.*RMS display/i });
+  const meter = page.getByRole("img", {
+    name: /Broadcast rms meter preview.*RMS display/i,
+  });
   await expect(meter).toHaveAttribute("data-meter-mode", "meter");
   await expect(meter).toHaveAttribute("data-meter-measurement", "rms");
   await expect(page.getByText(/hard ceiling 16,384/i)).toBeVisible();
@@ -1147,7 +1485,9 @@ test("renders radial geometry and every reactive color role through Canvas", asy
   await page.getByRole("button", { name: "Spectrum" }).click();
 
   const stage = page.locator(".signal-stage");
-  const spectrum = page.getByRole("img", { name: /Broadcast ordered spectrum preview/ });
+  const spectrum = page.getByRole("img", {
+    name: /Broadcast ordered spectrum preview/,
+  });
   const rectangular = await stage.screenshot();
   await expect(page.getByRole("slider", { name: "Arc" })).toBeDisabled();
 
@@ -1209,7 +1549,9 @@ test("applies spectrum normalization and filtering through the public dynamics s
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: "Spectrum" }).click();
 
-  const spectrum = page.getByRole("img", { name: /Broadcast ordered spectrum preview/ });
+  const spectrum = page.getByRole("img", {
+    name: /Broadcast ordered spectrum preview/,
+  });
   const before = await spectrum.screenshot();
   await expect(page.getByRole("combobox", { name: /Smoothing/ })).toBeDisabled();
   await expect(page.getByRole("slider", { name: "Visual sync offset" })).toBeDisabled();

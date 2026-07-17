@@ -33,14 +33,23 @@ describe("Pulse Ring contract", () => {
       "glowStrength",
       "rotationSpeed",
       "bandReactivity",
+      "backgroundColor",
       "primaryColor",
       "secondaryColor",
       "tertiaryColor",
       "sweepColor",
+      "motion",
       "quality",
     ]);
-    expect(new Set(PULSE_RING_CONTROL_DEFINITIONS.map((control) => control.id)).size).toBe(9);
+    expect(new Set(PULSE_RING_CONTROL_DEFINITIONS.map((control) => control.id)).size).toBe(11);
     expect(Object.isFrozen(PULSE_RING_CONTROL_DEFINITIONS)).toBe(true);
+    PULSE_RING_CONTROL_DEFINITIONS.forEach((control) => {
+      expect(control.compatibleData).toEqual(["bands"]);
+      expect(control.compatibleRenderers).toEqual(["webgl2"]);
+      expect(control.constraints.length).toBeGreaterThan(0);
+      expect(control.unit.length).toBeGreaterThan(0);
+      expect(control.visibleWhen).toBe("always");
+    });
   });
 
   it("clamps hostile numeric config and restores typed fixed fields", () => {

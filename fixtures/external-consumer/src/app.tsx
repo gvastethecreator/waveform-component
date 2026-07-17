@@ -1,8 +1,14 @@
 import {
   Envelope,
+  EqualizerGrid,
+  EQUALIZER_GRID_CONTROL_DEFINITIONS,
+  EQUALIZER_GRID_PRESETS,
   DOM_RENDERER_ADAPTER,
   DOM_RENDERER_CAPABILITIES,
   Meter,
+  NeonLines,
+  NEON_LINES_CONTROL_DEFINITIONS,
+  NEON_LINES_PRESETS,
   PulseRing,
   SignalOverlay,
   SVG_RENDERER_CAPABILITIES,
@@ -24,11 +30,15 @@ import {
   createStaticWaveformSource,
   createWaveformSession,
   createWebglPulseRingRenderer,
+  createWebglEqualizerGridRenderer,
+  createWebglNeonLinesRenderer,
   renderSvgMeter,
   renderSvgSpectrum,
   renderDomMeter,
   renderDomSpectrum,
   resolvePulseRingConfig,
+  resolveEqualizerGridConfig,
+  resolveNeonLinesConfig,
   useMicrophoneSource,
   type MicrophoneSource,
   type WaveformFrame,
@@ -43,12 +53,24 @@ const spectrum = analyzeSpectrum(samples, {
   sampleRate: 48_000,
   window: "blackman-harris",
 });
-const pulseRingBands = createBandEnergyFrameFromSpectrum(spectrum, { bandCount: 8 });
+const pulseRingBands = createBandEnergyFrameFromSpectrum(spectrum, {
+  bandCount: 8,
+});
 const pulseRingConfig = resolvePulseRingConfig({
   bandReactivity: 1.2,
   glowStrength: 0.9,
   quality: "balanced",
   thickness: 0.06,
+});
+const neonLinesConfig = resolveNeonLinesConfig({
+  ...NEON_LINES_PRESETS[1].config,
+  lineCount: 9,
+  motion: "reduced",
+});
+const equalizerGridConfig = resolveEqualizerGridConfig({
+  ...EQUALIZER_GRID_PRESETS[2].config,
+  gridColumns: 32,
+  quality: "high",
 });
 const dynamics = createSpectrumDynamicsProcessor();
 const meterDynamics = createMeterDynamicsProcessor();
@@ -108,7 +130,12 @@ export function ExternalConsumerExample() {
     <Waveform
       ariaLabel="External consumer waveform"
       data={frame}
-      config={{ color: "#62dcf5", lineWidth: 2, renderer: "canvas2d", mode: "waveform" }}
+      config={{
+        color: "#62dcf5",
+        lineWidth: 2,
+        renderer: "canvas2d",
+        mode: "waveform",
+      }}
     />
   );
 }
@@ -236,6 +263,34 @@ export function PulseRingConsumerExample() {
 
 export function createExternalPulseRingRenderer(canvas: HTMLCanvasElement) {
   return createWebglPulseRingRenderer(canvas);
+}
+
+export function NeonGridConsumerExample() {
+  return (
+    <section
+      data-grid-controls={EQUALIZER_GRID_CONTROL_DEFINITIONS.length}
+      data-neon-controls={NEON_LINES_CONTROL_DEFINITIONS.length}
+    >
+      <NeonLines
+        ariaLabel="External audio-reactive Neon Lines"
+        config={neonLinesConfig}
+        data={pulseRingBands}
+      />
+      <EqualizerGrid
+        ariaLabel="External audio-reactive Equalizer Grid"
+        config={equalizerGridConfig}
+        data={pulseRingBands}
+      />
+    </section>
+  );
+}
+
+export function createExternalNeonLinesRenderer(canvas: HTMLCanvasElement) {
+  return createWebglNeonLinesRenderer(canvas);
+}
+
+export function createExternalEqualizerGridRenderer(canvas: HTMLCanvasElement) {
+  return createWebglEqualizerGridRenderer(canvas);
 }
 
 export function OverlayConsumerExample({

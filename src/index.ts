@@ -168,6 +168,18 @@ export type {
   WebglRendererState,
   WebglRendererStatus,
 } from "./renderers/webgl2PulseRing";
+export { createWebglNeonLinesRenderer } from "./renderers/webgl2NeonLines";
+export type {
+  WebglNeonLinesRenderOptions,
+  WebglNeonLinesRenderer,
+  WebglNeonLinesRendererOptions,
+} from "./renderers/webgl2NeonLines";
+export { createWebglEqualizerGridRenderer } from "./renderers/webgl2EqualizerGrid";
+export type {
+  WebglEqualizerGridRenderOptions,
+  WebglEqualizerGridRenderer,
+  WebglEqualizerGridRendererOptions,
+} from "./renderers/webgl2EqualizerGrid";
 export {
   WEBGL2_MAX_DRAWING_BUFFER_DIMENSION,
   WEBGL2_MAX_DRAWING_BUFFER_PIXELS,
@@ -184,6 +196,10 @@ export { Meter } from "./react/Meter";
 export type { MeterProps } from "./react/Meter";
 export { PulseRing } from "./react/PulseRing";
 export type { PulseRingProps } from "./react/PulseRing";
+export { NeonLines } from "./react/NeonLines";
+export type { NeonLinesProps } from "./react/NeonLines";
+export { EqualizerGrid } from "./react/EqualizerGrid";
+export type { EqualizerGridProps } from "./react/EqualizerGrid";
 export { SignalOverlay } from "./react/SignalOverlay";
 export type {
   SignalOverlayChangeMeta,
@@ -296,6 +312,53 @@ export {
   resolvePulseRingConfig,
   resolvePulseRingTime,
 } from "./vfx/pulseRing";
+export {
+  DEFAULT_NEON_LINES_CONFIG,
+  MAX_NEON_LINE_COUNT,
+  MIN_NEON_LINE_COUNT,
+  NEON_LINES_CONTROL_DEFINITIONS,
+  NEON_LINES_PRESETS,
+  createNeonLinesUniformState,
+  getNeonLinesPreset,
+  resolveNeonLinesConfig,
+} from "./vfx/neonLines";
+export type {
+  NeonLinesConfig,
+  NeonLinesConfigInput,
+  NeonLinesControlDefinition,
+  NeonLinesPresetId,
+  NeonLinesUniformState,
+} from "./vfx/neonLines";
+export {
+  DEFAULT_EQUALIZER_GRID_CONFIG,
+  EQUALIZER_GRID_CONTROL_DEFINITIONS,
+  EQUALIZER_GRID_PRESETS,
+  MAX_EQUALIZER_GRID_COLUMNS,
+  MAX_EQUALIZER_GRID_ROWS,
+  MIN_EQUALIZER_GRID_COLUMNS,
+  MIN_EQUALIZER_GRID_ROWS,
+  createEqualizerGridUniformState,
+  getEqualizerGridPreset,
+  resolveEqualizerGridConfig,
+} from "./vfx/equalizerGrid";
+export type {
+  EqualizerGridConfig,
+  EqualizerGridConfigInput,
+  EqualizerGridControlDefinition,
+  EqualizerGridPresetId,
+  EqualizerGridUniformState,
+} from "./vfx/equalizerGrid";
+export type {
+  VfxColorControlDefinition,
+  VfxControlDefinition,
+  VfxEffectId,
+  VfxMotion,
+  VfxNumericControlDefinition,
+  VfxPreset,
+  VfxQuality,
+  VfxSelectControlDefinition,
+  VfxSurfaceConfig,
+} from "./vfx/schema";
 export type {
   PulseRingConfig,
   PulseRingConfigInput,

@@ -10,7 +10,7 @@ import type {
 } from "../types";
 
 export type CoreRendererMode = "envelope" | "meter" | "spectrum" | "stepped-meter" | "waveform";
-export type VfxRendererMode = "pulse-ring";
+export type VfxRendererMode = "equalizer-grid" | "neon-lines" | "pulse-ring";
 export type RendererMode = CoreRendererMode | VfxRendererMode;
 
 export interface RendererLimits {
@@ -141,7 +141,7 @@ export const WEBGL2_RENDERER_CAPABILITIES: RendererCapabilities = Object.freeze(
   description: "GPU renderer for original clean-room VFX with explicit context-loss recovery.",
   id: "webgl2",
   label: "WebGL2",
-  layouts: Object.freeze(["radial"] as const),
+  layouts: Object.freeze(["radial", "rectangular"] as const),
   limits: Object.freeze({
     maximumBands: 16,
     maximumChannels: 0,
@@ -150,7 +150,7 @@ export const WEBGL2_RENDERER_CAPABILITIES: RendererCapabilities = Object.freeze(
     maximumSpectrumPoints: 0,
     maximumTimeDomainColumns: 0,
   }),
-  modes: Object.freeze(["pulse-ring"] as const),
+  modes: Object.freeze(["pulse-ring", "neon-lines", "equalizer-grid"] as const),
   semanticOverlays: "shared-dom",
   spectrumGeometries: Object.freeze([]),
   supportsDenseRealtime: true,
@@ -232,7 +232,7 @@ export function getRendererSupport(
 }
 
 function frameKindForMode(mode: RendererMode): AnalysisFrame["kind"] {
-  if (mode === "pulse-ring") return "bands";
+  if (mode === "pulse-ring" || mode === "neon-lines" || mode === "equalizer-grid") return "bands";
   if (mode === "stepped-meter") return "meter";
   return mode;
 }

@@ -322,12 +322,14 @@ For headless or custom integrations, `SVG_RENDERER_ADAPTER`/`renderSvgFrame` rou
 
 DOM/CSS intentionally supports only rectangular spectrum `bars`, `meter`, and `stepped-meter`; waveform/envelope curves and every radial layout return a visible `DOM_RENDER_UNSUPPORTED` state. It preserves CSS-variable color roles without headless resolution, uses system colors under forced colors, samples at most 256 spectrum bars and four compatible history layers, supports eight channels, and never exposes more than 1,024 shape boxes. Excessive stepped density is rejected before geometry allocation. `DOM_RENDERER_ADAPTER`/`renderDomFrame`, `renderDomSpectrum`, and `renderDomMeter` return immutable `DomScene` descriptors, while React exposes matching `data-dom-*` counts/messages and mounts no renderer-specific interaction targets or animation work.
 
-## WebGL2 Pulse Ring
+## WebGL2 clean-room VFX
 
-WebGL2 is a VFX renderer rather than a silent substitute for the core adapters. `PulseRing` consumes a canonical `BandEnergyFrame`; `createBandEnergyFrameFromSpectrum` derives 1–16 ordered logarithmic bands from a `SpectrumFrame` by averaging bin power and returning RMS amplitude energy in `[0, 1]`.
+WebGL2 is a VFX renderer rather than a silent substitute for the core adapters. `PulseRing`, `NeonLines`, and `EqualizerGrid` consume a canonical `BandEnergyFrame`; `createBandEnergyFrameFromSpectrum` derives 1–16 ordered logarithmic bands from a `SpectrumFrame` by averaging bin power and returning RMS amplitude energy in `[0, 1]`.
 
 ```tsx
 import {
+  EqualizerGrid,
+  NeonLines,
   PulseRing,
   createBandEnergyFrameFromSpectrum,
   type SpectrumFrame,
@@ -337,27 +339,26 @@ export function AudioRing({ spectrum }: { spectrum: SpectrumFrame }) {
   const bands = createBandEnergyFrameFromSpectrum(spectrum, { bandCount: 8 });
 
   return (
-    <PulseRing
-      data={bands}
-      config={{
-        thickness: 0.055,
-        glowStrength: 0.75,
-        rotationSpeed: 0.18,
-        bandReactivity: 1,
-        primaryColor: "#62dcf5",
-        secondaryColor: "#a7f59c",
-        tertiaryColor: "#ff7892",
-        sweepColor: "#f8d65c",
-        quality: "balanced",
-      }}
-    />
+    <>
+      <PulseRing data={bands} config={{ thickness: 0.055, glowStrength: 0.75 }} />
+      <NeonLines
+        data={bands}
+        config={{ lineCount: 7, waveHeight: 0.16, flowSpeed: 0.35, glowSize: 1.15 }}
+      />
+      <EqualizerGrid
+        data={bands}
+        config={{ gridColumns: 24, gridRows: 10, cellGap: 0.12, cellReactivity: 1.15 }}
+      />
+    </>
   );
 }
 ```
 
-The clean-room Pulse Ring owns one program, one vertex buffer, one vertex-array object, and no textures. Quality caps backing-buffer DPR at `1×`, `1.5×`, or `2×`, with absolute limits of 4,096 pixels per dimension and 4,194,304 total pixels. The adapter fully recreates GPU resources after `webglcontextrestored`; unavailable, compilation/link failure, context loss, restoration, and terminal error states keep a labeled CSS fallback visible instead of exposing a blank canvas. `destroy()` removes listeners and releases every live resource.
+Each clean-room effect owns one program, one vertex buffer, one vertex-array object, and no textures. Neon Lines uses at most 12 static shader iterations; Equalizer Grid addresses at most 48×24 logical cells procedurally without count-sized allocation. Quality caps backing-buffer DPR at `1×`, `1.5×`, or `2×`, with absolute limits of 4,096 pixels per dimension and 4,194,304 total pixels. The shared adapter fully recreates GPU resources after `webglcontextrestored`; unavailable, compilation/link failure, context loss, restoration, and terminal error states keep an effect-specific labeled CSS fallback visible instead of exposing a blank canvas. `destroy()` removes listeners and releases every live resource.
 
-`motion: "auto"` follows `prefers-reduced-motion`; reduced motion renders one deterministic static frame and starts no animation loop. Forced colors use a manual high-contrast pixel palette because browser system colors cannot be passed directly to GLSL. The React surface exposes `data-webgl-state`, generation, resource counts, backing-buffer size/DPR, degradation, animation state, and draw calls for host diagnostics. `WEBGL2_RENDERER_CAPABILITIES` and `BUILTIN_RENDERER_CATALOG` keep its `pulse-ring`-only scope explicit; the core `Waveform`, `Envelope`, `Spectrum`, and `Meter` configs continue to accept only `CoreRendererId`.
+`motion: "auto"` follows `prefers-reduced-motion`; reduced motion renders one deterministic static frame and starts no animation loop. Forced colors use a manual high-contrast pixel palette because browser system colors cannot be passed directly to GLSL. Every public parameter has a typed control definition with default, type, range/options, step, unit, description, compatibility, visibility, and constraints. `NEON_LINES_PRESETS` and `EQUALIZER_GRID_PRESETS` contain fully resolved immutable configs.
+
+The React surfaces expose `data-webgl-state`, effect, generation, resource counts, backing-buffer size/DPR, degradation, animation state, and draw calls for host diagnostics. `WEBGL2_RENDERER_CAPABILITIES` and `BUILTIN_RENDERER_CATALOG` explicitly publish `pulse-ring`, `neon-lines`, and `equalizer-grid`; the core `Waveform`, `Envelope`, `Spectrum`, and `Meter` configs continue to accept only `CoreRendererId`.
 
 ## Development
 
@@ -370,13 +371,14 @@ bun run verify:tracer
 bun run test:e2e
 ```
 
-The playground imports `waveform-component` through the public entry point and drives its main artifact through a shared session. `fixtures/external-consumer` installs a freshly packed tarball and typechecks waveform/envelope layout, session, recorded-player, microphone, analyzer, spectrum-dynamics, Canvas/SVG/DOM renderers, WebGL2 Pulse Ring and adapter APIs, meter-analysis, meter-history, and controlled overlay interfaces against generated declarations exactly as an external consumer would.
+The playground imports `waveform-component` through the public entry point and drives its main artifact through a shared session. `fixtures/external-consumer` installs a freshly packed tarball and typechecks waveform/envelope layout, session, recorded-player, microphone, analyzer, spectrum-dynamics, Canvas/SVG/DOM renderers, all three WebGL2 VFX surfaces and adapter APIs, meter-analysis, meter-history, and controlled overlay interfaces against generated declarations exactly as an external consumer would.
 
 ## Project records
 
 - Architecture: [`docs/architecture.md`](docs/architecture.md)
 - Research/provenance: [`docs/research/2026-07-16-waveform-component-foundations.md`](docs/research/2026-07-16-waveform-component-foundations.md)
 - WebGL2 lifecycle research: [`docs/research/2026-07-16-webgl2-pulse-ring-lifecycle.md`](docs/research/2026-07-16-webgl2-pulse-ring-lifecycle.md)
+- Neon/Grid clean-room research: [`docs/research/2026-07-16-neon-grid-vfx.md`](docs/research/2026-07-16-neon-grid-vfx.md)
 - Product requirements: [`.scratch/waveform-component/PRD.md`](.scratch/waveform-component/PRD.md)
 - Execution frontier: [`.scratch/waveform-component/issues/`](.scratch/waveform-component/issues/)
 

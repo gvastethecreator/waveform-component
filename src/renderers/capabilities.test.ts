@@ -30,7 +30,12 @@ describe("renderer capabilities", () => {
     expect(DOM_RENDERER_CAPABILITIES.spectrumGeometries).toEqual(["bars"]);
     expect(DOM_RENDERER_CAPABILITIES.limits.maximumNodes).toBe(1024);
     expect(BUILTIN_RENDERER_CATALOG.webgl2).toBe(WEBGL2_RENDERER_CAPABILITIES);
-    expect(WEBGL2_RENDERER_CAPABILITIES.modes).toEqual(["pulse-ring"]);
+    expect(WEBGL2_RENDERER_CAPABILITIES.modes).toEqual([
+      "pulse-ring",
+      "neon-lines",
+      "equalizer-grid",
+    ]);
+    expect(WEBGL2_RENDERER_CAPABILITIES.layouts).toEqual(["radial", "rectangular"]);
     expect(WEBGL2_RENDERER_CAPABILITIES.limits.maximumBands).toBe(16);
     expect(WEBGL2_RENDERER_CAPABILITIES.supportsVfx).toBe(true);
   });
@@ -91,7 +96,7 @@ describe("renderer capabilities", () => {
     });
   });
 
-  it("maps Pulse Ring only to canonical band energy and reports its bound", () => {
+  it("maps every clean-room VFX only to canonical band energy and reports its bound", () => {
     expect(
       getRendererSupport("webgl2", {
         frameKind: "bands",
@@ -123,5 +128,21 @@ describe("renderer capabilities", () => {
       reasons: ["pulse-ring mode requires a bands frame, not spectrum."],
       warnings: [],
     });
+    for (const mode of ["neon-lines", "equalizer-grid"] as const) {
+      expect(
+        getRendererSupport("webgl2", {
+          frameKind: "bands",
+          layout: "rectangular",
+          mode,
+          pointCount: 8,
+        }),
+      ).toEqual({ enabled: true, reasons: [], warnings: [] });
+      expect(
+        getRendererSupport("svg", {
+          frameKind: "bands",
+          mode,
+        }).reasons,
+      ).toEqual([`SVG does not support ${mode} mode.`]);
+    }
   });
 });

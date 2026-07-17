@@ -15,13 +15,19 @@ import {
   DEFAULT_METER_CONFIG,
   DEFAULT_METER_DYNAMICS_CONFIG,
   DEFAULT_ENVELOPE_CONFIG,
+  DEFAULT_EQUALIZER_GRID_CONFIG,
+  DEFAULT_NEON_LINES_CONFIG,
   DEFAULT_PULSE_RING_CONFIG,
   DEFAULT_WAVEFORM_CONFIG,
   BUILTIN_RENDERER_CATALOG,
   Envelope,
+  EQUALIZER_GRID_PRESETS,
+  EqualizerGrid,
   GUARDED_SPECTRUM_FFT_SIZE,
   METER_PRESETS,
   Meter,
+  NEON_LINES_PRESETS,
+  NeonLines,
   PulseRing,
   RecordedWaveformPlayer,
   SessionWaveform,
@@ -49,6 +55,8 @@ import {
   resolveSpectrumAnalysisConfig,
   resolveMeterConfig,
   resolveMeterDynamicsConfig,
+  resolveEqualizerGridConfig,
+  resolveNeonLinesConfig,
   resolveSpectrumConfig,
   resolveSpectrumDynamicsConfig,
   resolveSpectrumFrequencyRange,
@@ -59,14 +67,19 @@ import {
   type MeterConfigInput,
   type WaveformConfigInput,
   type BuiltinRendererId,
+  type BandEnergyFrame,
   type EnvelopeAmplitudePlacement,
   type EnvelopeFrame,
+  type EqualizerGridConfig,
+  type EqualizerGridPresetId,
   type RecordedAudioSource,
   type MicrophoneSource,
   type MeterColorMode,
   type MeterDynamicsConfig,
   type MeterDynamicsResult,
   type MeterMeasurement,
+  type NeonLinesConfig,
+  type NeonLinesPresetId,
   type PulseRingConfigInput,
   type PulseRingQuality,
   type SpectrumControlDefinition,
@@ -83,6 +96,9 @@ import {
   type SpectrumPulseMode,
   type SpectrumSmoothingMode,
   type VisualSyncCapability,
+  type VfxMotion,
+  type VfxQuality,
+  type VfxRendererMode,
   type WaveformSessionStatus,
   type SpectrumWindow,
   type SignalOverlayHandle,
@@ -101,12 +117,18 @@ const PRESETS = [
 ] as const;
 
 type Preset = (typeof PRESETS)[number];
+type VisualMode =
+  | "envelope"
+  | "meter"
+  | "spectrum"
+  | "stepped-meter"
+  | VfxRendererMode
+  | "waveform";
+type VfxEnergyScenario = "overload" | "signal" | "zero";
 
 export default function App() {
   const [view, setView] = useState<"overview" | "focus">("overview");
-  const [visualMode, setVisualMode] = useState<
-    "envelope" | "meter" | "pulse-ring" | "spectrum" | "stepped-meter" | "waveform"
-  >("waveform");
+  const [visualMode, setVisualMode] = useState<VisualMode>("waveform");
   const [renderer, setRenderer] = useState<BuiltinRendererId>("canvas2d");
   const [presetId, setPresetId] = useState<Preset["id"]>("broadcast");
   const [signalColor, setSignalColor] = useState<string>(PRESETS[0].color);
@@ -129,6 +151,24 @@ export default function App() {
     DEFAULT_PULSE_RING_CONFIG.tertiaryColor,
   );
   const [pulseRingSweep, setPulseRingSweep] = useState(DEFAULT_PULSE_RING_CONFIG.sweepColor);
+  const [pulseRingBackground, setPulseRingBackground] = useState(
+    DEFAULT_PULSE_RING_CONFIG.backgroundColor,
+  );
+  const [pulseRingMotion, setPulseRingMotion] = useState<VfxMotion>(
+    DEFAULT_PULSE_RING_CONFIG.motion,
+  );
+  const [neonLinesPresetId, setNeonLinesPresetId] = useState<NeonLinesPresetId | "custom">(
+    NEON_LINES_PRESETS[0].id as NeonLinesPresetId,
+  );
+  const [neonLinesConfig, setNeonLinesConfig] =
+    useState<NeonLinesConfig>(DEFAULT_NEON_LINES_CONFIG);
+  const [equalizerGridPresetId, setEqualizerGridPresetId] = useState<
+    EqualizerGridPresetId | "custom"
+  >(EQUALIZER_GRID_PRESETS[0].id as EqualizerGridPresetId);
+  const [equalizerGridConfig, setEqualizerGridConfig] = useState<EqualizerGridConfig>(
+    DEFAULT_EQUALIZER_GRID_CONFIG,
+  );
+  const [vfxEnergyScenario, setVfxEnergyScenario] = useState<VfxEnergyScenario>("signal");
   const [sampleCount, setSampleCount] = useState(2048);
   const [amplitude, setAmplitude] = useState(DEFAULT_WAVEFORM_CONFIG.amplitude);
   const [lineWidth, setLineWidth] = useState(DEFAULT_WAVEFORM_CONFIG.lineWidth);
@@ -231,7 +271,10 @@ export default function App() {
   const [showOverlays, setShowOverlays] = useState(true);
   const [overlayDirection, setOverlayDirection] = useState<"ltr" | "rtl">("ltr");
   const [playheadPosition, setPlayheadPosition] = useState(0.32);
-  const [selectionRange, setSelectionRange] = useState({ end: 0.42, start: 0.18 });
+  const [selectionRange, setSelectionRange] = useState({
+    end: 0.42,
+    start: 0.18,
+  });
   const [loopRange, setLoopRange] = useState({ end: 0.76, start: 0.56 });
   const [activeRegion, setActiveRegion] = useState("selection");
   const [overlayInspection, setOverlayInspection] = useState<number | null>(null);
@@ -240,6 +283,9 @@ export default function App() {
   const preset = PRESETS.find((candidate) => candidate.id === presetId) ?? PRESETS[0];
   const isMeterMode = visualMode === "meter" || visualMode === "stepped-meter";
   const isPulseRingMode = visualMode === "pulse-ring";
+  const isNeonLinesMode = visualMode === "neon-lines";
+  const isEqualizerGridMode = visualMode === "equalizer-grid";
+  const isVfxMode = isPulseRingMode || isNeonLinesMode || isEqualizerGridMode;
   const coreRenderer = renderer === "webgl2" ? "canvas2d" : renderer;
   const sessionSnapshot = useWaveformSession(session);
   const demoSource = useMemo(
@@ -321,7 +367,7 @@ export default function App() {
   const spectrumFrame = useMemo(
     () =>
       analyzeSpectrum(
-        (visualMode === "spectrum" || visualMode === "pulse-ring") && !recordedSource
+        (visualMode === "spectrum" || isVfxMode) && !recordedSource
           ? (sessionSnapshot.frame?.channels[0] ?? [])
           : [],
         {
@@ -329,7 +375,7 @@ export default function App() {
           sampleRate,
         },
       ),
-    [recordedSource, sampleRate, sessionSnapshot.frame, spectrumAnalysis, visualMode],
+    [isVfxMode, recordedSource, sampleRate, sessionSnapshot.frame, spectrumAnalysis, visualMode],
   );
   const dynamicsConfig = useMemo(
     () =>
@@ -360,14 +406,22 @@ export default function App() {
     offsetMs: microphoneSource ? visualSyncOffsetMs : 0,
     sourceEpoch: sessionSnapshot.epoch,
   });
-  const pulseRingFrame = useMemo(
-    () => createBandEnergyFrameFromSpectrum(spectrumPresentation.frame, { bandCount: 8 }),
-    [spectrumPresentation.frame],
+  const vfxFrame = useMemo(
+    () =>
+      vfxScenarioFrame(
+        createBandEnergyFrameFromSpectrum(spectrumPresentation.frame, {
+          bandCount: 8,
+        }),
+        vfxEnergyScenario,
+      ),
+    [spectrumPresentation.frame, vfxEnergyScenario],
   );
   const pulseRingConfig = useMemo<PulseRingConfigInput>(
     () => ({
+      backgroundColor: pulseRingBackground,
       bandReactivity: pulseRingReactivity,
       glowStrength: pulseRingGlow,
+      motion: pulseRingMotion,
       primaryColor: pulseRingPrimary,
       quality: pulseRingQuality,
       rotationSpeed: pulseRingRotation,
@@ -378,6 +432,8 @@ export default function App() {
     }),
     [
       pulseRingGlow,
+      pulseRingBackground,
+      pulseRingMotion,
       pulseRingPrimary,
       pulseRingQuality,
       pulseRingReactivity,
@@ -388,6 +444,16 @@ export default function App() {
       pulseRingThickness,
     ],
   );
+  const activeVfxQuality: VfxQuality = isPulseRingMode
+    ? pulseRingQuality
+    : isNeonLinesMode
+      ? neonLinesConfig.quality
+      : equalizerGridConfig.quality;
+  const activeVfxMotion: VfxMotion = isPulseRingMode
+    ? pulseRingMotion
+    : isNeonLinesMode
+      ? neonLinesConfig.motion
+      : equalizerGridConfig.motion;
   const spectrumConfig = useMemo<SpectrumConfigInput>(
     () => ({
       barGap,
@@ -399,8 +465,14 @@ export default function App() {
           alpha: accentAlpha,
           color: `var(--waveform-color-accent, ${accentColor})`,
         },
-        base: { alpha: baseAlpha, color: `var(--waveform-color-base, ${signalColor})` },
-        crest: { alpha: crestAlpha, color: `var(--waveform-color-crest, ${crestColor})` },
+        base: {
+          alpha: baseAlpha,
+          color: `var(--waveform-color-base, ${signalColor})`,
+        },
+        crest: {
+          alpha: crestAlpha,
+          color: `var(--waveform-color-crest, ${crestColor})`,
+        },
         middle: {
           alpha: middleAlpha,
           color: `var(--waveform-color-middle, ${middleColor})`,
@@ -525,10 +597,22 @@ export default function App() {
       channelGap: meterChannelGap,
       colorMode: meterColorMode,
       colorRoles: {
-        accent: { alpha: accentAlpha, color: `var(--waveform-color-accent, ${accentColor})` },
-        base: { alpha: baseAlpha, color: `var(--waveform-color-base, ${signalColor})` },
-        crest: { alpha: crestAlpha, color: `var(--waveform-color-crest, ${crestColor})` },
-        middle: { alpha: middleAlpha, color: `var(--waveform-color-middle, ${middleColor})` },
+        accent: {
+          alpha: accentAlpha,
+          color: `var(--waveform-color-accent, ${accentColor})`,
+        },
+        base: {
+          alpha: baseAlpha,
+          color: `var(--waveform-color-base, ${signalColor})`,
+        },
+        crest: {
+          alpha: crestAlpha,
+          color: `var(--waveform-color-crest, ${crestColor})`,
+        },
+        middle: {
+          alpha: middleAlpha,
+          color: `var(--waveform-color-middle, ${middleColor})`,
+        },
       },
       cornerRadius,
       crestDecibels,
@@ -595,10 +679,10 @@ export default function App() {
   );
   const rendererCapabilities = BUILTIN_RENDERER_CATALOG[renderer];
   const rendererSupport = getRendererSupport(renderer, {
-    channelCount: isPulseRingMode ? 0 : selectedChannelCount,
+    channelCount: isVfxMode ? 0 : selectedChannelCount,
     colorMode:
       visualMode === "spectrum" ? spectrumColorMode : isMeterMode ? meterColorMode : undefined,
-    frameKind: isPulseRingMode
+    frameKind: isVfxMode
       ? "bands"
       : isMeterMode
         ? "meter"
@@ -608,16 +692,18 @@ export default function App() {
             ? "envelope"
             : "waveform",
     historyCount: isMeterMode ? meterPresentation.history.length : 0,
-    layout: isPulseRingMode
-      ? "radial"
+    layout: isVfxMode
+      ? isPulseRingMode
+        ? "radial"
+        : "rectangular"
       : visualMode === "spectrum"
         ? spectrumLayout
         : isMeterMode
           ? meterLayout
           : undefined,
     mode: visualMode,
-    pointCount: isPulseRingMode
-      ? pulseRingFrame.bands.length
+    pointCount: isVfxMode
+      ? vfxFrame.bands.length
       : visualMode === "spectrum"
         ? spectrumFrame.bins.length
         : visualMode === "waveform" || visualMode === "envelope"
@@ -631,7 +717,7 @@ export default function App() {
   const isTimeOverlay = visualMode === "waveform" || visualMode === "envelope";
   const overlayOrientation = visualMode === "spectrum" ? "horizontal" : orientation;
   const radialOverlayUnavailable =
-    isPulseRingMode ||
+    isVfxMode ||
     (visualMode === "spectrum" && spectrumLayout === "radial") ||
     (isMeterMode && meterLayout === "radial");
   const overlayHandles = useMemo<readonly SignalOverlayHandle[]>(() => {
@@ -817,7 +903,10 @@ export default function App() {
         maximum: Math.max(0, loopRange.end - 0.01),
         minimum: 0,
         onChange: (value, meta) => {
-          setLoopRange((current) => ({ ...current, start: Math.min(value, current.end - 0.01) }));
+          setLoopRange((current) => ({
+            ...current,
+            start: Math.min(value, current.end - 0.01),
+          }));
           if (meta.commit) commit("Loop start", value, "percent");
         },
         step: 0.01,
@@ -832,7 +921,10 @@ export default function App() {
         maximum: 1,
         minimum: Math.min(1, loopRange.start + 0.01),
         onChange: (value, meta) => {
-          setLoopRange((current) => ({ ...current, end: Math.max(value, current.start + 0.01) }));
+          setLoopRange((current) => ({
+            ...current,
+            end: Math.max(value, current.start + 0.01),
+          }));
           if (meta.commit) commit("Loop end", value, "percent");
         },
         step: 0.01,
@@ -900,6 +992,13 @@ export default function App() {
     setPulseRingSecondary(DEFAULT_PULSE_RING_CONFIG.secondaryColor);
     setPulseRingTertiary(DEFAULT_PULSE_RING_CONFIG.tertiaryColor);
     setPulseRingSweep(DEFAULT_PULSE_RING_CONFIG.sweepColor);
+    setPulseRingBackground(DEFAULT_PULSE_RING_CONFIG.backgroundColor);
+    setPulseRingMotion(DEFAULT_PULSE_RING_CONFIG.motion);
+    setNeonLinesPresetId(NEON_LINES_PRESETS[0].id as NeonLinesPresetId);
+    setNeonLinesConfig(DEFAULT_NEON_LINES_CONFIG);
+    setEqualizerGridPresetId(EQUALIZER_GRID_PRESETS[0].id as EqualizerGridPresetId);
+    setEqualizerGridConfig(DEFAULT_EQUALIZER_GRID_CONFIG);
+    setVfxEnergyScenario("signal");
     setSampleCount(2048);
     setAmplitude(DEFAULT_WAVEFORM_CONFIG.amplitude);
     setLineWidth(DEFAULT_WAVEFORM_CONFIG.lineWidth);
@@ -994,6 +1093,30 @@ export default function App() {
     );
   };
 
+  const updateNeonLines = (patch: Partial<NeonLinesConfig>) => {
+    setNeonLinesConfig((current) => resolveNeonLinesConfig({ ...current, ...patch }));
+    setNeonLinesPresetId("custom");
+  };
+
+  const loadNeonLinesPreset = (id: string) => {
+    const next = NEON_LINES_PRESETS.find((candidate) => candidate.id === id);
+    if (!next) return;
+    setNeonLinesPresetId(next.id as NeonLinesPresetId);
+    setNeonLinesConfig(next.config);
+  };
+
+  const updateEqualizerGrid = (patch: Partial<EqualizerGridConfig>) => {
+    setEqualizerGridConfig((current) => resolveEqualizerGridConfig({ ...current, ...patch }));
+    setEqualizerGridPresetId("custom");
+  };
+
+  const loadEqualizerGridPreset = (id: string) => {
+    const next = EQUALIZER_GRID_PRESETS.find((candidate) => candidate.id === id);
+    if (!next) return;
+    setEqualizerGridPresetId(next.id as EqualizerGridPresetId);
+    setEqualizerGridConfig(next.config);
+  };
+
   const copyCode = async () => {
     const code = isPulseRingMode
       ? `const bands = createBandEnergyFrameFromSpectrum(spectrum, { bandCount: 8 });
@@ -1003,10 +1126,12 @@ export default function App() {
   config={{
     renderer: "webgl2",
     mode: "pulse-ring",
+    backgroundColor: "${pulseRingBackground}",
     thickness: ${pulseRingThickness.toFixed(3)},
     glowStrength: ${pulseRingGlow.toFixed(2)},
     rotationSpeed: ${pulseRingRotation.toFixed(2)},
     bandReactivity: ${pulseRingReactivity.toFixed(2)},
+    motion: "${pulseRingMotion}",
     quality: "${pulseRingQuality}",
     primaryColor: "${pulseRingPrimary}",
     secondaryColor: "${pulseRingSecondary}",
@@ -1014,8 +1139,52 @@ export default function App() {
     sweepColor: "${pulseRingSweep}"
   }}
 />`
-      : isMeterMode
-        ? `const meter = createMeterDynamicsProcessor();
+      : isNeonLinesMode
+        ? `const bands = createBandEnergyFrameFromSpectrum(spectrum, { bandCount: 8 });
+
+<NeonLines
+  data={bands}
+  config={{
+    renderer: "webgl2",
+    mode: "neon-lines",
+    backgroundColor: "${neonLinesConfig.backgroundColor}",
+    lineCount: ${neonLinesConfig.lineCount},
+    waveHeight: ${neonLinesConfig.waveHeight.toFixed(2)},
+    flowSpeed: ${neonLinesConfig.flowSpeed.toFixed(2)},
+    lineThickness: ${neonLinesConfig.lineThickness.toFixed(3)},
+    glowSize: ${neonLinesConfig.glowSize.toFixed(2)},
+    energyReactivity: ${neonLinesConfig.energyReactivity.toFixed(2)},
+    motion: "${neonLinesConfig.motion}",
+    quality: "${neonLinesConfig.quality}",
+    leftColor: "${neonLinesConfig.leftColor}",
+    rightColor: "${neonLinesConfig.rightColor}",
+    burstColor: "${neonLinesConfig.burstColor}"
+  }}
+/>`
+        : isEqualizerGridMode
+          ? `const bands = createBandEnergyFrameFromSpectrum(spectrum, { bandCount: 8 });
+
+<EqualizerGrid
+  data={bands}
+  config={{
+    renderer: "webgl2",
+    mode: "equalizer-grid",
+    backgroundColor: "${equalizerGridConfig.backgroundColor}",
+    gridColumns: ${equalizerGridConfig.gridColumns},
+    gridRows: ${equalizerGridConfig.gridRows},
+    cellGap: ${equalizerGridConfig.cellGap.toFixed(2)},
+    cellReactivity: ${equalizerGridConfig.cellReactivity.toFixed(2)},
+    randomSpeed: ${equalizerGridConfig.randomSpeed.toFixed(2)},
+    motion: "${equalizerGridConfig.motion}",
+    quality: "${equalizerGridConfig.quality}",
+    gradientColor1: "${equalizerGridConfig.gradientColor1}",
+    gradientColor2: "${equalizerGridConfig.gradientColor2}",
+    gradientColor3: "${equalizerGridConfig.gradientColor3}",
+    gradientColor4: "${equalizerGridConfig.gradientColor4}"
+  }}
+/>`
+          : isMeterMode
+            ? `const meter = createMeterDynamicsProcessor();
 const result = meter.process(
   analyzeMeter(samples, {
     channelMode: "${channelMode}",
@@ -1053,12 +1222,12 @@ const result = meter.process(
     showHistory: ${showMeterHistory}
   }}
 />`
-        : visualMode === "spectrum"
-          ? `const dynamics = createSpectrumDynamicsProcessor();\n\n<Spectrum\n  data={dynamics.process(\n    analyzeSpectrum(samples, {\n      sampleRate: ${sampleRate},\n      fftSize: ${spectrumAnalysis.fftSize},\n      allowLargeFft: ${spectrumAnalysis.allowLargeFft},\n      window: "${spectrumAnalysis.window}",\n      powerOfSineExponent: ${spectrumAnalysis.powerOfSineExponent},\n      minimumDecibels: ${spectrumAnalysis.minimumDecibels},\n      maximumDecibels: ${spectrumAnalysis.maximumDecibels}\n    }),\n    {\n      smoothingMode: "${dynamicsSettings.smoothingMode}",\n      smoothingFactor: ${dynamicsSettings.smoothingFactor},\n      attackMs: ${dynamicsSettings.attackMs},\n      releaseMs: ${dynamicsSettings.releaseMs},\n      inertiaMs: ${dynamicsSettings.inertiaMs},\n      fastPeaks: ${dynamicsSettings.fastPeaks},\n      normalizationEnabled: ${dynamicsSettings.normalizationEnabled},\n      normalizationTargetDb: ${dynamicsSettings.normalizationTargetDb},\n      normalizationMaxGainDb: ${dynamicsSettings.normalizationMaxGainDb},\n      gaussianRadius: ${dynamicsSettings.gaussianRadius},\n      highFrequencySlopeDbPerOctave: ${dynamicsSettings.highFrequencySlopeDbPerOctave},\n      rolloffBandwidthHz: ${dynamicsSettings.rolloffBandwidthHz},\n      rolloffAttenuationDb: ${dynamicsSettings.rolloffAttenuationDb}\n    },\n    { timestampMs: performance.now(), sourceState: "ready" }\n  ).frame}\n  config={{\n    renderer: "canvas2d",\n    mode: "spectrum",\n    geometry: "${spectrumGeometry}",\n    layout: "${spectrumLayout}",\n    radialInvert: ${radialInvert},\n    radialDeadzone: ${radialDeadzone.toFixed(2)},\n    radialArc: ${radialArc},\n    radialRotation: ${radialRotation},\n    roundedCaps: ${roundedCaps},\n    cornerRadius: ${cornerRadius},\n    frequencyScale: "${frequencyScale}",\n    lowFrequency: ${lowFrequency},\n    highFrequency: ${highFrequency},\n    minimumDecibels: ${minimumDecibels},\n    maximumDecibels: ${maximumDecibels},\n    interpolation: "${spectrumInterpolation}",\n    lineWidth: ${lineWidth},\n    barWidth: ${barWidth},\n    barGap: ${barGap},\n    colorMode: "${spectrumColorMode}",\n    pulseMode: "${spectrumPulseMode}",\n    colorRoles: {\n      base: { color: "${signalColor}", alpha: ${baseAlpha.toFixed(2)} },\n      middle: { color: "${middleColor}", alpha: ${middleAlpha.toFixed(2)} },\n      crest: { color: "${crestColor}", alpha: ${crestAlpha.toFixed(2)} },\n      accent: { color: "${accentColor}", alpha: ${accentAlpha.toFixed(2)} }\n    },\n    gradientRatio: ${gradientRatio.toFixed(2)},\n    middleDecibels: ${middleDecibels},\n    crestDecibels: ${crestDecibels},\n    showGrid: ${showSpectrumGrid}\n  }}\n/>`
-          : visualMode === "envelope"
-            ? `<Envelope\n  data={magnitudes}\n  ${timeDomainSizing === "fixed" ? `width={${fixedTimeDomainWidth}}\n  ` : ""}config={{\n    renderer: "canvas2d",\n    mode: "envelope",\n    channelMode: "${channelMode}",${channelMode === "single" ? `\n    channelIndex: ${channelIndex},` : ""}\n    channelLayout: "${channelLayout}",\n    channelGap: ${channelGap},\n    amplitudePlacement: "${envelopePlacement}",\n    orientation: "${orientation}",\n    amplitude: ${amplitude.toFixed(2)},\n    lineWidth: ${lineWidth.toFixed(1)},\n    color: "${signalColor}",\n    showCenterLine: ${showCenterLine}\n  }}\n/>`
-            : `<Waveform\n  data={channels}\n  ${timeDomainSizing === "fixed" ? `width={${fixedTimeDomainWidth}}\n  ` : ""}config={{\n    renderer: "canvas2d",\n    mode: "waveform",\n    channelMode: "${channelMode}",${channelMode === "single" ? `\n    channelIndex: ${channelIndex},` : ""}\n    channelLayout: "${channelLayout}",\n    channelGap: ${channelGap},\n    amplitudePlacement: "${waveformPlacement}",\n    orientation: "${orientation}",\n    amplitude: ${amplitude.toFixed(2)},\n    lineWidth: ${lineWidth.toFixed(1)},\n    color: "${signalColor}",\n    showCenterLine: ${showCenterLine}\n  }}\n/>`;
-    const rendererCode = isPulseRingMode
+            : visualMode === "spectrum"
+              ? `const dynamics = createSpectrumDynamicsProcessor();\n\n<Spectrum\n  data={dynamics.process(\n    analyzeSpectrum(samples, {\n      sampleRate: ${sampleRate},\n      fftSize: ${spectrumAnalysis.fftSize},\n      allowLargeFft: ${spectrumAnalysis.allowLargeFft},\n      window: "${spectrumAnalysis.window}",\n      powerOfSineExponent: ${spectrumAnalysis.powerOfSineExponent},\n      minimumDecibels: ${spectrumAnalysis.minimumDecibels},\n      maximumDecibels: ${spectrumAnalysis.maximumDecibels}\n    }),\n    {\n      smoothingMode: "${dynamicsSettings.smoothingMode}",\n      smoothingFactor: ${dynamicsSettings.smoothingFactor},\n      attackMs: ${dynamicsSettings.attackMs},\n      releaseMs: ${dynamicsSettings.releaseMs},\n      inertiaMs: ${dynamicsSettings.inertiaMs},\n      fastPeaks: ${dynamicsSettings.fastPeaks},\n      normalizationEnabled: ${dynamicsSettings.normalizationEnabled},\n      normalizationTargetDb: ${dynamicsSettings.normalizationTargetDb},\n      normalizationMaxGainDb: ${dynamicsSettings.normalizationMaxGainDb},\n      gaussianRadius: ${dynamicsSettings.gaussianRadius},\n      highFrequencySlopeDbPerOctave: ${dynamicsSettings.highFrequencySlopeDbPerOctave},\n      rolloffBandwidthHz: ${dynamicsSettings.rolloffBandwidthHz},\n      rolloffAttenuationDb: ${dynamicsSettings.rolloffAttenuationDb}\n    },\n    { timestampMs: performance.now(), sourceState: "ready" }\n  ).frame}\n  config={{\n    renderer: "canvas2d",\n    mode: "spectrum",\n    geometry: "${spectrumGeometry}",\n    layout: "${spectrumLayout}",\n    radialInvert: ${radialInvert},\n    radialDeadzone: ${radialDeadzone.toFixed(2)},\n    radialArc: ${radialArc},\n    radialRotation: ${radialRotation},\n    roundedCaps: ${roundedCaps},\n    cornerRadius: ${cornerRadius},\n    frequencyScale: "${frequencyScale}",\n    lowFrequency: ${lowFrequency},\n    highFrequency: ${highFrequency},\n    minimumDecibels: ${minimumDecibels},\n    maximumDecibels: ${maximumDecibels},\n    interpolation: "${spectrumInterpolation}",\n    lineWidth: ${lineWidth},\n    barWidth: ${barWidth},\n    barGap: ${barGap},\n    colorMode: "${spectrumColorMode}",\n    pulseMode: "${spectrumPulseMode}",\n    colorRoles: {\n      base: { color: "${signalColor}", alpha: ${baseAlpha.toFixed(2)} },\n      middle: { color: "${middleColor}", alpha: ${middleAlpha.toFixed(2)} },\n      crest: { color: "${crestColor}", alpha: ${crestAlpha.toFixed(2)} },\n      accent: { color: "${accentColor}", alpha: ${accentAlpha.toFixed(2)} }\n    },\n    gradientRatio: ${gradientRatio.toFixed(2)},\n    middleDecibels: ${middleDecibels},\n    crestDecibels: ${crestDecibels},\n    showGrid: ${showSpectrumGrid}\n  }}\n/>`
+              : visualMode === "envelope"
+                ? `<Envelope\n  data={magnitudes}\n  ${timeDomainSizing === "fixed" ? `width={${fixedTimeDomainWidth}}\n  ` : ""}config={{\n    renderer: "canvas2d",\n    mode: "envelope",\n    channelMode: "${channelMode}",${channelMode === "single" ? `\n    channelIndex: ${channelIndex},` : ""}\n    channelLayout: "${channelLayout}",\n    channelGap: ${channelGap},\n    amplitudePlacement: "${envelopePlacement}",\n    orientation: "${orientation}",\n    amplitude: ${amplitude.toFixed(2)},\n    lineWidth: ${lineWidth.toFixed(1)},\n    color: "${signalColor}",\n    showCenterLine: ${showCenterLine}\n  }}\n/>`
+                : `<Waveform\n  data={channels}\n  ${timeDomainSizing === "fixed" ? `width={${fixedTimeDomainWidth}}\n  ` : ""}config={{\n    renderer: "canvas2d",\n    mode: "waveform",\n    channelMode: "${channelMode}",${channelMode === "single" ? `\n    channelIndex: ${channelIndex},` : ""}\n    channelLayout: "${channelLayout}",\n    channelGap: ${channelGap},\n    amplitudePlacement: "${waveformPlacement}",\n    orientation: "${orientation}",\n    amplitude: ${amplitude.toFixed(2)},\n    lineWidth: ${lineWidth.toFixed(1)},\n    color: "${signalColor}",\n    showCenterLine: ${showCenterLine}\n  }}\n/>`;
+    const rendererCode = isVfxMode
       ? code
       : code.includes("renderer:")
         ? code.replaceAll('renderer: "canvas2d"', `renderer: "${coreRenderer}"`)
@@ -1195,8 +1364,8 @@ const result = meter.process(
                 <span>
                   {visualMode === "spectrum"
                     ? `${spectrumLayout.toUpperCase()} · ${spectrumColorMode.toUpperCase()}`
-                    : isPulseRingMode
-                      ? `${pulseRingFrame.bands.length} BANDS · ${pulseRingQuality.toUpperCase()}`
+                    : isVfxMode
+                      ? `${vfxFrame.bands.length} BANDS · ${activeVfxQuality.toUpperCase()}`
                       : isMeterMode
                         ? `${meterLayout.toUpperCase()} · ${meterMeasurement.toUpperCase()}`
                         : `${selectedChannelCount} CH · ${channelLayout.toUpperCase()}`}
@@ -1211,21 +1380,41 @@ const result = meter.process(
               data-spectrum-layout={visualMode === "spectrum" ? spectrumLayout : undefined}
               data-meter-layout={isMeterMode ? meterLayout : undefined}
               data-meter-mode={isMeterMode ? visualMode : undefined}
+              data-vfx-mode={isVfxMode ? visualMode : undefined}
+              data-vfx-scenario={isVfxMode ? vfxEnergyScenario : undefined}
               style={spectrumStageStyle}
             >
-              {isPulseRingMode ? (
+              {isVfxMode ? (
                 renderer === "webgl2" ? (
-                  <PulseRing
-                    ariaLabel={`${microphoneSource ? "Live microphone" : preset.label} audio-reactive Pulse Ring preview`}
-                    className="primary-waveform"
-                    config={pulseRingConfig}
-                    data={pulseRingFrame}
-                    height="100%"
-                  />
+                  isPulseRingMode ? (
+                    <PulseRing
+                      ariaLabel={`${microphoneSource ? "Live microphone" : preset.label} audio-reactive Pulse Ring preview`}
+                      className="primary-waveform"
+                      config={pulseRingConfig}
+                      data={vfxFrame}
+                      height="100%"
+                    />
+                  ) : isNeonLinesMode ? (
+                    <NeonLines
+                      ariaLabel={`${microphoneSource ? "Live microphone" : preset.label} audio-reactive Neon Lines preview`}
+                      className="primary-waveform"
+                      config={neonLinesConfig}
+                      data={vfxFrame}
+                      height="100%"
+                    />
+                  ) : (
+                    <EqualizerGrid
+                      ariaLabel={`${microphoneSource ? "Live microphone" : preset.label} audio-reactive Equalizer Grid preview`}
+                      className="primary-waveform"
+                      config={equalizerGridConfig}
+                      data={vfxFrame}
+                      height="100%"
+                    />
+                  )
                 ) : (
                   <div className="pulse-ring-engine-fallback" role="status">
                     <span aria-hidden="true" />
-                    <strong>Pulse Ring needs WebGL2</strong>
+                    <strong>{visualMode} needs WebGL2</strong>
                     <small>
                       Select the WebGL2 rendering engine. Source and controls are preserved.
                     </small>
@@ -1372,9 +1561,9 @@ const result = meter.process(
                   ) : null}
                 </>
               )}
-              {renderer === "webgl2" && !isPulseRingMode ? (
+              {renderer === "webgl2" && !isVfxMode ? (
                 <div className="signal-policy-state" role="status">
-                  Canvas 2D fallback · WebGL2 is scoped to Pulse Ring
+                  Canvas 2D fallback · WebGL2 is scoped to clean-room VFX modes
                 </div>
               ) : null}
               {showOverlays &&
@@ -1479,8 +1668,8 @@ const result = meter.process(
             </div>
             <div className="artifact-footer">
               <span>
-                {isPulseRingMode
-                  ? `${pulseRingFrame.bands.length} BANDS · CLEAN-ROOM VFX`
+                {isVfxMode
+                  ? `${vfxFrame.bands.length} BANDS · ${vfxEnergyScenario.toUpperCase()} · CLEAN-ROOM VFX`
                   : visualMode === "spectrum"
                     ? `${spectrumFrame.bins.length.toLocaleString()} BINS · ${spectrumAnalysis.fftSize.toLocaleString()} FFT`
                     : isMeterMode
@@ -1490,24 +1679,30 @@ const result = meter.process(
               <span>
                 {isPulseRingMode
                   ? `THICKNESS ${pulseRingThickness.toFixed(3)} · GLOW ${pulseRingGlow.toFixed(2)}×`
-                  : visualMode === "spectrum"
-                    ? spectrumPresentation.result
-                      ? `PEAK ${spectrumPresentation.result.peakDb.toFixed(1)} dBFS · ${spectrumPresentation.result.reacting ? "REACTING" : "IDLE"}`
-                      : "DYNAMICS INITIALIZING"
-                    : isMeterMode
-                      ? `${meterMeasurement.toUpperCase()} ${meterPresentation.frame.channels[0]?.[meterMeasurement === "rms" ? "rmsDbfs" : "peakDbfs"].toFixed(1) ?? meterMinimumDecibels} dBFS · ${meterPresentation.peaking ? "PEAKING" : meterPresentation.reacting ? "REACTING" : "IDLE"}`
-                      : visualMode === "envelope"
-                        ? "MAGNITUDE 0…1 · POLARITY SEPARATE"
-                        : "SIGNED −1…+1 · POLARITY PRESERVED"}
+                  : isNeonLinesMode
+                    ? `${neonLinesConfig.lineCount} LINES · HEIGHT ${neonLinesConfig.waveHeight.toFixed(2)} · GLOW ${neonLinesConfig.glowSize.toFixed(2)}×`
+                    : isEqualizerGridMode
+                      ? `${equalizerGridConfig.gridColumns}×${equalizerGridConfig.gridRows} CELLS · GAP ${equalizerGridConfig.cellGap.toFixed(2)}`
+                      : visualMode === "spectrum"
+                        ? spectrumPresentation.result
+                          ? `PEAK ${spectrumPresentation.result.peakDb.toFixed(1)} dBFS · ${spectrumPresentation.result.reacting ? "REACTING" : "IDLE"}`
+                          : "DYNAMICS INITIALIZING"
+                        : isMeterMode
+                          ? `${meterMeasurement.toUpperCase()} ${meterPresentation.frame.channels[0]?.[meterMeasurement === "rms" ? "rmsDbfs" : "peakDbfs"].toFixed(1) ?? meterMinimumDecibels} dBFS · ${meterPresentation.peaking ? "PEAKING" : meterPresentation.reacting ? "REACTING" : "IDLE"}`
+                          : visualMode === "envelope"
+                            ? "MAGNITUDE 0…1 · POLARITY SEPARATE"
+                            : "SIGNED −1…+1 · POLARITY PRESERVED"}
               </span>
               <span>
                 {isPulseRingMode
                   ? `${rendererCapabilities.label.toUpperCase()} · ${pulseRingQuality.toUpperCase()} · ${pulseRingRotation.toFixed(2)} REV/S`
-                  : visualMode === "spectrum"
-                    ? `${spectrumPresentation.result?.policy.toUpperCase() ?? "UNPROCESSED"} · ${rendererCapabilities.label.toUpperCase()} · ${spectrumLayout.toUpperCase()}/${spectrumColorMode.toUpperCase()}`
-                    : isMeterMode
-                      ? `${resolvedMeterDynamics.attackMs}/${resolvedMeterDynamics.releaseMs} ms · ${rendererCapabilities.label.toUpperCase()} · ${meterLayout.toUpperCase()}/${meterColorMode.toUpperCase()}`
-                      : `${rendererCapabilities.label.toUpperCase()} · ${orientation.toUpperCase()} · ${timeDomainSizing.toUpperCase()}`}
+                  : isVfxMode
+                    ? `${rendererCapabilities.label.toUpperCase()} · ${activeVfxQuality.toUpperCase()} · ${activeVfxMotion.toUpperCase()}`
+                    : visualMode === "spectrum"
+                      ? `${spectrumPresentation.result?.policy.toUpperCase() ?? "UNPROCESSED"} · ${rendererCapabilities.label.toUpperCase()} · ${spectrumLayout.toUpperCase()}/${spectrumColorMode.toUpperCase()}`
+                      : isMeterMode
+                        ? `${resolvedMeterDynamics.attackMs}/${resolvedMeterDynamics.releaseMs} ms · ${rendererCapabilities.label.toUpperCase()} · ${meterLayout.toUpperCase()}/${meterColorMode.toUpperCase()}`
+                        : `${rendererCapabilities.label.toUpperCase()} · ${orientation.toUpperCase()} · ${timeDomainSizing.toUpperCase()}`}
               </span>
             </div>
           </div>
@@ -1541,7 +1736,10 @@ const result = meter.process(
                   >
                     <Waveform
                       ariaLabel={`${candidate.label} preset thumbnail`}
-                      data={createDemoWaveform({ phase: candidate.phase, sampleCount: 384 })}
+                      data={createDemoWaveform({
+                        phase: candidate.phase,
+                        sampleCount: 384,
+                      })}
                       config={{
                         ...timeDomainConfig,
                         amplitudePlacement: "centered",
@@ -1732,6 +1930,28 @@ const result = meter.process(
               >
                 Pulse Ring
               </button>
+              <button
+                type="button"
+                aria-describedby={
+                  recordedSource ? "time-domain-source-limit" : "renderer-support-note"
+                }
+                aria-pressed={visualMode === "neon-lines"}
+                disabled={Boolean(recordedSource) || renderer !== "webgl2"}
+                onClick={() => setVisualMode("neon-lines")}
+              >
+                Neon Lines
+              </button>
+              <button
+                type="button"
+                aria-describedby={
+                  recordedSource ? "time-domain-source-limit" : "renderer-support-note"
+                }
+                aria-pressed={visualMode === "equalizer-grid"}
+                disabled={Boolean(recordedSource) || renderer !== "webgl2"}
+                onClick={() => setVisualMode("equalizer-grid")}
+              >
+                Equalizer Grid
+              </button>
             </div>
             <SelectControl
               definition={{
@@ -1754,7 +1974,7 @@ const result = meter.process(
             >
               {recordedSource
                 ? "Envelope, spectrum, and meters are disabled: this transport exposes bounded peaks, not raw PCM. Signed polarity remains in the player."
-                : "Mode and engine are separate public contracts. WebGL2 exposes Pulse Ring; core modes remain available through an explicit Canvas 2D fallback in the stage."}
+                : "Mode and engine are separate public contracts. WebGL2 exposes Pulse Ring, Neon Lines, and Equalizer Grid; core modes remain available through an explicit Canvas 2D fallback in the stage."}
             </p>
             <p
               className="capability-note"
@@ -1771,12 +1991,12 @@ const result = meter.process(
             <ToggleControl
               checked={showOverlays}
               description="Semantic DOM regions, markers, inspection, and direct handles above every supported visual renderer."
-              disabled={Boolean(recordedSource) || isPulseRingMode || !rendererSupport.enabled}
+              disabled={Boolean(recordedSource) || isVfxMode || !rendererSupport.enabled}
               disabledReason={
                 recordedSource
                   ? "Recorded playback already exposes its controlled transport slider; raw overlay data is unavailable."
-                  : isPulseRingMode
-                    ? "Pulse Ring is a radial VFX surface; editor overlays stay unmounted."
+                  : isVfxMode
+                    ? "Clean-room VFX surfaces keep editor overlays unmounted."
                     : rendererSupport.reasons.join(" ")
               }
               label="Semantic overlays"
@@ -1875,7 +2095,7 @@ const result = meter.process(
               value={
                 recordedSource
                   ? "Unavailable · recorded peaks"
-                  : isPulseRingMode
+                  : isVfxMode
                     ? "Unavailable · VFX surface"
                     : !showOverlays
                       ? "Hidden · overlays off"
@@ -1892,7 +2112,7 @@ const result = meter.process(
               label="Inspection"
               value={
                 recordedSource || radialOverlayUnavailable
-                  ? isPulseRingMode
+                  ? isVfxMode
                     ? "Unavailable · VFX surface"
                     : "Unavailable"
                   : !showOverlays
@@ -2056,7 +2276,9 @@ const result = meter.process(
                   disabledReason={temporalCapabilityReason}
                   value={dynamicsSettings.smoothingMode}
                   onChange={(value) =>
-                    updateDynamics({ smoothingMode: value as SpectrumSmoothingMode })
+                    updateDynamics({
+                      smoothingMode: value as SpectrumSmoothingMode,
+                    })
                   }
                 />
                 {dynamicsSettings.smoothingMode === "ema" ? (
@@ -2375,6 +2597,22 @@ const result = meter.process(
           ) : null}
 
           <ControlSection title="Geometry">
+            {isVfxMode ? (
+              <SelectControl
+                definition={{
+                  description:
+                    "Deterministic energy input for normal, silent, and hostile-overload proof.",
+                  label: "Energy fixture",
+                  options: [
+                    { label: "Signal · analyzed bands", value: "signal" },
+                    { label: "Zero · silent bands", value: "zero" },
+                    { label: "Overload · clipped bounds", value: "overload" },
+                  ],
+                }}
+                value={vfxEnergyScenario}
+                onChange={(value) => setVfxEnergyScenario(value as VfxEnergyScenario)}
+              />
+            ) : null}
             {isPulseRingMode ? (
               <>
                 <RangeControl
@@ -2416,6 +2654,20 @@ const result = meter.process(
                 <SelectControl
                   definition={{
                     description:
+                      "Follow the OS preference, animate continuously, or draw one deterministic frame.",
+                    label: "Motion",
+                    options: [
+                      { label: "Auto · follow system", value: "auto" },
+                      { label: "Full · animate", value: "full" },
+                      { label: "Reduced · static", value: "reduced" },
+                    ],
+                  }}
+                  value={pulseRingMotion}
+                  onChange={(value) => setPulseRingMotion(value as VfxMotion)}
+                />
+                <SelectControl
+                  definition={{
+                    description:
                       "Bound the backing-buffer DPR and pixel allocation without changing CSS size.",
                     label: "GPU quality",
                     options: [
@@ -2430,6 +2682,203 @@ const result = meter.process(
                 <p className="control-note">
                   Eight ordered logarithmic energy bands drive one bounded full-screen triangle. No
                   textures are allocated.
+                </p>
+              </>
+            ) : isNeonLinesMode ? (
+              <>
+                <SelectControl
+                  definition={{
+                    description: "Load an immutable, fully specified Neon Lines configuration.",
+                    label: "VFX preset",
+                    options: [
+                      ...NEON_LINES_PRESETS.map((candidate) => ({
+                        label: candidate.label,
+                        value: candidate.id,
+                      })),
+                      { disabled: true, label: "Custom", value: "custom" },
+                    ],
+                  }}
+                  value={neonLinesPresetId}
+                  onChange={loadNeonLinesPreset}
+                />
+                <RangeControl
+                  label="Line count"
+                  min={2}
+                  max={12}
+                  step={1}
+                  value={neonLinesConfig.lineCount}
+                  valueLabel={`${neonLinesConfig.lineCount} lines`}
+                  onChange={(lineCount) => updateNeonLines({ lineCount })}
+                />
+                <RangeControl
+                  label="Wave height"
+                  min={0.02}
+                  max={0.45}
+                  step={0.01}
+                  value={neonLinesConfig.waveHeight}
+                  valueLabel={`${Math.round(neonLinesConfig.waveHeight * 100)}%`}
+                  onChange={(waveHeight) => updateNeonLines({ waveHeight })}
+                />
+                <RangeControl
+                  label="Flow speed"
+                  min={-2}
+                  max={2}
+                  step={0.05}
+                  value={neonLinesConfig.flowSpeed}
+                  valueLabel={`${neonLinesConfig.flowSpeed.toFixed(2)} cycles/s`}
+                  onChange={(flowSpeed) => updateNeonLines({ flowSpeed })}
+                />
+                <RangeControl
+                  label="Line thickness"
+                  min={0.002}
+                  max={0.04}
+                  step={0.001}
+                  value={neonLinesConfig.lineThickness}
+                  valueLabel={`${(neonLinesConfig.lineThickness * 100).toFixed(1)}%`}
+                  onChange={(lineThickness) => updateNeonLines({ lineThickness })}
+                />
+                <RangeControl
+                  label="Glow size"
+                  min={0}
+                  max={3}
+                  step={0.05}
+                  value={neonLinesConfig.glowSize}
+                  valueLabel={`${neonLinesConfig.glowSize.toFixed(2)}×`}
+                  onChange={(glowSize) => updateNeonLines({ glowSize })}
+                />
+                <RangeControl
+                  label="Energy reactivity"
+                  min={0}
+                  max={2}
+                  step={0.05}
+                  value={neonLinesConfig.energyReactivity}
+                  valueLabel={`${neonLinesConfig.energyReactivity.toFixed(2)}×`}
+                  onChange={(energyReactivity) => updateNeonLines({ energyReactivity })}
+                />
+                <SelectControl
+                  definition={{
+                    description:
+                      "Follow the OS preference, animate continuously, or draw one deterministic frame.",
+                    label: "Motion",
+                    options: [
+                      { label: "Auto · follow system", value: "auto" },
+                      { label: "Full · animate", value: "full" },
+                      { label: "Reduced · static", value: "reduced" },
+                    ],
+                  }}
+                  value={neonLinesConfig.motion}
+                  onChange={(motion) => updateNeonLines({ motion: motion as VfxMotion })}
+                />
+                <SelectControl
+                  definition={{
+                    description: "Cap DPR before absolute dimension and pixel ceilings.",
+                    label: "GPU quality",
+                    options: [
+                      { label: "Low · 1× cap", value: "low" },
+                      { label: "Balanced · 1.5× cap", value: "balanced" },
+                      { label: "High · 2× cap", value: "high" },
+                    ],
+                  }}
+                  value={neonLinesConfig.quality}
+                  onChange={(quality) => updateNeonLines({ quality: quality as VfxQuality })}
+                />
+                <p className="control-note">
+                  Maximum 12 shader iterations · 16 sampled bands · one fullscreen triangle · no
+                  textures.
+                </p>
+              </>
+            ) : isEqualizerGridMode ? (
+              <>
+                <SelectControl
+                  definition={{
+                    description: "Load an immutable, fully specified Equalizer Grid configuration.",
+                    label: "VFX preset",
+                    options: [
+                      ...EQUALIZER_GRID_PRESETS.map((candidate) => ({
+                        label: candidate.label,
+                        value: candidate.id,
+                      })),
+                      { disabled: true, label: "Custom", value: "custom" },
+                    ],
+                  }}
+                  value={equalizerGridPresetId}
+                  onChange={loadEqualizerGridPreset}
+                />
+                <RangeControl
+                  label="Grid columns"
+                  min={4}
+                  max={48}
+                  step={1}
+                  value={equalizerGridConfig.gridColumns}
+                  valueLabel={`${equalizerGridConfig.gridColumns} columns`}
+                  onChange={(gridColumns) => updateEqualizerGrid({ gridColumns })}
+                />
+                <RangeControl
+                  label="Grid rows"
+                  min={2}
+                  max={24}
+                  step={1}
+                  value={equalizerGridConfig.gridRows}
+                  valueLabel={`${equalizerGridConfig.gridRows} rows`}
+                  onChange={(gridRows) => updateEqualizerGrid({ gridRows })}
+                />
+                <RangeControl
+                  label="Cell gap"
+                  min={0}
+                  max={0.45}
+                  step={0.01}
+                  value={equalizerGridConfig.cellGap}
+                  valueLabel={`${Math.round(equalizerGridConfig.cellGap * 100)}%`}
+                  onChange={(cellGap) => updateEqualizerGrid({ cellGap })}
+                />
+                <RangeControl
+                  label="Cell reactivity"
+                  min={0}
+                  max={2}
+                  step={0.05}
+                  value={equalizerGridConfig.cellReactivity}
+                  valueLabel={`${equalizerGridConfig.cellReactivity.toFixed(2)}×`}
+                  onChange={(cellReactivity) => updateEqualizerGrid({ cellReactivity })}
+                />
+                <RangeControl
+                  label="Shimmer speed"
+                  min={0}
+                  max={2}
+                  step={0.05}
+                  value={equalizerGridConfig.randomSpeed}
+                  valueLabel={`${equalizerGridConfig.randomSpeed.toFixed(2)} cycles/s`}
+                  onChange={(randomSpeed) => updateEqualizerGrid({ randomSpeed })}
+                />
+                <SelectControl
+                  definition={{
+                    description:
+                      "Follow the OS preference, animate continuously, or draw one deterministic frame.",
+                    label: "Motion",
+                    options: [
+                      { label: "Auto · follow system", value: "auto" },
+                      { label: "Full · animate", value: "full" },
+                      { label: "Reduced · static", value: "reduced" },
+                    ],
+                  }}
+                  value={equalizerGridConfig.motion}
+                  onChange={(motion) => updateEqualizerGrid({ motion: motion as VfxMotion })}
+                />
+                <SelectControl
+                  definition={{
+                    description: "Cap DPR before absolute dimension and pixel ceilings.",
+                    label: "GPU quality",
+                    options: [
+                      { label: "Low · 1× cap", value: "low" },
+                      { label: "Balanced · 1.5× cap", value: "balanced" },
+                      { label: "High · 2× cap", value: "high" },
+                    ],
+                  }}
+                  value={equalizerGridConfig.quality}
+                  onChange={(quality) => updateEqualizerGrid({ quality: quality as VfxQuality })}
+                />
+                <p className="control-note">
+                  Procedural O(1) cell addressing · maximum 48×24 logical grid · 16 sampled bands ·
+                  no textures.
                 </p>
               </>
             ) : visualMode === "spectrum" ? (
@@ -2588,7 +3037,11 @@ const result = meter.process(
                     label: "Meter layout",
                     options: [
                       { label: "Rectangular", value: "rectangular" },
-                      { disabled: renderer === "dom", label: "Radial", value: "radial" },
+                      {
+                        disabled: renderer === "dom",
+                        label: "Radial",
+                        value: "radial",
+                      },
                     ],
                   }}
                   value={meterLayout}
@@ -2890,6 +3343,11 @@ const result = meter.process(
           <ControlSection title="Color & guides">
             {isPulseRingMode ? (
               <>
+                <VfxColorControl
+                  label="Background color"
+                  value={pulseRingBackground}
+                  onChange={setPulseRingBackground}
+                />
                 <label className="color-control">
                   <span>Primary color</span>
                   <span className="color-readout">
@@ -2939,8 +3397,67 @@ const result = meter.process(
                   </span>
                 </label>
                 <p className="control-note">
-                  Four independent shader roles; forced-colors mode substitutes a manual
+                  Five independent shader roles; forced-colors mode substitutes a manual
                   high-contrast palette for canvas pixels.
+                </p>
+              </>
+            ) : isNeonLinesMode ? (
+              <>
+                <VfxColorControl
+                  label="Background color"
+                  value={neonLinesConfig.backgroundColor}
+                  onChange={(backgroundColor) => updateNeonLines({ backgroundColor })}
+                />
+                <VfxColorControl
+                  label="Left color"
+                  value={neonLinesConfig.leftColor}
+                  onChange={(leftColor) => updateNeonLines({ leftColor })}
+                />
+                <VfxColorControl
+                  label="Right color"
+                  value={neonLinesConfig.rightColor}
+                  onChange={(rightColor) => updateNeonLines({ rightColor })}
+                />
+                <VfxColorControl
+                  label="Burst color"
+                  value={neonLinesConfig.burstColor}
+                  onChange={(burstColor) => updateNeonLines({ burstColor })}
+                />
+                <p className="control-note">
+                  Horizontal position blends left to right; mapped peak energy blends the burst role
+                  independently per line.
+                </p>
+              </>
+            ) : isEqualizerGridMode ? (
+              <>
+                <VfxColorControl
+                  label="Background color"
+                  value={equalizerGridConfig.backgroundColor}
+                  onChange={(backgroundColor) => updateEqualizerGrid({ backgroundColor })}
+                />
+                <VfxColorControl
+                  label="Gradient color 1"
+                  value={equalizerGridConfig.gradientColor1}
+                  onChange={(gradientColor1) => updateEqualizerGrid({ gradientColor1 })}
+                />
+                <VfxColorControl
+                  label="Gradient color 2"
+                  value={equalizerGridConfig.gradientColor2}
+                  onChange={(gradientColor2) => updateEqualizerGrid({ gradientColor2 })}
+                />
+                <VfxColorControl
+                  label="Gradient color 3"
+                  value={equalizerGridConfig.gradientColor3}
+                  onChange={(gradientColor3) => updateEqualizerGrid({ gradientColor3 })}
+                />
+                <VfxColorControl
+                  label="Gradient color 4"
+                  value={equalizerGridConfig.gradientColor4}
+                  onChange={(gradientColor4) => updateEqualizerGrid({ gradientColor4 })}
+                />
+                <p className="control-note">
+                  Frequency position and row level traverse all four stops; peak cells blend the
+                  fourth role.
                 </p>
               </>
             ) : visualMode === "spectrum" ? (
@@ -3153,7 +3670,7 @@ const result = meter.process(
               <div>
                 <dt>Input</dt>
                 <dd>
-                  {isPulseRingMode
+                  {isVfxMode
                     ? "ordered logarithmic band energy"
                     : visualMode === "spectrum"
                       ? "ordered dB bins"
@@ -3167,7 +3684,7 @@ const result = meter.process(
               <div>
                 <dt>Range</dt>
                 <dd>
-                  {isPulseRingMode
+                  {isVfxMode
                     ? "0…1 RMS amplitude per band"
                     : visualMode === "spectrum"
                       ? `${minimumDecibels}…${maximumDecibels} dBFS`
@@ -3273,7 +3790,10 @@ function useSpectrumPresentation({
   readonly sourceEpoch: number;
 }): SpectrumPresentation {
   const engine = useMemo(
-    () => ({ delay: new SpectrumFrameDelay(), dynamics: createSpectrumDynamicsProcessor() }),
+    () => ({
+      delay: new SpectrumFrameDelay(),
+      dynamics: createSpectrumDynamicsProcessor(),
+    }),
     [sourceEpoch],
   );
   const [presentation, setPresentation] = useState<SpectrumPresentation>({
@@ -3285,7 +3805,10 @@ function useSpectrumPresentation({
 
   useEffect(() => {
     const timestampMs = typeof performance === "undefined" ? Date.now() : performance.now();
-    const result = engine.dynamics.process(frame, config, { sourceState: inputState, timestampMs });
+    const result = engine.dynamics.process(frame, config, {
+      sourceState: inputState,
+      timestampMs,
+    });
     const sync = resolveVisualSyncOffset(offsetMs, capability);
     let displayFrame = result.frame;
     let buffering = false;
@@ -3367,6 +3890,31 @@ function ToggleControl({
         disabled={disabled}
         onChange={(event) => onChange(event.currentTarget.checked)}
       />
+    </label>
+  );
+}
+
+function VfxColorControl({
+  label,
+  onChange,
+  value,
+}: {
+  readonly label: string;
+  readonly onChange: (value: string) => void;
+  readonly value: string;
+}) {
+  return (
+    <label className="color-control">
+      <span>{label}</span>
+      <span className="color-readout">
+        <input
+          type="color"
+          aria-label={label}
+          value={value}
+          onChange={(event) => onChange(event.currentTarget.value)}
+        />
+        {value.toUpperCase()}
+      </span>
     </label>
   );
 }
@@ -3615,4 +4163,29 @@ function meterScaleLabels(
 ): readonly string[] {
   const labels = [`${minimum} dB`, `${Math.round((minimum + maximum) / 2)} dB`, `${maximum} dB`];
   return orientation === "horizontal" ? labels : [...labels].reverse();
+}
+
+function vfxScenarioFrame(frame: BandEnergyFrame, scenario: VfxEnergyScenario): BandEnergyFrame {
+  if (scenario === "signal") return frame;
+  const sourceBands =
+    frame.bands.length > 0
+      ? frame.bands
+      : Array.from({ length: 8 }, (_, index) => ({
+          energy: 0,
+          highFrequency: 40 * 2 ** (index + 1),
+          id: `fixture-${index}`,
+          lowFrequency: 40 * 2 ** index,
+        }));
+  return Object.freeze({
+    bands: Object.freeze(
+      sourceBands.map((band, index) =>
+        Object.freeze({
+          ...band,
+          energy: scenario === "zero" ? 0 : index % 3 === 0 ? 1.75 : index % 3 === 1 ? -0.25 : 0.8,
+        }),
+      ),
+    ),
+    kind: "bands",
+    state: "ready",
+  });
 }
