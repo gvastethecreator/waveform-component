@@ -6,6 +6,9 @@ import {
   DOM_RENDERER_ADAPTER,
   DOM_RENDERER_CAPABILITIES,
   Meter,
+  LiquidBlobs,
+  LIQUID_BLOBS_CONTROL_DEFINITIONS,
+  LIQUID_BLOBS_PRESETS,
   NeonLines,
   NEON_LINES_CONTROL_DEFINITIONS,
   NEON_LINES_PRESETS,
@@ -23,6 +26,9 @@ import {
   SessionWaveform,
   Spectrum,
   SpectrumBars,
+  StarfieldBurst,
+  STARFIELD_BURST_CONTROL_DEFINITIONS,
+  STARFIELD_BURST_PRESETS,
   SPECTRUM_BARS_CONTROL_DEFINITIONS,
   SPECTRUM_BARS_PRESETS,
   TunnelWaves,
@@ -48,6 +54,7 @@ import {
   createStaticWaveformSource,
   createWaveformSession,
   createWebglPulseRingRenderer,
+  createWebglLiquidBlobsRenderer,
   createWebglRadialSpikesRenderer,
   createWebglEqualizerGridRenderer,
   createWebglNeonLinesRenderer,
@@ -56,11 +63,13 @@ import {
   createWebglWaveformRibbonRenderer,
   createWebglTunnelWavesRenderer,
   createWebglVortexRingsRenderer,
+  createWebglStarfieldBurstRenderer,
   renderSvgMeter,
   renderSvgSpectrum,
   renderDomMeter,
   renderDomSpectrum,
   resolvePulseRingConfig,
+  resolveLiquidBlobsConfig,
   resolveRadialSpikesConfig,
   resolveEqualizerGridConfig,
   resolveNeonLinesConfig,
@@ -69,6 +78,7 @@ import {
   resolveWaveformRibbonConfig,
   resolveTunnelWavesConfig,
   resolveVortexRingsConfig,
+  resolveStarfieldBurstConfig,
   useMicrophoneSource,
   type MicrophoneSource,
   type WaveformFrame,
@@ -129,6 +139,15 @@ const tunnelWavesConfig = resolveTunnelWavesConfig({
 const vortexRingsConfig = resolveVortexRingsConfig({
   ...VORTEX_RINGS_PRESETS[2].config,
   ringDensity: 36,
+});
+const liquidBlobsConfig = resolveLiquidBlobsConfig({
+  ...LIQUID_BLOBS_PRESETS[1].config,
+  seed: 12_345,
+});
+const starfieldBurstConfig = resolveStarfieldBurstConfig({
+  ...STARFIELD_BURST_PRESETS[2].config,
+  motion: "reduced",
+  seed: 54_321,
 });
 const dynamics = createSpectrumDynamicsProcessor();
 const meterDynamics = createMeterDynamicsProcessor();
@@ -424,6 +443,36 @@ export function createExternalRadialSpatialRenderers(
     radialSpikes: createWebglRadialSpikesRenderer(radialSpikes),
     tunnelWaves: createWebglTunnelWavesRenderer(tunnelWaves),
     vortexRings: createWebglVortexRingsRenderer(vortexRings),
+  };
+}
+
+export function OrganicParticleConsumerExample() {
+  return (
+    <section
+      data-liquid-blobs-controls={LIQUID_BLOBS_CONTROL_DEFINITIONS.length}
+      data-starfield-burst-controls={STARFIELD_BURST_CONTROL_DEFINITIONS.length}
+    >
+      <LiquidBlobs
+        ariaLabel="External Liquid Blobs"
+        config={liquidBlobsConfig}
+        data={pulseRingBands}
+      />
+      <StarfieldBurst
+        ariaLabel="External Starfield Burst"
+        config={starfieldBurstConfig}
+        data={linearSpatialBands}
+      />
+    </section>
+  );
+}
+
+export function createExternalOrganicParticleRenderers(
+  liquidBlobs: HTMLCanvasElement,
+  starfieldBurst: HTMLCanvasElement,
+) {
+  return {
+    liquidBlobs: createWebglLiquidBlobsRenderer(liquidBlobs),
+    starfieldBurst: createWebglStarfieldBurstRenderer(starfieldBurst),
   };
 }
 

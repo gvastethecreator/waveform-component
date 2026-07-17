@@ -2,11 +2,13 @@ import type { BandEnergyFrame } from "../types";
 
 export type VfxEffectId =
   | "equalizer-grid"
+  | "liquid-blobs"
   | "neon-lines"
   | "pulse-ring"
   | "radial-spikes"
   | "rounded-wobble-bars"
   | "spectrum-bars"
+  | "starfield-burst"
   | "tunnel-waves"
   | "vortex-rings"
   | "waveform-ribbon";

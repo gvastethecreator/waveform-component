@@ -487,6 +487,54 @@ describe("Signal Workbench tracer", () => {
     );
   });
 
+  it("keeps seeded organic and particle presets, controls, fixtures, and copy isolated", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<App />);
+    await screen.findByText("DEMO / READY");
+    await user.selectOptions(screen.getByRole("combobox", { name: /Rendering engine/ }), "webgl2");
+    const writeText = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue(undefined);
+
+    await user.click(screen.getByRole("button", { name: "Liquid Blobs" }));
+    expect(container.querySelector("canvas[data-webgl-canvas='liquid-blobs']")).toBeInTheDocument();
+    const liquidPreset = screen.getByRole("combobox", { name: /VFX preset/ });
+    await user.selectOptions(liquidPreset, "magma-bloom");
+    expect(screen.getByRole("slider", { name: "Blob count" })).toHaveValue("13");
+    expect(screen.getByRole("slider", { name: "Merge threshold" })).toHaveValue("0.66");
+    fireEvent.change(screen.getByRole("slider", { name: "Seed" }), {
+      target: { value: "12345" },
+    });
+    expect(liquidPreset).toHaveValue("custom");
+    await user.click(screen.getByRole("button", { name: "Copy code" }));
+    expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining("<LiquidBlobs"));
+    expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining("seed: 12345"));
+    expect(writeText).toHaveBeenLastCalledWith(
+      expect.stringContaining("lowFrequencyReactivity: 1.55"),
+    );
+
+    await user.click(screen.getByRole("button", { name: "Starfield Burst" }));
+    expect(
+      container.querySelector("canvas[data-webgl-canvas='starfield-burst']"),
+    ).toBeInTheDocument();
+    const starPreset = screen.getByRole("combobox", { name: /VFX preset/ });
+    await user.selectOptions(starPreset, "violet-warp");
+    expect(screen.getByRole("slider", { name: "Star count" })).toHaveValue("54");
+    expect(screen.getByRole("slider", { name: "Trail length" })).toHaveValue("0.42");
+    await user.selectOptions(screen.getByRole("combobox", { name: /Energy fixture/ }), "overload");
+    expect(container.querySelector(".signal-stage")).toHaveAttribute(
+      "data-vfx-scenario",
+      "overload",
+    );
+    await user.click(screen.getByRole("button", { name: /Copy code|Copied/ }));
+    expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining("<StarfieldBurst"));
+    expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining("trailLength: 0.42"));
+    expect(container.querySelectorAll("canvas[data-webgl-canvas]")).toHaveLength(1);
+
+    await user.click(screen.getByRole("button", { name: "Reset" }));
+    await user.selectOptions(screen.getByRole("combobox", { name: /Rendering engine/ }), "webgl2");
+    await user.click(screen.getByRole("button", { name: "Liquid Blobs" }));
+    expect(screen.getByRole("slider", { name: "Seed" })).toHaveValue("2731");
+  });
+
   it("keeps semantic seeking, regions, markers, and overlapping handles host-controlled", async () => {
     const user = userEvent.setup();
     render(<App />);

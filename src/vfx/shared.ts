@@ -10,6 +10,8 @@ export interface BandUniformMetrics {
   readonly peak: number;
 }
 
+export const VFX_TIME_PERIOD_SECONDS = 4_096;
+
 export function createBandUniformMetrics(frame: BandEnergyFrame): BandUniformMetrics {
   const bands = sampleBandEnergy(frame);
   let squaredEnergy = 0;
@@ -33,7 +35,27 @@ export function createBandUniformMetrics(frame: BandEnergyFrame): BandUniformMet
 }
 
 export function resolveVfxTime(timeSeconds: number, reducedMotion: boolean): number {
-  return reducedMotion || !Number.isFinite(timeSeconds) ? 0 : Math.max(0, timeSeconds);
+  if (reducedMotion || !Number.isFinite(timeSeconds) || timeSeconds <= 0) return 0;
+  return timeSeconds % VFX_TIME_PERIOD_SECONDS;
+}
+
+export function bandRangeRms(
+  bands: readonly number[],
+  startRatio: number,
+  endRatio: number,
+): number {
+  if (bands.length === 0) return 0;
+  const start = Math.min(
+    bands.length - 1,
+    Math.max(0, Math.floor(clampFinite(startRatio, 0, 1, 0) * bands.length)),
+  );
+  const end = Math.min(
+    bands.length,
+    Math.max(start + 1, Math.ceil(clampFinite(endRatio, 0, 1, 1) * bands.length)),
+  );
+  let squaredEnergy = 0;
+  for (let index = start; index < end; index += 1) squaredEnergy += bands[index] ** 2;
+  return Math.sqrt(squaredEnergy / (end - start));
 }
 
 export function parseVfxColor(

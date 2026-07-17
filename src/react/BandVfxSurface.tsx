@@ -87,6 +87,7 @@ export function BandVfxSurface<Config extends VfxSurfaceConfig>({
   latestRef.current = { config: paintConfig, data, reducedMotion };
   const [status, setStatus] = useState<WebglRendererStatus>(INITIAL_STATUS);
   const [diagnostics, setDiagnostics] = useState<WebglRendererDiagnostics>(EMPTY_DIAGNOSTICS);
+  const [isIntersecting, setIsIntersecting] = useState(true);
   const [size, setSize] = useState<WebglDrawingBufferSize | null>(null);
 
   useEffect(() => {
@@ -111,11 +112,23 @@ export function BandVfxSurface<Config extends VfxSurfaceConfig>({
       setSize((current) => (sameSize(current, next) ? current : next));
     };
     const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(resize);
+    const intersectionObserver =
+      typeof IntersectionObserver === "undefined"
+        ? null
+        : new IntersectionObserver(
+            (entries) => {
+              const entry = entries.find((candidate) => candidate.target === container);
+              if (entry) setIsIntersecting(entry.isIntersecting && entry.intersectionRatio > 0);
+            },
+            { rootMargin: "64px" },
+          );
     observer?.observe(container);
+    intersectionObserver?.observe(container);
     update();
     resize();
     return () => {
       observer?.disconnect();
+      intersectionObserver?.disconnect();
       unsubscribe();
       renderer.destroy();
       rendererRef.current = null;
@@ -143,7 +156,8 @@ export function BandVfxSurface<Config extends VfxSurfaceConfig>({
   useEffect(() => {
     const renderer = rendererRef.current;
     const canvas = canvasRef.current;
-    if (!renderer || !canvas || status.state !== "ready" || reducedMotion) return;
+    if (!renderer || !canvas || status.state !== "ready" || reducedMotion || !isIntersecting)
+      return;
     let active = true;
     let frameHandle = 0;
     const draw = (timestamp: number) => {
@@ -161,7 +175,7 @@ export function BandVfxSurface<Config extends VfxSurfaceConfig>({
       active = false;
       cancelAnimationFrame(frameHandle);
     };
-  }, [reducedMotion, status.state]);
+  }, [isIntersecting, reducedMotion, status.state]);
 
   useEffect(() => {
     const renderer = rendererRef.current;
@@ -184,7 +198,13 @@ export function BandVfxSurface<Config extends VfxSurfaceConfig>({
       data-renderer="webgl2"
       data-vfx-mode={effectId}
       data-vfx-state={data.state}
-      data-webgl-animation={status.state === "ready" && !reducedMotion ? "running" : "static"}
+      data-webgl-animation={
+        status.state === "ready" && !reducedMotion
+          ? isIntersecting
+            ? "running"
+            : "paused"
+          : "static"
+      }
       data-webgl-buffer-height={size?.bufferHeight}
       data-webgl-buffer-width={size?.bufferWidth}
       data-webgl-degraded={size?.degraded || undefined}
@@ -193,6 +213,7 @@ export function BandVfxSurface<Config extends VfxSurfaceConfig>({
       data-webgl-generation={status.generation}
       data-webgl-resources={`${diagnostics.activePrograms}/${diagnostics.activeBuffers}/${diagnostics.activeVertexArrays}`}
       data-webgl-state={status.state}
+      data-webgl-visible={isIntersecting ? "true" : "false"}
       style={{
         height,
         maxWidth: "100%",

@@ -12,11 +12,13 @@ import type {
 export type CoreRendererMode = "envelope" | "meter" | "spectrum" | "stepped-meter" | "waveform";
 export type VfxRendererMode =
   | "equalizer-grid"
+  | "liquid-blobs"
   | "neon-lines"
   | "pulse-ring"
   | "radial-spikes"
   | "rounded-wobble-bars"
   | "spectrum-bars"
+  | "starfield-burst"
   | "tunnel-waves"
   | "vortex-rings"
   | "waveform-ribbon";
@@ -163,9 +165,11 @@ export const WEBGL2_RENDERER_CAPABILITIES: RendererCapabilities = Object.freeze(
     "pulse-ring",
     "neon-lines",
     "equalizer-grid",
+    "liquid-blobs",
     "waveform-ribbon",
     "rounded-wobble-bars",
     "spectrum-bars",
+    "starfield-burst",
     "radial-spikes",
     "tunnel-waves",
     "vortex-rings",
@@ -255,9 +259,11 @@ function frameKindForMode(mode: RendererMode): AnalysisFrame["kind"] {
     mode === "pulse-ring" ||
     mode === "neon-lines" ||
     mode === "equalizer-grid" ||
+    mode === "liquid-blobs" ||
     mode === "waveform-ribbon" ||
     mode === "rounded-wobble-bars" ||
     mode === "spectrum-bars" ||
+    mode === "starfield-burst" ||
     mode === "radial-spikes" ||
     mode === "tunnel-waves" ||
     mode === "vortex-rings"

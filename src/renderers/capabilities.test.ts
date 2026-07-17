@@ -34,9 +34,11 @@ describe("renderer capabilities", () => {
       "pulse-ring",
       "neon-lines",
       "equalizer-grid",
+      "liquid-blobs",
       "waveform-ribbon",
       "rounded-wobble-bars",
       "spectrum-bars",
+      "starfield-burst",
       "radial-spikes",
       "tunnel-waves",
       "vortex-rings",
@@ -143,6 +145,8 @@ describe("renderer capabilities", () => {
       "radial-spikes",
       "tunnel-waves",
       "vortex-rings",
+      "liquid-blobs",
+      "starfield-burst",
     ] as const) {
       expect(
         getRendererSupport("webgl2", {

@@ -324,16 +324,18 @@ DOM/CSS intentionally supports only rectangular spectrum `bars`, `meter`, and `s
 
 ## WebGL2 clean-room VFX
 
-WebGL2 is a VFX renderer rather than a silent substitute for the core adapters. `PulseRing`, `NeonLines`, `EqualizerGrid`, `WaveformRibbon`, `RoundedWobbleBars`, `SpectrumBars`, `RadialSpikes`, `TunnelWaves`, and `VortexRings` consume a canonical `BandEnergyFrame`; `createBandEnergyFrameFromSpectrum` derives 1–16 ordered logarithmic (default) or linear bands from a `SpectrumFrame` by averaging bin power and returning RMS amplitude energy in `[0, 1]`.
+WebGL2 is a VFX renderer rather than a silent substitute for the core adapters. `PulseRing`, `NeonLines`, `EqualizerGrid`, `WaveformRibbon`, `RoundedWobbleBars`, `SpectrumBars`, `RadialSpikes`, `TunnelWaves`, `VortexRings`, `LiquidBlobs`, and `StarfieldBurst` consume a canonical `BandEnergyFrame`; `createBandEnergyFrameFromSpectrum` derives 1–16 ordered logarithmic (default) or linear bands from a `SpectrumFrame` by averaging bin power and returning RMS amplitude energy in `[0, 1]`.
 
 ```tsx
 import {
   EqualizerGrid,
+  LiquidBlobs,
   NeonLines,
   PulseRing,
   RadialSpikes,
   RoundedWobbleBars,
   SpectrumBars,
+  StarfieldBurst,
   TunnelWaves,
   VortexRings,
   WaveformRibbon,
@@ -370,16 +372,18 @@ export function AudioRing({ spectrum }: { spectrum: SpectrumFrame }) {
       <RadialSpikes data={bands} config={{ spikeCount: 48, arcDegrees: 300, baseRadius: 0.32 }} />
       <TunnelWaves data={bands} config={{ ringDensity: 16, tunnelDepth: 0.64 }} />
       <VortexRings data={bands} config={{ twistAmount: 1.45, vortexRadius: 0.78 }} />
+      <LiquidBlobs data={bands} config={{ blobCount: 9, blobSize: 0.2, seed: 2731 }} />
+      <StarfieldBurst data={bands} config={{ starCount: 112, trailLength: 0.18, seed: 7919 }} />
     </>
   );
 }
 ```
 
-Each clean-room effect owns one program, one vertex buffer, one vertex-array object, and no textures. Neon Lines uses at most 12 static shader iterations; Equalizer Grid addresses at most 48×24 logical cells procedurally; Rounded Wobble Bars and Spectrum Bars address at most 64 and 96 bars; Radial Spikes addresses at most 128 angular cells; Tunnel Waves and Vortex Rings address at most 48 spatial intervals. None creates density-sized buffers or shader variants. Waveform Ribbon is a single procedural signed-distance field plus a bounded reflection. Quality caps backing-buffer DPR at `1×`, `1.5×`, or `2×`, with absolute limits of 4,096 pixels per dimension and 4,194,304 total pixels. The shared adapter fully recreates GPU resources after `webglcontextrestored`; unavailable, compilation/link failure, context loss, restoration, and terminal error states keep an effect-specific labeled CSS fallback visible instead of exposing a blank canvas. `destroy()` removes listeners and releases every live resource.
+Each clean-room effect owns one program, one vertex buffer, one vertex-array object, and no textures. Neon Lines uses at most 12 static shader iterations; Equalizer Grid addresses at most 48×24 logical cells procedurally; Rounded Wobble Bars and Spectrum Bars address at most 64 and 96 bars; Radial Spikes addresses at most 128 angular cells; Tunnel Waves and Vortex Rings address at most 48 spatial intervals. Liquid Blobs uses one fixed 24-iteration field loop, while Starfield Burst samples only three neighboring angular sectors even at its 256-star ceiling. None creates density-sized buffers, particle arrays, or shader variants. Waveform Ribbon is a single procedural signed-distance field plus a bounded reflection. Quality caps backing-buffer DPR at `1×`, `1.5×`, or `2×`, with absolute limits of 4,096 pixels per dimension and 4,194,304 total pixels. The shared adapter fully recreates GPU resources after `webglcontextrestored`; unavailable, compilation/link failure, context loss, restoration, and terminal error states keep an effect-specific labeled CSS fallback visible instead of exposing a blank canvas. `destroy()` removes listeners and releases every live resource.
 
-`motion: "auto"` follows `prefers-reduced-motion`; reduced motion renders one deterministic static frame and starts no animation loop. Forced colors use a manual high-contrast pixel palette because browser system colors cannot be passed directly to GLSL. Every public parameter has a typed control definition with default, type, range/options, step, unit, description, compatibility, visibility, and constraints—including the semantic boolean mirror control and dependent radial-reach bound. All nine configurable VFX families expose three fully resolved immutable presets with exact reset/reproduction behavior.
+`motion: "auto"` follows `prefers-reduced-motion`; reduced motion renders one deterministic static frame and starts no animation loop. Active animation pauses when the surface leaves the viewport and resumes without rebuilding GPU resources. Absolute effect time wraps every 4,096 seconds, so a long frame skips directly to one bounded phase instead of accumulating simulation catch-up. Liquid and Starfield seeds are validated integers in `0..65535`; the same seed, config, frame, time, and viewport reproduce the same field. Forced colors use a manual high-contrast pixel palette because browser system colors cannot be passed directly to GLSL. Every public parameter has a typed control definition with default, type, range/options, step, unit, description, compatibility, visibility, and constraints—including the semantic boolean mirror control and dependent radial-reach bound. All eleven configurable VFX families expose three fully resolved immutable presets with exact reset/reproduction behavior.
 
-The React surfaces expose `data-webgl-state`, effect, generation, resource counts, backing-buffer size/DPR, degradation, animation state, and draw calls for host diagnostics. `WEBGL2_RENDERER_CAPABILITIES` and `BUILTIN_RENDERER_CATALOG` explicitly publish all nine VFX modes; the core `Waveform`, `Envelope`, `Spectrum`, and `Meter` configs continue to accept only `CoreRendererId`.
+The React surfaces expose `data-webgl-state`, effect, generation, resource counts, backing-buffer size/DPR, degradation, animation/visibility state, and draw calls for host diagnostics. `WEBGL2_RENDERER_CAPABILITIES` and `BUILTIN_RENDERER_CATALOG` explicitly publish all eleven VFX modes; the core `Waveform`, `Envelope`, `Spectrum`, and `Meter` configs continue to accept only `CoreRendererId`.
 
 ## Development
 
@@ -392,7 +396,7 @@ bun run verify:tracer
 bun run test:e2e
 ```
 
-The playground imports `waveform-component` through the public entry point and drives its main artifact through a shared session. `fixtures/external-consumer` installs a freshly packed tarball and typechecks waveform/envelope layout, session, recorded-player, microphone, analyzer, spectrum-dynamics, Canvas/SVG/DOM renderers, all nine WebGL2 VFX surfaces and adapter APIs, meter-analysis, meter-history, and controlled overlay interfaces against generated declarations exactly as an external consumer would.
+The playground imports `waveform-component` through the public entry point and drives its main artifact through a shared session. `fixtures/external-consumer` installs a freshly packed tarball and typechecks waveform/envelope layout, session, recorded-player, microphone, analyzer, spectrum-dynamics, Canvas/SVG/DOM renderers, all eleven WebGL2 VFX surfaces and adapter APIs, meter-analysis, meter-history, and controlled overlay interfaces against generated declarations exactly as an external consumer would.
 
 ## Project records
 
@@ -402,6 +406,7 @@ The playground imports `waveform-component` through the public entry point and d
 - Neon/Grid clean-room research: [`docs/research/2026-07-16-neon-grid-vfx.md`](docs/research/2026-07-16-neon-grid-vfx.md)
 - Ribbon/Bar clean-room research: [`docs/research/2026-07-16-ribbon-bars-vfx.md`](docs/research/2026-07-16-ribbon-bars-vfx.md)
 - Radial spatial clean-room research: [`docs/research/2026-07-16-radial-spatial-vfx.md`](docs/research/2026-07-16-radial-spatial-vfx.md)
+- Organic/particle clean-room research: [`docs/research/2026-07-16-organic-particle-vfx.md`](docs/research/2026-07-16-organic-particle-vfx.md)
 - Product requirements: [`.scratch/waveform-component/PRD.md`](.scratch/waveform-component/PRD.md)
 - Execution frontier: [`.scratch/waveform-component/issues/`](.scratch/waveform-component/issues/)
 

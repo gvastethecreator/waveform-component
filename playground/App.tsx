@@ -16,11 +16,13 @@ import {
   DEFAULT_METER_DYNAMICS_CONFIG,
   DEFAULT_ENVELOPE_CONFIG,
   DEFAULT_EQUALIZER_GRID_CONFIG,
+  DEFAULT_LIQUID_BLOBS_CONFIG,
   DEFAULT_NEON_LINES_CONFIG,
   DEFAULT_PULSE_RING_CONFIG,
   DEFAULT_RADIAL_SPIKES_CONFIG,
   DEFAULT_ROUNDED_WOBBLE_BARS_CONFIG,
   DEFAULT_SPECTRUM_BARS_VFX_CONFIG,
+  DEFAULT_STARFIELD_BURST_CONFIG,
   DEFAULT_TUNNEL_WAVES_CONFIG,
   DEFAULT_VORTEX_RINGS_CONFIG,
   DEFAULT_WAVEFORM_RIBBON_CONFIG,
@@ -31,6 +33,8 @@ import {
   EqualizerGrid,
   GUARDED_SPECTRUM_FFT_SIZE,
   METER_PRESETS,
+  LIQUID_BLOBS_PRESETS,
+  LiquidBlobs,
   Meter,
   NEON_LINES_PRESETS,
   NeonLines,
@@ -47,6 +51,8 @@ import {
   SpectrumFrameDelay,
   SPECTRUM_BARS_VFX_PRESETS,
   SPECTRUM_CONTROL_DEFINITIONS,
+  STARFIELD_BURST_PRESETS,
+  StarfieldBurst,
   TUNNEL_WAVES_PRESETS,
   TunnelWaves,
   VORTEX_RINGS_PRESETS,
@@ -74,6 +80,7 @@ import {
   resolveMeterConfig,
   resolveMeterDynamicsConfig,
   resolveEqualizerGridConfig,
+  resolveLiquidBlobsConfig,
   resolveNeonLinesConfig,
   resolveRadialSpikesConfig,
   resolveRoundedWobbleBarsConfig,
@@ -81,6 +88,7 @@ import {
   resolveSpectrumConfig,
   resolveSpectrumDynamicsConfig,
   resolveSpectrumFrequencyRange,
+  resolveStarfieldBurstConfig,
   resolveVisualSyncOffset,
   resolveTunnelWavesConfig,
   resolveVortexRingsConfig,
@@ -96,6 +104,8 @@ import {
   type EnvelopeFrame,
   type EqualizerGridConfig,
   type EqualizerGridPresetId,
+  type LiquidBlobsConfig,
+  type LiquidBlobsPresetId,
   type RecordedAudioSource,
   type MicrophoneSource,
   type MeterColorMode,
@@ -125,6 +135,8 @@ import {
   type SpectrumSmoothingMode,
   type SpectrumBarsVfxConfig,
   type SpectrumBarsVfxPresetId,
+  type StarfieldBurstConfig,
+  type StarfieldBurstPresetId,
   type TunnelWavesConfig,
   type TunnelWavesPresetId,
   type VisualSyncCapability,
@@ -160,7 +172,7 @@ type VisualMode =
   | "stepped-meter"
   | VfxRendererMode
   | "waveform";
-type VfxEnergyScenario = "overload" | "signal" | "zero";
+type VfxEnergyScenario = "bass" | "overload" | "signal" | "treble" | "zero";
 
 export default function App() {
   const [view, setView] = useState<"overview" | "focus">("overview");
@@ -239,6 +251,18 @@ export default function App() {
   );
   const [vortexRingsConfig, setVortexRingsConfig] = useState<VortexRingsConfig>(
     DEFAULT_VORTEX_RINGS_CONFIG,
+  );
+  const [liquidBlobsPresetId, setLiquidBlobsPresetId] = useState<LiquidBlobsPresetId | "custom">(
+    LIQUID_BLOBS_PRESETS[0].id as LiquidBlobsPresetId,
+  );
+  const [liquidBlobsConfig, setLiquidBlobsConfig] = useState<LiquidBlobsConfig>(
+    DEFAULT_LIQUID_BLOBS_CONFIG,
+  );
+  const [starfieldBurstPresetId, setStarfieldBurstPresetId] = useState<
+    StarfieldBurstPresetId | "custom"
+  >(STARFIELD_BURST_PRESETS[0].id as StarfieldBurstPresetId);
+  const [starfieldBurstConfig, setStarfieldBurstConfig] = useState<StarfieldBurstConfig>(
+    DEFAULT_STARFIELD_BURST_CONFIG,
   );
   const [vfxEnergyScenario, setVfxEnergyScenario] = useState<VfxEnergyScenario>("signal");
   const [vfxBandScale, setVfxBandScale] = useState<SpectrumFrequencyScale>("log");
@@ -364,6 +388,8 @@ export default function App() {
   const isRadialSpikesMode = visualMode === "radial-spikes";
   const isTunnelWavesMode = visualMode === "tunnel-waves";
   const isVortexRingsMode = visualMode === "vortex-rings";
+  const isLiquidBlobsMode = visualMode === "liquid-blobs";
+  const isStarfieldBurstMode = visualMode === "starfield-burst";
   const isVfxMode =
     isPulseRingMode ||
     isNeonLinesMode ||
@@ -373,7 +399,9 @@ export default function App() {
     isSpectrumBarsVfxMode ||
     isRadialSpikesMode ||
     isTunnelWavesMode ||
-    isVortexRingsMode;
+    isVortexRingsMode ||
+    isLiquidBlobsMode ||
+    isStarfieldBurstMode;
   const coreRenderer = renderer === "webgl2" ? "canvas2d" : renderer;
   const sessionSnapshot = useWaveformSession(session);
   const demoSource = useMemo(
@@ -549,7 +577,11 @@ export default function App() {
                 ? radialSpikesConfig.quality
                 : isTunnelWavesMode
                   ? tunnelWavesConfig.quality
-                  : vortexRingsConfig.quality;
+                  : isVortexRingsMode
+                    ? vortexRingsConfig.quality
+                    : isLiquidBlobsMode
+                      ? liquidBlobsConfig.quality
+                      : starfieldBurstConfig.quality;
   const activeVfxMotion: VfxMotion = isPulseRingMode
     ? pulseRingMotion
     : isNeonLinesMode
@@ -566,7 +598,11 @@ export default function App() {
                 ? radialSpikesConfig.motion
                 : isTunnelWavesMode
                   ? tunnelWavesConfig.motion
-                  : vortexRingsConfig.motion;
+                  : isVortexRingsMode
+                    ? vortexRingsConfig.motion
+                    : isLiquidBlobsMode
+                      ? liquidBlobsConfig.motion
+                      : starfieldBurstConfig.motion;
   const spectrumConfig = useMemo<SpectrumConfigInput>(
     () => ({
       barGap,
@@ -1123,6 +1159,10 @@ export default function App() {
     setTunnelWavesConfig(DEFAULT_TUNNEL_WAVES_CONFIG);
     setVortexRingsPresetId(VORTEX_RINGS_PRESETS[0].id as VortexRingsPresetId);
     setVortexRingsConfig(DEFAULT_VORTEX_RINGS_CONFIG);
+    setLiquidBlobsPresetId(LIQUID_BLOBS_PRESETS[0].id as LiquidBlobsPresetId);
+    setLiquidBlobsConfig(DEFAULT_LIQUID_BLOBS_CONFIG);
+    setStarfieldBurstPresetId(STARFIELD_BURST_PRESETS[0].id as StarfieldBurstPresetId);
+    setStarfieldBurstConfig(DEFAULT_STARFIELD_BURST_CONFIG);
     setVfxEnergyScenario("signal");
     setVfxBandScale("log");
     setSampleCount(2048);
@@ -1315,6 +1355,30 @@ export default function App() {
     if (!next) return;
     setVortexRingsPresetId(next.id as VortexRingsPresetId);
     setVortexRingsConfig(next.config);
+  };
+
+  const updateLiquidBlobs = (patch: Partial<LiquidBlobsConfig>) => {
+    setLiquidBlobsConfig((current) => resolveLiquidBlobsConfig({ ...current, ...patch }));
+    setLiquidBlobsPresetId("custom");
+  };
+
+  const loadLiquidBlobsPreset = (id: string) => {
+    const next = LIQUID_BLOBS_PRESETS.find((candidate) => candidate.id === id);
+    if (!next) return;
+    setLiquidBlobsPresetId(next.id as LiquidBlobsPresetId);
+    setLiquidBlobsConfig(next.config);
+  };
+
+  const updateStarfieldBurst = (patch: Partial<StarfieldBurstConfig>) => {
+    setStarfieldBurstConfig((current) => resolveStarfieldBurstConfig({ ...current, ...patch }));
+    setStarfieldBurstPresetId("custom");
+  };
+
+  const loadStarfieldBurstPreset = (id: string) => {
+    const next = STARFIELD_BURST_PRESETS.find((candidate) => candidate.id === id);
+    if (!next) return;
+    setStarfieldBurstPresetId(next.id as StarfieldBurstPresetId);
+    setStarfieldBurstConfig(next.config);
   };
 
   const copyCode = async () => {
@@ -1516,8 +1580,53 @@ export default function App() {
     accentColor: "${vortexRingsConfig.accentColor}"
   }}
 />`
-                      : isMeterMode
-                        ? `const meter = createMeterDynamicsProcessor();
+                      : isLiquidBlobsMode
+                        ? `const bands = createBandEnergyFrameFromSpectrum(spectrum, { bandCount: 8, frequencyScale: "${vfxBandScale}" });
+
+<LiquidBlobs
+  data={bands}
+  config={{
+    renderer: "webgl2",
+    mode: "liquid-blobs",
+    backgroundColor: "${liquidBlobsConfig.backgroundColor}",
+    blobCount: ${liquidBlobsConfig.blobCount},
+    blobSize: ${liquidBlobsConfig.blobSize.toFixed(2)},
+    driftSpeed: ${liquidBlobsConfig.driftSpeed.toFixed(2)},
+    glowStrength: ${liquidBlobsConfig.glowStrength.toFixed(2)},
+    threshold: ${liquidBlobsConfig.threshold.toFixed(2)},
+    lowFrequencyReactivity: ${liquidBlobsConfig.lowFrequencyReactivity.toFixed(2)},
+    seed: ${liquidBlobsConfig.seed},
+    motion: "${liquidBlobsConfig.motion}",
+    quality: "${liquidBlobsConfig.quality}",
+    baseColor: "${liquidBlobsConfig.baseColor}",
+    blobColor: "${liquidBlobsConfig.blobColor}",
+    peakFlashColor: "${liquidBlobsConfig.peakFlashColor}"
+  }}
+/>`
+                        : isStarfieldBurstMode
+                          ? `const bands = createBandEnergyFrameFromSpectrum(spectrum, { bandCount: 8, frequencyScale: "${vfxBandScale}" });
+
+<StarfieldBurst
+  data={bands}
+  config={{
+    renderer: "webgl2",
+    mode: "starfield-burst",
+    backgroundColor: "${starfieldBurstConfig.backgroundColor}",
+    starCount: ${starfieldBurstConfig.starCount},
+    burstSpeed: ${starfieldBurstConfig.burstSpeed.toFixed(2)},
+    starSize: ${starfieldBurstConfig.starSize.toFixed(2)},
+    trailLength: ${starfieldBurstConfig.trailLength.toFixed(2)},
+    transientReactivity: ${starfieldBurstConfig.transientReactivity.toFixed(2)},
+    seed: ${starfieldBurstConfig.seed},
+    motion: "${starfieldBurstConfig.motion}",
+    quality: "${starfieldBurstConfig.quality}",
+    coreColor: "${starfieldBurstConfig.coreColor}",
+    edgeColor: "${starfieldBurstConfig.edgeColor}",
+    trebleFlashColor: "${starfieldBurstConfig.trebleFlashColor}"
+  }}
+/>`
+                          : isMeterMode
+                            ? `const meter = createMeterDynamicsProcessor();
 const result = meter.process(
   analyzeMeter(samples, {
     channelMode: "${channelMode}",
@@ -1555,11 +1664,11 @@ const result = meter.process(
     showHistory: ${showMeterHistory}
   }}
 />`
-                        : visualMode === "spectrum"
-                          ? `const dynamics = createSpectrumDynamicsProcessor();\n\n<Spectrum\n  data={dynamics.process(\n    analyzeSpectrum(samples, {\n      sampleRate: ${sampleRate},\n      fftSize: ${spectrumAnalysis.fftSize},\n      allowLargeFft: ${spectrumAnalysis.allowLargeFft},\n      window: "${spectrumAnalysis.window}",\n      powerOfSineExponent: ${spectrumAnalysis.powerOfSineExponent},\n      minimumDecibels: ${spectrumAnalysis.minimumDecibels},\n      maximumDecibels: ${spectrumAnalysis.maximumDecibels}\n    }),\n    {\n      smoothingMode: "${dynamicsSettings.smoothingMode}",\n      smoothingFactor: ${dynamicsSettings.smoothingFactor},\n      attackMs: ${dynamicsSettings.attackMs},\n      releaseMs: ${dynamicsSettings.releaseMs},\n      inertiaMs: ${dynamicsSettings.inertiaMs},\n      fastPeaks: ${dynamicsSettings.fastPeaks},\n      normalizationEnabled: ${dynamicsSettings.normalizationEnabled},\n      normalizationTargetDb: ${dynamicsSettings.normalizationTargetDb},\n      normalizationMaxGainDb: ${dynamicsSettings.normalizationMaxGainDb},\n      gaussianRadius: ${dynamicsSettings.gaussianRadius},\n      highFrequencySlopeDbPerOctave: ${dynamicsSettings.highFrequencySlopeDbPerOctave},\n      rolloffBandwidthHz: ${dynamicsSettings.rolloffBandwidthHz},\n      rolloffAttenuationDb: ${dynamicsSettings.rolloffAttenuationDb}\n    },\n    { timestampMs: performance.now(), sourceState: "ready" }\n  ).frame}\n  config={{\n    renderer: "canvas2d",\n    mode: "spectrum",\n    geometry: "${spectrumGeometry}",\n    layout: "${spectrumLayout}",\n    radialInvert: ${radialInvert},\n    radialDeadzone: ${radialDeadzone.toFixed(2)},\n    radialArc: ${radialArc},\n    radialRotation: ${radialRotation},\n    roundedCaps: ${roundedCaps},\n    cornerRadius: ${cornerRadius},\n    frequencyScale: "${frequencyScale}",\n    lowFrequency: ${lowFrequency},\n    highFrequency: ${highFrequency},\n    minimumDecibels: ${minimumDecibels},\n    maximumDecibels: ${maximumDecibels},\n    interpolation: "${spectrumInterpolation}",\n    lineWidth: ${lineWidth},\n    barWidth: ${barWidth},\n    barGap: ${barGap},\n    colorMode: "${spectrumColorMode}",\n    pulseMode: "${spectrumPulseMode}",\n    colorRoles: {\n      base: { color: "${signalColor}", alpha: ${baseAlpha.toFixed(2)} },\n      middle: { color: "${middleColor}", alpha: ${middleAlpha.toFixed(2)} },\n      crest: { color: "${crestColor}", alpha: ${crestAlpha.toFixed(2)} },\n      accent: { color: "${accentColor}", alpha: ${accentAlpha.toFixed(2)} }\n    },\n    gradientRatio: ${gradientRatio.toFixed(2)},\n    middleDecibels: ${middleDecibels},\n    crestDecibels: ${crestDecibels},\n    showGrid: ${showSpectrumGrid}\n  }}\n/>`
-                          : visualMode === "envelope"
-                            ? `<Envelope\n  data={magnitudes}\n  ${timeDomainSizing === "fixed" ? `width={${fixedTimeDomainWidth}}\n  ` : ""}config={{\n    renderer: "canvas2d",\n    mode: "envelope",\n    channelMode: "${channelMode}",${channelMode === "single" ? `\n    channelIndex: ${channelIndex},` : ""}\n    channelLayout: "${channelLayout}",\n    channelGap: ${channelGap},\n    amplitudePlacement: "${envelopePlacement}",\n    orientation: "${orientation}",\n    amplitude: ${amplitude.toFixed(2)},\n    lineWidth: ${lineWidth.toFixed(1)},\n    color: "${signalColor}",\n    showCenterLine: ${showCenterLine}\n  }}\n/>`
-                            : `<Waveform\n  data={channels}\n  ${timeDomainSizing === "fixed" ? `width={${fixedTimeDomainWidth}}\n  ` : ""}config={{\n    renderer: "canvas2d",\n    mode: "waveform",\n    channelMode: "${channelMode}",${channelMode === "single" ? `\n    channelIndex: ${channelIndex},` : ""}\n    channelLayout: "${channelLayout}",\n    channelGap: ${channelGap},\n    amplitudePlacement: "${waveformPlacement}",\n    orientation: "${orientation}",\n    amplitude: ${amplitude.toFixed(2)},\n    lineWidth: ${lineWidth.toFixed(1)},\n    color: "${signalColor}",\n    showCenterLine: ${showCenterLine}\n  }}\n/>`;
+                            : visualMode === "spectrum"
+                              ? `const dynamics = createSpectrumDynamicsProcessor();\n\n<Spectrum\n  data={dynamics.process(\n    analyzeSpectrum(samples, {\n      sampleRate: ${sampleRate},\n      fftSize: ${spectrumAnalysis.fftSize},\n      allowLargeFft: ${spectrumAnalysis.allowLargeFft},\n      window: "${spectrumAnalysis.window}",\n      powerOfSineExponent: ${spectrumAnalysis.powerOfSineExponent},\n      minimumDecibels: ${spectrumAnalysis.minimumDecibels},\n      maximumDecibels: ${spectrumAnalysis.maximumDecibels}\n    }),\n    {\n      smoothingMode: "${dynamicsSettings.smoothingMode}",\n      smoothingFactor: ${dynamicsSettings.smoothingFactor},\n      attackMs: ${dynamicsSettings.attackMs},\n      releaseMs: ${dynamicsSettings.releaseMs},\n      inertiaMs: ${dynamicsSettings.inertiaMs},\n      fastPeaks: ${dynamicsSettings.fastPeaks},\n      normalizationEnabled: ${dynamicsSettings.normalizationEnabled},\n      normalizationTargetDb: ${dynamicsSettings.normalizationTargetDb},\n      normalizationMaxGainDb: ${dynamicsSettings.normalizationMaxGainDb},\n      gaussianRadius: ${dynamicsSettings.gaussianRadius},\n      highFrequencySlopeDbPerOctave: ${dynamicsSettings.highFrequencySlopeDbPerOctave},\n      rolloffBandwidthHz: ${dynamicsSettings.rolloffBandwidthHz},\n      rolloffAttenuationDb: ${dynamicsSettings.rolloffAttenuationDb}\n    },\n    { timestampMs: performance.now(), sourceState: "ready" }\n  ).frame}\n  config={{\n    renderer: "canvas2d",\n    mode: "spectrum",\n    geometry: "${spectrumGeometry}",\n    layout: "${spectrumLayout}",\n    radialInvert: ${radialInvert},\n    radialDeadzone: ${radialDeadzone.toFixed(2)},\n    radialArc: ${radialArc},\n    radialRotation: ${radialRotation},\n    roundedCaps: ${roundedCaps},\n    cornerRadius: ${cornerRadius},\n    frequencyScale: "${frequencyScale}",\n    lowFrequency: ${lowFrequency},\n    highFrequency: ${highFrequency},\n    minimumDecibels: ${minimumDecibels},\n    maximumDecibels: ${maximumDecibels},\n    interpolation: "${spectrumInterpolation}",\n    lineWidth: ${lineWidth},\n    barWidth: ${barWidth},\n    barGap: ${barGap},\n    colorMode: "${spectrumColorMode}",\n    pulseMode: "${spectrumPulseMode}",\n    colorRoles: {\n      base: { color: "${signalColor}", alpha: ${baseAlpha.toFixed(2)} },\n      middle: { color: "${middleColor}", alpha: ${middleAlpha.toFixed(2)} },\n      crest: { color: "${crestColor}", alpha: ${crestAlpha.toFixed(2)} },\n      accent: { color: "${accentColor}", alpha: ${accentAlpha.toFixed(2)} }\n    },\n    gradientRatio: ${gradientRatio.toFixed(2)},\n    middleDecibels: ${middleDecibels},\n    crestDecibels: ${crestDecibels},\n    showGrid: ${showSpectrumGrid}\n  }}\n/>`
+                              : visualMode === "envelope"
+                                ? `<Envelope\n  data={magnitudes}\n  ${timeDomainSizing === "fixed" ? `width={${fixedTimeDomainWidth}}\n  ` : ""}config={{\n    renderer: "canvas2d",\n    mode: "envelope",\n    channelMode: "${channelMode}",${channelMode === "single" ? `\n    channelIndex: ${channelIndex},` : ""}\n    channelLayout: "${channelLayout}",\n    channelGap: ${channelGap},\n    amplitudePlacement: "${envelopePlacement}",\n    orientation: "${orientation}",\n    amplitude: ${amplitude.toFixed(2)},\n    lineWidth: ${lineWidth.toFixed(1)},\n    color: "${signalColor}",\n    showCenterLine: ${showCenterLine}\n  }}\n/>`
+                                : `<Waveform\n  data={channels}\n  ${timeDomainSizing === "fixed" ? `width={${fixedTimeDomainWidth}}\n  ` : ""}config={{\n    renderer: "canvas2d",\n    mode: "waveform",\n    channelMode: "${channelMode}",${channelMode === "single" ? `\n    channelIndex: ${channelIndex},` : ""}\n    channelLayout: "${channelLayout}",\n    channelGap: ${channelGap},\n    amplitudePlacement: "${waveformPlacement}",\n    orientation: "${orientation}",\n    amplitude: ${amplitude.toFixed(2)},\n    lineWidth: ${lineWidth.toFixed(1)},\n    color: "${signalColor}",\n    showCenterLine: ${showCenterLine}\n  }}\n/>`;
     const rendererCode = isVfxMode
       ? code
       : code.includes("renderer:")
@@ -1783,11 +1892,27 @@ const result = meter.process(
                       data={vfxFrame}
                       height="100%"
                     />
-                  ) : (
+                  ) : isVortexRingsMode ? (
                     <VortexRings
                       ariaLabel={`${microphoneSource ? "Live microphone" : preset.label} audio-reactive Vortex Rings preview`}
                       className="primary-waveform"
                       config={vortexRingsConfig}
+                      data={vfxFrame}
+                      height="100%"
+                    />
+                  ) : isLiquidBlobsMode ? (
+                    <LiquidBlobs
+                      ariaLabel={`${microphoneSource ? "Live microphone" : preset.label} audio-reactive Liquid Blobs preview`}
+                      className="primary-waveform"
+                      config={liquidBlobsConfig}
+                      data={vfxFrame}
+                      height="100%"
+                    />
+                  ) : (
+                    <StarfieldBurst
+                      ariaLabel={`${microphoneSource ? "Live microphone" : preset.label} audio-reactive Starfield Burst preview`}
+                      className="primary-waveform"
+                      config={starfieldBurstConfig}
                       data={vfxFrame}
                       height="100%"
                     />
@@ -2076,15 +2201,19 @@ const result = meter.process(
                                 ? `${tunnelWavesConfig.ringDensity} RINGS · DEPTH ${tunnelWavesConfig.tunnelDepth.toFixed(2)} · SPEED ${tunnelWavesConfig.tunnelSpeed.toFixed(2)}`
                                 : isVortexRingsMode
                                   ? `${vortexRingsConfig.ringDensity} RINGS · TWIST ${vortexRingsConfig.twistAmount.toFixed(2)} · RADIUS ${vortexRingsConfig.vortexRadius.toFixed(2)}`
-                                  : visualMode === "spectrum"
-                                    ? spectrumPresentation.result
-                                      ? `PEAK ${spectrumPresentation.result.peakDb.toFixed(1)} dBFS · ${spectrumPresentation.result.reacting ? "REACTING" : "IDLE"}`
-                                      : "DYNAMICS INITIALIZING"
-                                    : isMeterMode
-                                      ? `${meterMeasurement.toUpperCase()} ${meterPresentation.frame.channels[0]?.[meterMeasurement === "rms" ? "rmsDbfs" : "peakDbfs"].toFixed(1) ?? meterMinimumDecibels} dBFS · ${meterPresentation.peaking ? "PEAKING" : meterPresentation.reacting ? "REACTING" : "IDLE"}`
-                                      : visualMode === "envelope"
-                                        ? "MAGNITUDE 0…1 · POLARITY SEPARATE"
-                                        : "SIGNED −1…+1 · POLARITY PRESERVED"}
+                                  : isLiquidBlobsMode
+                                    ? `${liquidBlobsConfig.blobCount} BLOBS · SIZE ${liquidBlobsConfig.blobSize.toFixed(2)} · SEED ${liquidBlobsConfig.seed}`
+                                    : isStarfieldBurstMode
+                                      ? `${starfieldBurstConfig.starCount} STARS · TRAIL ${starfieldBurstConfig.trailLength.toFixed(2)} · SEED ${starfieldBurstConfig.seed}`
+                                      : visualMode === "spectrum"
+                                        ? spectrumPresentation.result
+                                          ? `PEAK ${spectrumPresentation.result.peakDb.toFixed(1)} dBFS · ${spectrumPresentation.result.reacting ? "REACTING" : "IDLE"}`
+                                          : "DYNAMICS INITIALIZING"
+                                        : isMeterMode
+                                          ? `${meterMeasurement.toUpperCase()} ${meterPresentation.frame.channels[0]?.[meterMeasurement === "rms" ? "rmsDbfs" : "peakDbfs"].toFixed(1) ?? meterMinimumDecibels} dBFS · ${meterPresentation.peaking ? "PEAKING" : meterPresentation.reacting ? "REACTING" : "IDLE"}`
+                                          : visualMode === "envelope"
+                                            ? "MAGNITUDE 0…1 · POLARITY SEPARATE"
+                                            : "SIGNED −1…+1 · POLARITY PRESERVED"}
               </span>
               <span>
                 {isPulseRingMode
@@ -2411,6 +2540,28 @@ const result = meter.process(
               >
                 Vortex Rings
               </button>
+              <button
+                type="button"
+                aria-describedby={
+                  recordedSource ? "time-domain-source-limit" : "renderer-support-note"
+                }
+                aria-pressed={visualMode === "liquid-blobs"}
+                disabled={Boolean(recordedSource) || renderer !== "webgl2"}
+                onClick={() => setVisualMode("liquid-blobs")}
+              >
+                Liquid Blobs
+              </button>
+              <button
+                type="button"
+                aria-describedby={
+                  recordedSource ? "time-domain-source-limit" : "renderer-support-note"
+                }
+                aria-pressed={visualMode === "starfield-burst"}
+                disabled={Boolean(recordedSource) || renderer !== "webgl2"}
+                onClick={() => setVisualMode("starfield-burst")}
+              >
+                Starfield Burst
+              </button>
             </div>
             <SelectControl
               definition={{
@@ -2433,7 +2584,7 @@ const result = meter.process(
             >
               {recordedSource
                 ? "Envelope, spectrum, and meters are disabled: this transport exposes bounded peaks, not raw PCM. Signed polarity remains in the player."
-                : "Mode and engine are separate public contracts. WebGL2 exposes six clean-room VFX modes; core modes remain available through an explicit Canvas 2D fallback in the stage."}
+                : "Mode and engine are separate public contracts. WebGL2 exposes eleven clean-room VFX modes; core modes remain available through an explicit Canvas 2D fallback in the stage."}
             </p>
             <p
               className="capability-note"
@@ -3061,10 +3212,12 @@ const result = meter.process(
                 <SelectControl
                   definition={{
                     description:
-                      "Deterministic energy input for normal, silent, and hostile-overload proof.",
+                      "Deterministic energy input for ordered bass/treble, normal, silent, and hostile-overload proof.",
                     label: "Energy fixture",
                     options: [
                       { label: "Signal · analyzed bands", value: "signal" },
+                      { label: "Bass · low-band focus", value: "bass" },
+                      { label: "Treble · high-band focus", value: "treble" },
                       { label: "Zero · silent bands", value: "zero" },
                       { label: "Overload · clipped bounds", value: "overload" },
                     ],
@@ -3977,6 +4130,223 @@ const result = meter.process(
                   center-to-edge bands · no density-sized buffers or textures.
                 </p>
               </>
+            ) : isLiquidBlobsMode ? (
+              <>
+                <SelectControl
+                  definition={{
+                    description: "Load an immutable, fully specified Liquid Blobs configuration.",
+                    label: "VFX preset",
+                    options: [
+                      ...LIQUID_BLOBS_PRESETS.map((candidate) => ({
+                        label: candidate.label,
+                        value: candidate.id,
+                      })),
+                      { disabled: true, label: "Custom", value: "custom" },
+                    ],
+                  }}
+                  value={liquidBlobsPresetId}
+                  onChange={loadLiquidBlobsPreset}
+                />
+                <RangeControl
+                  label="Blob count"
+                  min={2}
+                  max={24}
+                  step={1}
+                  value={liquidBlobsConfig.blobCount}
+                  valueLabel={`${liquidBlobsConfig.blobCount} blobs`}
+                  onChange={(blobCount) => updateLiquidBlobs({ blobCount })}
+                />
+                <RangeControl
+                  label="Blob size"
+                  min={0.08}
+                  max={0.36}
+                  step={0.01}
+                  value={liquidBlobsConfig.blobSize}
+                  valueLabel={`${Math.round(liquidBlobsConfig.blobSize * 100)}% half-stage`}
+                  onChange={(blobSize) => updateLiquidBlobs({ blobSize })}
+                />
+                <RangeControl
+                  label="Drift speed"
+                  min={-1.5}
+                  max={1.5}
+                  step={0.05}
+                  value={liquidBlobsConfig.driftSpeed}
+                  valueLabel={`${liquidBlobsConfig.driftSpeed.toFixed(2)} cycles/s`}
+                  onChange={(driftSpeed) => updateLiquidBlobs({ driftSpeed })}
+                />
+                <RangeControl
+                  label="Glow strength"
+                  min={0}
+                  max={3}
+                  step={0.05}
+                  value={liquidBlobsConfig.glowStrength}
+                  valueLabel={`${liquidBlobsConfig.glowStrength.toFixed(2)}×`}
+                  onChange={(glowStrength) => updateLiquidBlobs({ glowStrength })}
+                />
+                <RangeControl
+                  label="Merge threshold"
+                  min={0.2}
+                  max={0.9}
+                  step={0.01}
+                  value={liquidBlobsConfig.threshold}
+                  valueLabel={liquidBlobsConfig.threshold.toFixed(2)}
+                  onChange={(threshold) => updateLiquidBlobs({ threshold })}
+                />
+                <RangeControl
+                  label="Bass reactivity"
+                  min={0}
+                  max={2}
+                  step={0.05}
+                  value={liquidBlobsConfig.lowFrequencyReactivity}
+                  valueLabel={`${liquidBlobsConfig.lowFrequencyReactivity.toFixed(2)}×`}
+                  onChange={(lowFrequencyReactivity) =>
+                    updateLiquidBlobs({ lowFrequencyReactivity })
+                  }
+                />
+                <RangeControl
+                  label="Seed"
+                  min={0}
+                  max={65535}
+                  step={1}
+                  value={liquidBlobsConfig.seed}
+                  valueLabel={String(liquidBlobsConfig.seed)}
+                  onChange={(seed) => updateLiquidBlobs({ seed })}
+                />
+                <SelectControl
+                  definition={{
+                    description: "Follow the OS preference, drift, or freeze the seeded field.",
+                    label: "Motion",
+                    options: [
+                      { label: "Auto · follow system", value: "auto" },
+                      { label: "Full · animate", value: "full" },
+                      { label: "Reduced · static", value: "reduced" },
+                    ],
+                  }}
+                  value={liquidBlobsConfig.motion}
+                  onChange={(motion) => updateLiquidBlobs({ motion: motion as VfxMotion })}
+                />
+                <SelectControl
+                  definition={{
+                    description: "Cap DPR before absolute dimension and pixel ceilings.",
+                    label: "GPU quality",
+                    options: [
+                      { label: "Low · 1× cap", value: "low" },
+                      { label: "Balanced · 1.5× cap", value: "balanced" },
+                      { label: "High · 2× cap", value: "high" },
+                    ],
+                  }}
+                  value={liquidBlobsConfig.quality}
+                  onChange={(quality) => updateLiquidBlobs({ quality: quality as VfxQuality })}
+                />
+                <p className="control-note">
+                  Lowest 35% of ordered bands expands the field · fixed 24-iteration ceiling ·
+                  integer seed and bounded absolute time · offscreen RAF pauses automatically.
+                </p>
+              </>
+            ) : isStarfieldBurstMode ? (
+              <>
+                <SelectControl
+                  definition={{
+                    description:
+                      "Load an immutable, fully specified Starfield Burst configuration.",
+                    label: "VFX preset",
+                    options: [
+                      ...STARFIELD_BURST_PRESETS.map((candidate) => ({
+                        label: candidate.label,
+                        value: candidate.id,
+                      })),
+                      { disabled: true, label: "Custom", value: "custom" },
+                    ],
+                  }}
+                  value={starfieldBurstPresetId}
+                  onChange={loadStarfieldBurstPreset}
+                />
+                <RangeControl
+                  label="Star count"
+                  min={12}
+                  max={256}
+                  step={1}
+                  value={starfieldBurstConfig.starCount}
+                  valueLabel={`${starfieldBurstConfig.starCount} stars`}
+                  onChange={(starCount) => updateStarfieldBurst({ starCount })}
+                />
+                <RangeControl
+                  label="Burst speed"
+                  min={0}
+                  max={2.5}
+                  step={0.05}
+                  value={starfieldBurstConfig.burstSpeed}
+                  valueLabel={`${starfieldBurstConfig.burstSpeed.toFixed(2)} cycles/s`}
+                  onChange={(burstSpeed) => updateStarfieldBurst({ burstSpeed })}
+                />
+                <RangeControl
+                  label="Star size"
+                  min={0.4}
+                  max={4}
+                  step={0.05}
+                  value={starfieldBurstConfig.starSize}
+                  valueLabel={`${starfieldBurstConfig.starSize.toFixed(2)} px`}
+                  onChange={(starSize) => updateStarfieldBurst({ starSize })}
+                />
+                <RangeControl
+                  label="Trail length"
+                  min={0}
+                  max={0.55}
+                  step={0.01}
+                  value={starfieldBurstConfig.trailLength}
+                  valueLabel={`${Math.round(starfieldBurstConfig.trailLength * 100)}% radius`}
+                  onChange={(trailLength) => updateStarfieldBurst({ trailLength })}
+                />
+                <RangeControl
+                  label="Transient reactivity"
+                  min={0}
+                  max={2.5}
+                  step={0.05}
+                  value={starfieldBurstConfig.transientReactivity}
+                  valueLabel={`${starfieldBurstConfig.transientReactivity.toFixed(2)}×`}
+                  onChange={(transientReactivity) => updateStarfieldBurst({ transientReactivity })}
+                />
+                <RangeControl
+                  label="Seed"
+                  min={0}
+                  max={65535}
+                  step={1}
+                  value={starfieldBurstConfig.seed}
+                  valueLabel={String(starfieldBurstConfig.seed)}
+                  onChange={(seed) => updateStarfieldBurst({ seed })}
+                />
+                <SelectControl
+                  definition={{
+                    description:
+                      "Follow the OS preference, travel outward, or freeze the seeded field.",
+                    label: "Motion",
+                    options: [
+                      { label: "Auto · follow system", value: "auto" },
+                      { label: "Full · animate", value: "full" },
+                      { label: "Reduced · static", value: "reduced" },
+                    ],
+                  }}
+                  value={starfieldBurstConfig.motion}
+                  onChange={(motion) => updateStarfieldBurst({ motion: motion as VfxMotion })}
+                />
+                <SelectControl
+                  definition={{
+                    description: "Cap DPR before absolute dimension and pixel ceilings.",
+                    label: "GPU quality",
+                    options: [
+                      { label: "Low · 1× cap", value: "low" },
+                      { label: "Balanced · 1.5× cap", value: "balanced" },
+                      { label: "High · 2× cap", value: "high" },
+                    ],
+                  }}
+                  value={starfieldBurstConfig.quality}
+                  onChange={(quality) => updateStarfieldBurst({ quality: quality as VfxQuality })}
+                />
+                <p className="control-note">
+                  Highest 35% plus peak crest drives flashes · three neighboring angular sectors per
+                  fragment · no particle arrays, catch-up loop, or count-sized GPU resources.
+                </p>
+              </>
             ) : visualMode === "spectrum" ? (
               <>
                 <SelectControl
@@ -4718,6 +5088,60 @@ const result = meter.process(
                   and peak energy receive the accent role.
                 </p>
               </>
+            ) : isLiquidBlobsMode ? (
+              <>
+                <VfxColorControl
+                  label="Background color"
+                  value={liquidBlobsConfig.backgroundColor}
+                  onChange={(backgroundColor) => updateLiquidBlobs({ backgroundColor })}
+                />
+                <VfxColorControl
+                  label="Base color"
+                  value={liquidBlobsConfig.baseColor}
+                  onChange={(baseColor) => updateLiquidBlobs({ baseColor })}
+                />
+                <VfxColorControl
+                  label="Blob color"
+                  value={liquidBlobsConfig.blobColor}
+                  onChange={(blobColor) => updateLiquidBlobs({ blobColor })}
+                />
+                <VfxColorControl
+                  label="Peak flash color"
+                  value={liquidBlobsConfig.peakFlashColor}
+                  onChange={(peakFlashColor) => updateLiquidBlobs({ peakFlashColor })}
+                />
+                <p className="control-note">
+                  Base defines the low field, Blob fills connected bodies, and concentrated peaks
+                  blend the independent flash role.
+                </p>
+              </>
+            ) : isStarfieldBurstMode ? (
+              <>
+                <VfxColorControl
+                  label="Background color"
+                  value={starfieldBurstConfig.backgroundColor}
+                  onChange={(backgroundColor) => updateStarfieldBurst({ backgroundColor })}
+                />
+                <VfxColorControl
+                  label="Core color"
+                  value={starfieldBurstConfig.coreColor}
+                  onChange={(coreColor) => updateStarfieldBurst({ coreColor })}
+                />
+                <VfxColorControl
+                  label="Edge color"
+                  value={starfieldBurstConfig.edgeColor}
+                  onChange={(edgeColor) => updateStarfieldBurst({ edgeColor })}
+                />
+                <VfxColorControl
+                  label="Treble flash color"
+                  value={starfieldBurstConfig.trebleFlashColor}
+                  onChange={(trebleFlashColor) => updateStarfieldBurst({ trebleFlashColor })}
+                />
+                <p className="control-note">
+                  Edge paints trails, Core paints seeded heads, and the highest bands plus peak
+                  crest blend the independent treble flash role.
+                </p>
+              </>
             ) : visualMode === "spectrum" ? (
               <>
                 <SelectControl
@@ -5439,7 +5863,18 @@ function vfxScenarioFrame(frame: BandEnergyFrame, scenario: VfxEnergyScenario): 
       sourceBands.map((band, index) =>
         Object.freeze({
           ...band,
-          energy: scenario === "zero" ? 0 : index % 3 === 0 ? 1.75 : index % 3 === 1 ? -0.25 : 0.8,
+          energy:
+            scenario === "zero"
+              ? 0
+              : scenario === "bass"
+                ? (1 - index / Math.max(1, sourceBands.length - 1)) ** 2
+                : scenario === "treble"
+                  ? (index / Math.max(1, sourceBands.length - 1)) ** 2
+                  : index % 3 === 0
+                    ? 1.75
+                    : index % 3 === 1
+                      ? -0.25
+                      : 0.8,
         }),
       ),
     ),

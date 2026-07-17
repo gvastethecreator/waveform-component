@@ -210,6 +210,18 @@ export type {
   WebglRadialSpikesRenderer,
   WebglRadialSpikesRendererOptions,
 } from "./renderers/webgl2RadialSpikes";
+export { createWebglLiquidBlobsRenderer } from "./renderers/webgl2LiquidBlobs";
+export type {
+  WebglLiquidBlobsRenderOptions,
+  WebglLiquidBlobsRenderer,
+  WebglLiquidBlobsRendererOptions,
+} from "./renderers/webgl2LiquidBlobs";
+export { createWebglStarfieldBurstRenderer } from "./renderers/webgl2StarfieldBurst";
+export type {
+  WebglStarfieldBurstRenderOptions,
+  WebglStarfieldBurstRenderer,
+  WebglStarfieldBurstRendererOptions,
+} from "./renderers/webgl2StarfieldBurst";
 export { createWebglTunnelWavesRenderer } from "./renderers/webgl2TunnelWaves";
 export type {
   WebglTunnelWavesRenderOptions,
@@ -253,6 +265,10 @@ export type {
 } from "./react/SpectrumBarsVfx";
 export { RadialSpikes } from "./react/RadialSpikes";
 export type { RadialSpikesProps } from "./react/RadialSpikes";
+export { LiquidBlobs } from "./react/LiquidBlobs";
+export type { LiquidBlobsProps } from "./react/LiquidBlobs";
+export { StarfieldBurst } from "./react/StarfieldBurst";
+export type { StarfieldBurstProps } from "./react/StarfieldBurst";
 export { TunnelWaves } from "./react/TunnelWaves";
 export type { TunnelWavesProps } from "./react/TunnelWaves";
 export { VortexRings } from "./react/VortexRings";
@@ -482,6 +498,41 @@ export type {
   RadialSpikesPresetId,
   RadialSpikesUniformState,
 } from "./vfx/radialSpikes";
+export {
+  DEFAULT_LIQUID_BLOBS_CONFIG,
+  LIQUID_BLOBS_CONTROL_DEFINITIONS,
+  LIQUID_BLOBS_PRESETS,
+  MAX_LIQUID_BLOB_COUNT,
+  MAX_VFX_SEED,
+  MIN_LIQUID_BLOB_COUNT,
+  createLiquidBlobsUniformState,
+  getLiquidBlobsPreset,
+  resolveLiquidBlobsConfig,
+} from "./vfx/liquidBlobs";
+export type {
+  LiquidBlobsConfig,
+  LiquidBlobsConfigInput,
+  LiquidBlobsControlDefinition,
+  LiquidBlobsPresetId,
+  LiquidBlobsUniformState,
+} from "./vfx/liquidBlobs";
+export {
+  DEFAULT_STARFIELD_BURST_CONFIG,
+  MAX_STARFIELD_COUNT,
+  MIN_STARFIELD_COUNT,
+  STARFIELD_BURST_CONTROL_DEFINITIONS,
+  STARFIELD_BURST_PRESETS,
+  createStarfieldBurstUniformState,
+  getStarfieldBurstPreset,
+  resolveStarfieldBurstConfig,
+} from "./vfx/starfieldBurst";
+export type {
+  StarfieldBurstConfig,
+  StarfieldBurstConfigInput,
+  StarfieldBurstControlDefinition,
+  StarfieldBurstPresetId,
+  StarfieldBurstUniformState,
+} from "./vfx/starfieldBurst";
 export {
   DEFAULT_TUNNEL_WAVES_CONFIG,
   MAX_TUNNEL_RING_DENSITY,

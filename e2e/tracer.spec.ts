@@ -1653,6 +1653,255 @@ test("proves radial spatial controls, ordered band scales, context recovery, and
     );
 });
 
+test("proves seeded organic and particle response, offscreen pause, recovery, and cleanup", async ({
+  page,
+}) => {
+  test.setTimeout(300_000);
+  const browserErrors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") browserErrors.push(`console: ${message.text()}`);
+  });
+  page.on("pageerror", (error) => browserErrors.push(`pageerror: ${error.message}`));
+  await installRendererObserverProbe(page);
+  await installWebglResourceProbe(page);
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: 2 });
+  });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+
+  const evidence = process.env.CAPTURE_WEBGL_EVIDENCE
+    ? ".scratch/evidence/017-organic-particle-vfx"
+    : null;
+  if (evidence) await mkdir(evidence, { recursive: true });
+  await page.goto("/", { timeout: 60_000, waitUntil: "domcontentloaded" });
+  await expect(page.getByLabel("Signal status")).toContainText("DEMO / READY");
+  const stage = page.locator(".signal-stage");
+  const engine = page.getByRole("combobox", { name: /Rendering engine/ });
+  const energyFixture = page.getByRole("combobox", { name: /Energy fixture/ });
+  const observerBaseline = await rendererObserverStat(page, "active");
+  const rafBaseline = await webglProbeStat(page, "activeRafs");
+  await engine.selectOption("webgl2");
+
+  const openEffect = async (buttonName: string, mode: string, stateAttribute: string) => {
+    await page.getByRole("button", { name: buttonName, exact: true }).click();
+    const surface = page.locator(`.primary-waveform[data-vfx-mode="${mode}"]`);
+    const canvas = surface.locator(`canvas[data-webgl-canvas="${mode}"]`);
+    await expect(surface).toHaveAttribute("data-webgl-state", "ready");
+    await expect(surface).toHaveAttribute("data-webgl-resources", "1/1/1");
+    await expect(surface).toHaveAttribute(stateAttribute, "ready");
+    await expect(surface).toHaveAttribute("data-webgl-animation", "static");
+    await expect(surface).toHaveAttribute("data-webgl-visible", "true");
+    await expect.poll(() => webglProbeStat(page, "activePrograms")).toBe(1);
+    await expect.poll(() => webglProbeStat(page, "activeTextures")).toBe(0);
+    await expect.poll(() => rendererObserverStat(page, "active")).toBe(observerBaseline);
+    return { canvas, surface };
+  };
+
+  const assertPixelsChange = async (
+    surfaceName: string,
+    canvas: ReturnType<typeof page.locator>,
+    controlName: string,
+    action: () => Promise<void>,
+  ) => {
+    const before = await stage.screenshot();
+    const drawCalls = Number(await canvas.getAttribute("data-webgl-draw-calls"));
+    await action();
+    await expect
+      .poll(async () => Number(await canvas.getAttribute("data-webgl-draw-calls")))
+      .toBeGreaterThan(drawCalls);
+    expect(
+      (await stage.screenshot()).equals(before),
+      `${controlName} must change ${surfaceName} pixels`,
+    ).toBe(false);
+  };
+
+  const liquid = await openEffect("Liquid Blobs", "liquid-blobs", "data-liquid-blobs-state");
+  if (evidence) await stage.screenshot({ path: `${evidence}/liquid-blobs-default.png` });
+  for (const [name, value] of [
+    ["Blob count", "24"],
+    ["Blob size", "0.32"],
+    ["Drift speed", "-0.75"],
+    ["Glow strength", "2.25"],
+    ["Merge threshold", "0.73"],
+    ["Bass reactivity", "1.8"],
+    ["Seed", "54321"],
+  ] as const)
+    await assertPixelsChange("Liquid Blobs", liquid.canvas, name, () =>
+      page.getByRole("slider", { name }).fill(value),
+    );
+  for (const [name, value] of [
+    ["Background color", "#07100d"],
+    ["Base color", "#17443a"],
+    ["Blob color", "#45ffc5"],
+    ["Peak flash color", "#ffffff"],
+  ] as const)
+    await assertPixelsChange("Liquid Blobs", liquid.canvas, name, () =>
+      page.getByLabel(name, { exact: true }).fill(value),
+    );
+  await energyFixture.selectOption("bass");
+  const liquidBass = await stage.screenshot();
+  await energyFixture.selectOption("treble");
+  expect((await stage.screenshot()).equals(liquidBass), "Liquid responds to bass ordering").toBe(
+    false,
+  );
+  await energyFixture.selectOption("zero");
+  const liquidZero = await stage.screenshot();
+  if (evidence) await stage.screenshot({ path: `${evidence}/liquid-blobs-zero.png` });
+  await energyFixture.selectOption("overload");
+  expect((await stage.screenshot()).equals(liquidZero), "Liquid zero and overload differ").toBe(
+    false,
+  );
+  if (evidence) await stage.screenshot({ path: `${evidence}/liquid-blobs-overload.png` });
+  const liquidPreset = page.getByRole("combobox", { name: /VFX preset/ });
+  await liquidPreset.selectOption("magma-bloom");
+  const liquidPresetPixels = await stage.screenshot();
+  await page.getByRole("slider", { name: "Seed" }).fill("12345");
+  await expect(liquidPreset).toHaveValue("custom");
+  await liquidPreset.selectOption("magma-bloom");
+  expect((await stage.screenshot()).equals(liquidPresetPixels)).toBe(true);
+  if (evidence) await stage.screenshot({ path: `${evidence}/liquid-blobs-preset.png` });
+
+  await page.getByRole("combobox", { name: /Motion/ }).selectOption("full");
+  await expect(liquid.surface).toHaveAttribute("data-webgl-animation", "running");
+  await expect.poll(() => webglProbeStat(page, "activeRafs")).toBeGreaterThan(rafBaseline);
+  await liquid.surface.evaluate((node) => {
+    (node as HTMLElement).style.transform = "translateY(200vh)";
+  });
+  await expect(liquid.surface).toHaveAttribute("data-webgl-visible", "false");
+  await expect(liquid.surface).toHaveAttribute("data-webgl-animation", "paused");
+  await expect.poll(() => webglProbeStat(page, "activeRafs")).toBe(rafBaseline);
+  await liquid.surface.evaluate((node) => {
+    (node as HTMLElement).style.transform = "";
+  });
+  await expect(liquid.surface).toHaveAttribute("data-webgl-visible", "true");
+  await expect(liquid.surface).toHaveAttribute("data-webgl-animation", "running");
+  await page.getByRole("combobox", { name: /Motion/ }).selectOption("reduced");
+  await expect.poll(() => webglProbeStat(page, "activeRafs")).toBe(rafBaseline);
+
+  const stars = await openEffect(
+    "Starfield Burst",
+    "starfield-burst",
+    "data-starfield-burst-state",
+  );
+  await expect(liquid.surface).toHaveCount(0);
+  if (evidence) await stage.screenshot({ path: `${evidence}/starfield-burst-default.png` });
+  for (const [name, value] of [
+    ["Star count", "256"],
+    ["Burst speed", "1.5"],
+    ["Star size", "3.1"],
+    ["Trail length", "0.5"],
+    ["Transient reactivity", "2.2"],
+    ["Seed", "12345"],
+  ] as const)
+    await assertPixelsChange("Starfield Burst", stars.canvas, name, () =>
+      page.getByRole("slider", { name }).fill(value),
+    );
+  for (const [name, value] of [
+    ["Background color", "#05020f"],
+    ["Core color", "#ffffff"],
+    ["Edge color", "#7060ff"],
+    ["Treble flash color", "#ff58dc"],
+  ] as const)
+    await assertPixelsChange("Starfield Burst", stars.canvas, name, () =>
+      page.getByLabel(name, { exact: true }).fill(value),
+    );
+  await energyFixture.selectOption("treble");
+  const starTreble = await stage.screenshot();
+  await energyFixture.selectOption("bass");
+  expect((await stage.screenshot()).equals(starTreble), "Stars respond to treble ordering").toBe(
+    false,
+  );
+  await energyFixture.selectOption("zero");
+  const starZero = await stage.screenshot();
+  if (evidence) await stage.screenshot({ path: `${evidence}/starfield-burst-zero.png` });
+  await energyFixture.selectOption("overload");
+  expect((await stage.screenshot()).equals(starZero), "Stars zero and overload differ").toBe(false);
+  if (evidence) await stage.screenshot({ path: `${evidence}/starfield-burst-overload.png` });
+  const starPreset = page.getByRole("combobox", { name: /VFX preset/ });
+  await starPreset.selectOption("violet-warp");
+  const starPresetPixels = await stage.screenshot();
+  await page.getByRole("slider", { name: "Trail length" }).fill("0.2");
+  await expect(starPreset).toHaveValue("custom");
+  await starPreset.selectOption("violet-warp");
+  expect((await stage.screenshot()).equals(starPresetPixels)).toBe(true);
+  if (evidence) await stage.screenshot({ path: `${evidence}/starfield-burst-preset.png` });
+
+  const balancedWidth = Number(await stars.surface.getAttribute("data-webgl-buffer-width"));
+  await page.getByRole("combobox", { name: /GPU quality/ }).selectOption("low");
+  await expect
+    .poll(async () => Number(await stars.surface.getAttribute("data-webgl-buffer-width")))
+    .toBeLessThan(balancedWidth);
+  const lossExtensionAvailable = await stars.canvas.evaluate((element) => {
+    const context = (element as HTMLCanvasElement).getContext("webgl2");
+    const extension = context?.getExtension("WEBGL_lose_context") ?? null;
+    if (extension) {
+      Reflect.set(window, "__organicParticleLossExtension", extension);
+      extension.loseContext();
+    }
+    return Boolean(extension);
+  });
+  expect(lossExtensionAvailable).toBe(true);
+  await expect(stars.surface).toHaveAttribute("data-webgl-state", "context-lost");
+  await expect(stars.surface).toHaveAttribute("data-webgl-resources", "0/0/0");
+  if (evidence) await stage.screenshot({ path: `${evidence}/starfield-burst-context-lost.png` });
+  await page.evaluate(() => Reflect.get(window, "__organicParticleLossExtension").restoreContext());
+  await expect(stars.surface).toHaveAttribute("data-webgl-state", "ready");
+  await expect(stars.surface).toHaveAttribute("data-webgl-generation", "2");
+  await expect(stars.surface).toHaveAttribute("data-webgl-resources", "1/1/1");
+  if (evidence) await stage.screenshot({ path: `${evidence}/starfield-burst-recovered.png` });
+
+  for (let cycle = 0; cycle < 3; cycle += 1) {
+    for (const buttonName of ["Liquid Blobs", "Starfield Burst"] as const) {
+      await page.getByRole("button", { name: buttonName, exact: true }).click();
+      await expect(page.locator("canvas[data-webgl-canvas]")).toHaveCount(1);
+      await expect.poll(() => webglProbeStat(page, "activePrograms")).toBe(1);
+      await expect.poll(() => webglProbeStat(page, "activeBuffers")).toBe(1);
+      await expect.poll(() => webglProbeStat(page, "activeVertexArrays")).toBe(1);
+      await expect.poll(() => rendererObserverStat(page, "active")).toBe(observerBaseline);
+    }
+  }
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const activeSurface = page.locator('.primary-waveform[data-vfx-mode="starfield-burst"]');
+  const boundedBuffer = await activeSurface.evaluate((node) => ({
+    height: Number(node.getAttribute("data-webgl-buffer-height")),
+    width: Number(node.getAttribute("data-webgl-buffer-width")),
+  }));
+  expect(boundedBuffer.height).toBeLessThanOrEqual(4096);
+  expect(boundedBuffer.width).toBeLessThanOrEqual(4096);
+  expect(boundedBuffer.height * boundedBuffer.width).toBeLessThanOrEqual(4_194_304);
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth - innerWidth),
+  ).toBeLessThanOrEqual(0);
+
+  await engine.selectOption("canvas2d");
+  await expect(activeSurface).toHaveCount(0);
+  await expect.poll(() => webglProbeStat(page, "activePrograms")).toBe(0);
+  await expect.poll(() => webglProbeStat(page, "activeBuffers")).toBe(0);
+  await expect.poll(() => webglProbeStat(page, "activeVertexArrays")).toBe(0);
+  await expect.poll(() => webglProbeStat(page, "activeTextures")).toBe(0);
+  await expect.poll(() => webglProbeStat(page, "activeRafs")).toBe(rafBaseline);
+  await expect.poll(() => rendererObserverStat(page, "active")).toBe(observerBaseline - 1);
+  await page.getByRole("button", { name: "Waveform", exact: true }).click();
+  await expect.poll(() => rendererObserverStat(page, "active")).toBe(observerBaseline);
+  expect(browserErrors).toEqual([]);
+
+  if (evidence)
+    await writeFile(
+      `${evidence}/browser-report.json`,
+      `${JSON.stringify(
+        {
+          browserErrors,
+          observerBaseline,
+          observerStats: await page.evaluate(() => Reflect.get(window, "__rendererObserverStats")),
+          resourceStats: await page.evaluate(() => Reflect.get(window, "__webglResourceStats")),
+        },
+        null,
+        2,
+      )}\n`,
+    );
+});
+
 test("switches DOM/CSS through bounded bars and meters with explicit capability recovery", async ({
   page,
 }) => {
