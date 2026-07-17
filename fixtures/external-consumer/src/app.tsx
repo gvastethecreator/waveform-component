@@ -19,9 +19,9 @@ import {
   WEBGL2_RENDERER_CAPABILITIES,
   SessionWaveform,
   Spectrum,
-  SpectrumBarsVfx,
-  SPECTRUM_BARS_VFX_CONTROL_DEFINITIONS,
-  SPECTRUM_BARS_VFX_PRESETS,
+  SpectrumBars,
+  SPECTRUM_BARS_CONTROL_DEFINITIONS,
+  SPECTRUM_BARS_PRESETS,
   RecordedWaveformPlayer,
   Waveform,
   WaveformRibbon,
@@ -42,7 +42,7 @@ import {
   createWebglEqualizerGridRenderer,
   createWebglNeonLinesRenderer,
   createWebglRoundedWobbleBarsRenderer,
-  createWebglSpectrumBarsVfxRenderer,
+  createWebglSpectrumBarsRenderer,
   createWebglWaveformRibbonRenderer,
   renderSvgMeter,
   renderSvgSpectrum,
@@ -52,7 +52,7 @@ import {
   resolveEqualizerGridConfig,
   resolveNeonLinesConfig,
   resolveRoundedWobbleBarsConfig,
-  resolveSpectrumBarsVfxConfig,
+  resolveSpectrumBarsConfig,
   resolveWaveformRibbonConfig,
   useMicrophoneSource,
   type MicrophoneSource,
@@ -95,8 +95,8 @@ const roundedWobbleBarsConfig = resolveRoundedWobbleBarsConfig({
   ...ROUNDED_WOBBLE_BARS_PRESETS[1].config,
   mirrorVertically: false,
 });
-const spectrumBarsVfxConfig = resolveSpectrumBarsVfxConfig({
-  ...SPECTRUM_BARS_VFX_PRESETS[2].config,
+const spectrumBarsVfxConfig = resolveSpectrumBarsConfig({
+  ...SPECTRUM_BARS_PRESETS[2].config,
   barCount: 80,
 });
 const dynamics = createSpectrumDynamicsProcessor();
@@ -325,7 +325,7 @@ export function RibbonBarsConsumerExample() {
     <section
       data-ribbon-controls={WAVEFORM_RIBBON_CONTROL_DEFINITIONS.length}
       data-wobble-controls={ROUNDED_WOBBLE_BARS_CONTROL_DEFINITIONS.length}
-      data-spectrum-bars-controls={SPECTRUM_BARS_VFX_CONTROL_DEFINITIONS.length}
+      data-spectrum-bars-controls={SPECTRUM_BARS_CONTROL_DEFINITIONS.length}
     >
       <WaveformRibbon
         ariaLabel="External Waveform Ribbon"
@@ -337,7 +337,7 @@ export function RibbonBarsConsumerExample() {
         config={roundedWobbleBarsConfig}
         data={pulseRingBands}
       />
-      <SpectrumBarsVfx
+      <SpectrumBars
         ariaLabel="External Spectrum Bars VFX"
         config={spectrumBarsVfxConfig}
         data={pulseRingBands}
@@ -353,7 +353,7 @@ export function createExternalRibbonBarsRenderers(
 ) {
   return {
     ribbon: createWebglWaveformRibbonRenderer(ribbon),
-    spectrumBars: createWebglSpectrumBarsVfxRenderer(spectrumBars),
+    spectrumBars: createWebglSpectrumBarsRenderer(spectrumBars),
     wobble: createWebglRoundedWobbleBarsRenderer(wobble),
   };
 }

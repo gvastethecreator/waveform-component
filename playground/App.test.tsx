@@ -424,7 +424,7 @@ describe("Signal Workbench tracer", () => {
       "overload",
     );
     await user.click(screen.getByRole("button", { name: /Copy code|Copied/ }));
-    expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining("<SpectrumBarsVfx"));
+    expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining("<SpectrumBars"));
     expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining("barCount: 72"));
 
     await user.click(screen.getByRole("button", { name: "Reset" }));

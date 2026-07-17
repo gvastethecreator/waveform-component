@@ -38,7 +38,7 @@ import {
   SessionWaveform,
   SignalOverlay,
   Spectrum,
-  SpectrumBarsVfx,
+  SpectrumBars,
   SpectrumFrameDelay,
   SPECTRUM_BARS_VFX_PRESETS,
   SPECTRUM_CONTROL_DEFINITIONS,
@@ -1331,7 +1331,7 @@ export default function App() {
               : isSpectrumBarsVfxMode
                 ? `const bands = createBandEnergyFrameFromSpectrum(spectrum, { bandCount: 8 });
 
-<SpectrumBarsVfx
+<SpectrumBars
   data={bands}
   config={{
     renderer: "webgl2",
@@ -1595,7 +1595,7 @@ const result = meter.process(
                       height="100%"
                     />
                   ) : (
-                    <SpectrumBarsVfx
+                    <SpectrumBars
                       ariaLabel={`${microphoneSource ? "Live microphone" : preset.label} audio-reactive Spectrum Bars preview`}
                       className="primary-waveform"
                       config={spectrumBarsVfxConfig}

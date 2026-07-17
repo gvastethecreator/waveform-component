@@ -192,11 +192,17 @@ export type {
   WebglRoundedWobbleBarsRenderer,
   WebglRoundedWobbleBarsRendererOptions,
 } from "./renderers/webgl2RoundedWobbleBars";
-export { createWebglSpectrumBarsVfxRenderer } from "./renderers/webgl2SpectrumBarsVfx";
+export {
+  createWebglSpectrumBarsVfxRenderer,
+  createWebglSpectrumBarsVfxRenderer as createWebglSpectrumBarsRenderer,
+} from "./renderers/webgl2SpectrumBarsVfx";
 export type {
   WebglSpectrumBarsVfxRenderOptions,
+  WebglSpectrumBarsVfxRenderOptions as WebglSpectrumBarsRenderOptions,
   WebglSpectrumBarsVfxRenderer,
+  WebglSpectrumBarsVfxRenderer as WebglSpectrumBarsRenderer,
   WebglSpectrumBarsVfxRendererOptions,
+  WebglSpectrumBarsVfxRendererOptions as WebglSpectrumBarsRendererOptions,
 } from "./renderers/webgl2SpectrumBarsVfx";
 export {
   WEBGL2_MAX_DRAWING_BUFFER_DIMENSION,
@@ -222,8 +228,11 @@ export { WaveformRibbon } from "./react/WaveformRibbon";
 export type { WaveformRibbonProps } from "./react/WaveformRibbon";
 export { RoundedWobbleBars } from "./react/RoundedWobbleBars";
 export type { RoundedWobbleBarsProps } from "./react/RoundedWobbleBars";
-export { SpectrumBarsVfx } from "./react/SpectrumBarsVfx";
-export type { SpectrumBarsVfxProps } from "./react/SpectrumBarsVfx";
+export { SpectrumBarsVfx, SpectrumBarsVfx as SpectrumBars } from "./react/SpectrumBarsVfx";
+export type {
+  SpectrumBarsVfxProps,
+  SpectrumBarsVfxProps as SpectrumBarsProps,
+} from "./react/SpectrumBarsVfx";
 export { SignalOverlay } from "./react/SignalOverlay";
 export type {
   SignalOverlayChangeMeta,
@@ -406,20 +415,30 @@ export type {
 } from "./vfx/roundedWobbleBars";
 export {
   DEFAULT_SPECTRUM_BARS_VFX_CONFIG,
+  DEFAULT_SPECTRUM_BARS_VFX_CONFIG as DEFAULT_SPECTRUM_BARS_CONFIG,
   MAX_SPECTRUM_VFX_BAR_COUNT,
   MIN_SPECTRUM_VFX_BAR_COUNT,
   SPECTRUM_BARS_VFX_CONTROL_DEFINITIONS,
+  SPECTRUM_BARS_VFX_CONTROL_DEFINITIONS as SPECTRUM_BARS_CONTROL_DEFINITIONS,
   SPECTRUM_BARS_VFX_PRESETS,
+  SPECTRUM_BARS_VFX_PRESETS as SPECTRUM_BARS_PRESETS,
   createSpectrumBarsVfxUniformState,
+  createSpectrumBarsVfxUniformState as createSpectrumBarsUniformState,
   getSpectrumBarsVfxPreset,
   resolveSpectrumBarsVfxConfig,
+  resolveSpectrumBarsVfxConfig as resolveSpectrumBarsConfig,
 } from "./vfx/spectrumBarsVfx";
 export type {
   SpectrumBarsVfxConfig,
+  SpectrumBarsVfxConfig as SpectrumBarsConfig,
   SpectrumBarsVfxConfigInput,
+  SpectrumBarsVfxConfigInput as SpectrumBarsConfigInput,
   SpectrumBarsVfxControlDefinition,
+  SpectrumBarsVfxControlDefinition as SpectrumBarsControlDefinition,
   SpectrumBarsVfxPresetId,
+  SpectrumBarsVfxPresetId as SpectrumBarsPresetId,
   SpectrumBarsVfxUniformState,
+  SpectrumBarsVfxUniformState as SpectrumBarsUniformState,
 } from "./vfx/spectrumBarsVfx";
 export type {
   VfxBooleanControlDefinition,

@@ -11,7 +11,7 @@ test("renders and controls the public Canvas waveform path", async ({ page }) =>
   await expect(page.getByRole("img", { name: /deterministic waveform preview/ })).toBeVisible();
   await expect(page.getByLabel("Signal status")).toContainText("DEMO / READY");
   await expect(page.getByText("owned")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Waveform" })).toHaveAttribute(
+  await expect(page.getByRole("button", { name: "Waveform", exact: true })).toHaveAttribute(
     "aria-pressed",
     "true",
   );
@@ -172,7 +172,7 @@ test("operates seek, regions, markers, and direct handles through semantic overl
   await seek.press("ArrowRight");
   await expect(seek).toHaveAttribute("aria-valuenow", (beforeRtl - 0.01).toFixed(2));
 
-  await page.getByRole("button", { name: "Spectrum" }).click();
+  await page.getByRole("button", { name: "Spectrum", exact: true }).click();
   const lowCutoffHandle = page.getByRole("slider", {
     name: "Low cutoff handle",
     exact: true,
@@ -341,7 +341,7 @@ test("loads, plays, and keyboard-scrubs a local WAV without upload", async ({ pa
     page.getByText("Decoded and played locally. The file never leaves this browser."),
   ).toBeVisible();
   await expect(page.getByRole("region", { name: "local-tone.wav player" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Spectrum" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Spectrum", exact: true })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Meter", exact: true })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Stepped meter" })).toBeDisabled();
   await expect(page.getByText(/bounded peaks, not raw PCM/)).toBeVisible();
@@ -419,7 +419,7 @@ test("switches Canvas and SVG through one frame/config/session contract", async 
   expect(canvasWaveform.equals(vectorWaveform)).toBe(false);
   if (evidence) await stage.screenshot({ path: `${evidence}/svg-waveform.png` });
 
-  await page.getByRole("button", { name: "Spectrum" }).click();
+  await page.getByRole("button", { name: "Spectrum", exact: true }).click();
   await page.getByRole("combobox", { name: /^Layout/ }).selectOption("radial");
   await page.getByRole("combobox", { name: /Color mode/ }).selectOption("gradient");
   const svgSpectrum = page.getByRole("img", {
@@ -533,7 +533,7 @@ test("keeps SVG responsive, theme-aware, reduced-motion static, and forced-color
   await seek.press("ArrowRight");
   await expect(seek).toHaveAttribute("aria-valuenow", "0.33");
 
-  await page.getByRole("button", { name: "Spectrum" }).click();
+  await page.getByRole("button", { name: "Spectrum", exact: true }).click();
   await page.getByRole("combobox", { name: /Color mode/ }).selectOption("gradient");
   const spectrum = page.getByRole("img", {
     name: /Broadcast ordered spectrum preview/,
@@ -617,7 +617,7 @@ test("drives Pulse Ring controls and recovers WebGL2 resources after real contex
   await expect(
     page.getByText("Canvas 2D fallback · WebGL2 is scoped to clean-room VFX modes"),
   ).toBeVisible();
-  await expect(page.getByRole("button", { name: "Waveform" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Waveform", exact: true })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Pulse Ring" })).toBeEnabled();
   await expect(page.getByText(epoch ?? "Epoch 1")).toBeVisible();
 
@@ -718,7 +718,7 @@ test("drives Pulse Ring controls and recovers WebGL2 resources after real contex
   await expect.poll(() => webglProbeStat(page, "activeVertexArrays")).toBe(0);
   await expect.poll(() => webglProbeStat(page, "activeTextures")).toBe(0);
   await expect.poll(() => webglProbeStat(page, "activeRafs")).toBe(rafBaseline);
-  await page.getByRole("button", { name: "Waveform" }).click();
+  await page.getByRole("button", { name: "Waveform", exact: true }).click();
   await expect.poll(() => rendererObserverStat(page, "active")).toBe(observerBaseline);
   await expect(page.getByText(epoch ?? "Epoch 1")).toBeVisible();
 
@@ -1107,7 +1107,263 @@ test("proves Neon Lines and Equalizer Grid controls, presets, lifecycle, and GPU
   await expect.poll(() => webglProbeStat(page, "activeTextures")).toBe(0);
   await expect.poll(() => webglProbeStat(page, "activeRafs")).toBe(rafBaseline);
   await expect.poll(() => rendererObserverStat(page, "active")).toBe(observerBaseline - 1);
-  await page.getByRole("button", { name: "Waveform" }).click();
+  await page.getByRole("button", { name: "Waveform", exact: true }).click();
+  await expect.poll(() => rendererObserverStat(page, "active")).toBe(observerBaseline);
+  expect(browserErrors).toEqual([]);
+
+  if (evidence)
+    await writeFile(
+      `${evidence}/browser-report.json`,
+      `${JSON.stringify(
+        {
+          browserErrors,
+          observerBaseline,
+          observerStats: await page.evaluate(() => Reflect.get(window, "__rendererObserverStats")),
+          resourceStats: await page.evaluate(() => Reflect.get(window, "__webglResourceStats")),
+        },
+        null,
+        2,
+      )}\n`,
+    );
+});
+
+test("proves Ribbon and reactive bar controls, deterministic presets, rapid switching, and bounded cleanup", async ({
+  page,
+}) => {
+  test.setTimeout(300_000);
+  const browserErrors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") browserErrors.push(`console: ${message.text()}`);
+  });
+  page.on("pageerror", (error) => browserErrors.push(`pageerror: ${error.message}`));
+  await installRendererObserverProbe(page);
+  await installWebglResourceProbe(page);
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: 2 });
+  });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+
+  const evidence = process.env.CAPTURE_WEBGL_EVIDENCE
+    ? ".scratch/evidence/015-ribbon-bars-vfx"
+    : null;
+  if (evidence) await mkdir(evidence, { recursive: true });
+  await page.goto("/", { timeout: 60_000, waitUntil: "domcontentloaded" });
+  await expect(page.getByLabel("Signal status")).toContainText("DEMO / READY");
+  const stage = page.locator(".signal-stage");
+  const engine = page.getByRole("combobox", { name: /Rendering engine/ });
+  const observerBaseline = await rendererObserverStat(page, "active");
+  const rafBaseline = await webglProbeStat(page, "activeRafs");
+  await engine.selectOption("webgl2");
+
+  const openEffect = async (buttonName: string, mode: string, stateAttribute: string) => {
+    await page.getByRole("button", { name: buttonName, exact: true }).click();
+    const surface = page.locator(`.primary-waveform[data-vfx-mode="${mode}"]`);
+    const canvas = surface.locator(`canvas[data-webgl-canvas="${mode}"]`);
+    await expect(surface).toHaveAttribute("data-webgl-state", "ready");
+    await expect(surface).toHaveAttribute("data-webgl-resources", "1/1/1");
+    await expect(surface).toHaveAttribute(stateAttribute, "ready");
+    await expect(surface).toHaveAttribute("data-webgl-animation", "static");
+    await expect.poll(() => webglProbeStat(page, "activePrograms")).toBe(1);
+    await expect.poll(() => webglProbeStat(page, "activeTextures")).toBe(0);
+    await expect.poll(() => rendererObserverStat(page, "active")).toBe(observerBaseline);
+    return { canvas, surface };
+  };
+
+  const assertPixelsChange = async (
+    surfaceName: string,
+    canvas: ReturnType<typeof page.locator>,
+    controlName: string,
+    action: () => Promise<void>,
+  ) => {
+    const before = await stage.screenshot();
+    const drawCalls = Number(await canvas.getAttribute("data-webgl-draw-calls"));
+    await action();
+    await expect
+      .poll(async () => Number(await canvas.getAttribute("data-webgl-draw-calls")))
+      .toBeGreaterThan(drawCalls);
+    const after = await stage.screenshot();
+    expect(after.equals(before), `${controlName} must change ${surfaceName} pixels`).toBe(false);
+  };
+
+  const ribbon = await openEffect(
+    "Waveform Ribbon",
+    "waveform-ribbon",
+    "data-waveform-ribbon-state",
+  );
+  if (evidence) await stage.screenshot({ path: `${evidence}/waveform-ribbon-default.png` });
+  for (const [name, value] of [
+    ["Wave height", "0.34"],
+    ["Flow speed", "-1.35"],
+    ["Ribbon thickness", "0.19"],
+    ["Glow strength", "2.4"],
+    ["Reflection", "0.8"],
+    ["Energy reactivity", "1.8"],
+  ] as const)
+    await assertPixelsChange("Waveform Ribbon", ribbon.canvas, name, () =>
+      page.getByRole("slider", { name }).fill(value),
+    );
+  for (const [name, value] of [
+    ["Background color", "#12051f"],
+    ["Left color", "#ff315f"],
+    ["Right color", "#36ffb1"],
+    ["Peak flash color", "#ffffff"],
+  ] as const)
+    await assertPixelsChange("Waveform Ribbon", ribbon.canvas, name, () =>
+      page.getByLabel(name, { exact: true }).fill(value),
+    );
+
+  const balancedWidth = Number(await ribbon.surface.getAttribute("data-webgl-buffer-width"));
+  await page.getByRole("combobox", { name: /GPU quality/ }).selectOption("low");
+  await expect
+    .poll(async () => Number(await ribbon.surface.getAttribute("data-webgl-buffer-width")))
+    .toBeLessThan(balancedWidth);
+  await page.getByRole("combobox", { name: /Motion/ }).selectOption("full");
+  await expect(ribbon.surface).toHaveAttribute("data-webgl-animation", "running");
+  await expect.poll(() => webglProbeStat(page, "activeRafs")).toBeGreaterThan(rafBaseline);
+  await page.getByRole("combobox", { name: /Motion/ }).selectOption("reduced");
+  await expect.poll(() => webglProbeStat(page, "activeRafs")).toBe(rafBaseline);
+
+  const energyFixture = page.getByRole("combobox", { name: /Energy fixture/ });
+  await energyFixture.selectOption("zero");
+  const zeroRibbon = await stage.screenshot();
+  if (evidence) await stage.screenshot({ path: `${evidence}/waveform-ribbon-zero.png` });
+  await energyFixture.selectOption("overload");
+  const overloadRibbon = await stage.screenshot();
+  expect(overloadRibbon.equals(zeroRibbon), "Ribbon zero and overload must differ").toBe(false);
+  if (evidence) await stage.screenshot({ path: `${evidence}/waveform-ribbon-overload.png` });
+  const ribbonPreset = page.getByRole("combobox", { name: /VFX preset/ });
+  await ribbonPreset.selectOption("ghost-mirror");
+  const ribbonPresetBefore = await stage.screenshot();
+  await page.getByRole("slider", { name: "Reflection" }).fill("0.2");
+  await expect(ribbonPreset).toHaveValue("custom");
+  await ribbonPreset.selectOption("ghost-mirror");
+  expect((await stage.screenshot()).equals(ribbonPresetBefore)).toBe(true);
+  if (evidence) await stage.screenshot({ path: `${evidence}/waveform-ribbon-preset.png` });
+
+  const wobble = await openEffect(
+    "Wobble Bars",
+    "rounded-wobble-bars",
+    "data-rounded-wobble-bars-state",
+  );
+  await expect(ribbon.surface).toHaveCount(0);
+  if (evidence) await stage.screenshot({ path: `${evidence}/rounded-wobble-bars-default.png` });
+  for (const [name, value] of [
+    ["Bar count", "64"],
+    ["Wobble intensity", "0.8"],
+    ["Bar gap", "0.46"],
+    ["Glow intensity", "2.2"],
+    ["Energy reactivity", "0.55"],
+  ] as const)
+    await assertPixelsChange("Rounded Wobble Bars", wobble.canvas, name, () =>
+      page.getByRole("slider", { name }).fill(value),
+    );
+  await assertPixelsChange("Rounded Wobble Bars", wobble.canvas, "Mirror vertically", () =>
+    page.getByRole("checkbox", { name: /^Mirror vertically/ }).click(),
+  );
+  for (const [name, value] of [
+    ["Background color", "#170402"],
+    ["Left color", "#ff6538"],
+    ["Right color", "#ffd35a"],
+    ["Burst flash color", "#ffffff"],
+  ] as const)
+    await assertPixelsChange("Rounded Wobble Bars", wobble.canvas, name, () =>
+      page.getByLabel(name, { exact: true }).fill(value),
+    );
+  const wobblePreset = page.getByRole("combobox", { name: /VFX preset/ });
+  await wobblePreset.selectOption("twin-ember");
+  const wobblePresetBefore = await stage.screenshot();
+  await page.getByRole("slider", { name: "Bar count" }).fill("64");
+  await expect(wobblePreset).toHaveValue("custom");
+  await wobblePreset.selectOption("twin-ember");
+  expect((await stage.screenshot()).equals(wobblePresetBefore)).toBe(true);
+  await energyFixture.selectOption("zero");
+  if (evidence) await stage.screenshot({ path: `${evidence}/rounded-wobble-bars-zero.png` });
+  await energyFixture.selectOption("overload");
+  if (evidence) await stage.screenshot({ path: `${evidence}/rounded-wobble-bars-overload.png` });
+  if (evidence) await stage.screenshot({ path: `${evidence}/rounded-wobble-bars-preset.png` });
+
+  const spectrumBars = await openEffect(
+    "Spectrum Bars VFX",
+    "spectrum-bars",
+    "data-spectrum-bars-state",
+  );
+  await expect(wobble.surface).toHaveCount(0);
+  if (evidence) await stage.screenshot({ path: `${evidence}/spectrum-bars-default.png` });
+  for (const [name, value] of [
+    ["Bar count", "96"],
+    ["Height reactivity", "0.45"],
+    ["Gap size", "0.5"],
+    ["Baseline position", "0.58"],
+    ["Random speed", "1.65"],
+    ["Glow strength", "2.25"],
+  ] as const)
+    await assertPixelsChange("Spectrum Bars VFX", spectrumBars.canvas, name, () =>
+      page.getByRole("slider", { name }).fill(value),
+    );
+  for (const [name, value] of [
+    ["Background color", "#03010f"],
+    ["Gradient color 1", "#7439ff"],
+    ["Gradient color 2", "#22e1ff"],
+    ["Gradient color 3", "#66ff8f"],
+    ["Gradient color 4", "#ffffff"],
+  ] as const)
+    await assertPixelsChange("Spectrum Bars VFX", spectrumBars.canvas, name, () =>
+      page.getByLabel(name, { exact: true }).fill(value),
+    );
+  const spectrumPreset = page.getByRole("combobox", { name: /VFX preset/ });
+  await spectrumPreset.selectOption("radar-spectrum");
+  const spectrumPresetBefore = await stage.screenshot();
+  await page.getByRole("slider", { name: "Baseline position" }).fill("0.4");
+  await expect(spectrumPreset).toHaveValue("custom");
+  await spectrumPreset.selectOption("radar-spectrum");
+  expect((await stage.screenshot()).equals(spectrumPresetBefore)).toBe(true);
+  await energyFixture.selectOption("zero");
+  const zeroSpectrum = await stage.screenshot();
+  if (evidence) await stage.screenshot({ path: `${evidence}/spectrum-bars-zero.png` });
+  await energyFixture.selectOption("overload");
+  const overloadSpectrum = await stage.screenshot();
+  expect(overloadSpectrum.equals(zeroSpectrum), "Spectrum Bars zero and overload must differ").toBe(
+    false,
+  );
+  if (evidence) {
+    await stage.screenshot({ path: `${evidence}/spectrum-bars-overload.png` });
+    await spectrumPreset.selectOption("radar-spectrum");
+    await stage.screenshot({ path: `${evidence}/spectrum-bars-preset.png` });
+  }
+
+  for (let cycle = 0; cycle < 3; cycle += 1) {
+    for (const buttonName of ["Waveform Ribbon", "Wobble Bars", "Spectrum Bars VFX"] as const) {
+      await page.getByRole("button", { name: buttonName, exact: true }).click();
+      await expect(page.locator("canvas[data-webgl-canvas]")).toHaveCount(1);
+      await expect.poll(() => webglProbeStat(page, "activePrograms")).toBe(1);
+      await expect.poll(() => webglProbeStat(page, "activeBuffers")).toBe(1);
+      await expect.poll(() => webglProbeStat(page, "activeVertexArrays")).toBe(1);
+      await expect.poll(() => rendererObserverStat(page, "active")).toBe(observerBaseline);
+    }
+  }
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const activeSurface = page.locator('.primary-waveform[data-vfx-mode="spectrum-bars"]');
+  const boundedBuffer = await activeSurface.evaluate((node) => ({
+    height: Number(node.getAttribute("data-webgl-buffer-height")),
+    width: Number(node.getAttribute("data-webgl-buffer-width")),
+  }));
+  expect(boundedBuffer.height).toBeLessThanOrEqual(4096);
+  expect(boundedBuffer.width).toBeLessThanOrEqual(4096);
+  expect(boundedBuffer.height * boundedBuffer.width).toBeLessThanOrEqual(4_194_304);
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth - innerWidth),
+  ).toBeLessThanOrEqual(0);
+
+  await engine.selectOption("canvas2d");
+  await expect(activeSurface).toHaveCount(0);
+  await expect.poll(() => webglProbeStat(page, "activePrograms")).toBe(0);
+  await expect.poll(() => webglProbeStat(page, "activeBuffers")).toBe(0);
+  await expect.poll(() => webglProbeStat(page, "activeVertexArrays")).toBe(0);
+  await expect.poll(() => webglProbeStat(page, "activeTextures")).toBe(0);
+  await expect.poll(() => webglProbeStat(page, "activeRafs")).toBe(rafBaseline);
+  await expect.poll(() => rendererObserverStat(page, "active")).toBe(observerBaseline - 1);
+  await page.getByRole("button", { name: "Waveform", exact: true }).click();
   await expect.poll(() => rendererObserverStat(page, "active")).toBe(observerBaseline);
   expect(browserErrors).toEqual([]);
 
@@ -1150,10 +1406,10 @@ test("switches DOM/CSS through bounded bars and meters with explicit capability 
   await engine.selectOption("dom");
   await expect(stage).toHaveAttribute("data-renderer", "dom");
   await expect(page.getByRole("alert")).toContainText("DOM/CSS does not support waveform mode");
-  await expect(page.getByRole("button", { name: "Waveform" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Waveform", exact: true })).toBeDisabled();
   await expect(page.getByRole("checkbox", { name: "Semantic overlays" })).toBeDisabled();
 
-  await page.getByRole("button", { name: "Spectrum" }).click();
+  await page.getByRole("button", { name: "Spectrum", exact: true }).click();
   await expect(page.getByRole("alert")).toContainText(
     "DOM/CSS does not support curve spectrum geometry",
   );
@@ -1288,7 +1544,7 @@ test("keeps DOM/CSS boxes responsive, zoom-safe, reduced-motion static, and forc
   if (evidence) await mkdir(evidence, { recursive: true });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/", { timeout: 60_000, waitUntil: "domcontentloaded" });
-  await page.getByRole("button", { name: "Spectrum" }).click();
+  await page.getByRole("button", { name: "Spectrum", exact: true }).click();
   await page.getByRole("combobox", { name: /^Geometry/ }).selectOption("bars");
   await page.getByRole("combobox", { name: /Color mode/ }).selectOption("gradient");
   await page.getByRole("combobox", { name: /Rendering engine/ }).selectOption("dom");
@@ -1348,7 +1604,7 @@ test("keeps DOM/CSS boxes responsive, zoom-safe, reduced-motion static, and forc
 test("renders ordered spectrum controls through the public Canvas path", async ({ page }) => {
   test.setTimeout(60_000);
   await page.goto("/", { waitUntil: "domcontentloaded" });
-  await page.getByRole("button", { name: "Spectrum" }).click();
+  await page.getByRole("button", { name: "Spectrum", exact: true }).click();
 
   await expect(page.getByRole("heading", { name: "Broadcast spectrum" })).toBeVisible();
   const spectrum = page.getByRole("img", {
@@ -1482,7 +1738,7 @@ test("renders trustworthy continuous, stepped, and radial meters with bounded hi
 test("renders radial geometry and every reactive color role through Canvas", async ({ page }) => {
   test.setTimeout(60_000);
   await page.goto("/", { waitUntil: "domcontentloaded" });
-  await page.getByRole("button", { name: "Spectrum" }).click();
+  await page.getByRole("button", { name: "Spectrum", exact: true }).click();
 
   const stage = page.locator(".signal-stage");
   const spectrum = page.getByRole("img", {
@@ -1547,7 +1803,7 @@ test("applies spectrum normalization and filtering through the public dynamics s
 }) => {
   test.setTimeout(60_000);
   await page.goto("/", { waitUntil: "domcontentloaded" });
-  await page.getByRole("button", { name: "Spectrum" }).click();
+  await page.getByRole("button", { name: "Spectrum", exact: true }).click();
 
   const spectrum = page.getByRole("img", {
     name: /Broadcast ordered spectrum preview/,
@@ -1583,7 +1839,7 @@ test("connects microphone only on action and releases every owned cycle", async 
   await expect(page.getByRole("img", { name: "Live microphone waveform preview" })).toBeVisible();
   await expect(page.getByText("Live microphone", { exact: true })).toBeVisible();
   await expect.poll(() => microphoneStat(page, "requests")).toBe(1);
-  await page.getByRole("button", { name: "Spectrum" }).click();
+  await page.getByRole("button", { name: "Spectrum", exact: true }).click();
   await expect(
     page.getByRole("img", { name: /Live microphone ordered spectrum preview/ }),
   ).toHaveAttribute("data-spectrum-state", "ready");
