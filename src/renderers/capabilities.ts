@@ -10,7 +10,13 @@ import type {
 } from "../types";
 
 export type CoreRendererMode = "envelope" | "meter" | "spectrum" | "stepped-meter" | "waveform";
-export type VfxRendererMode = "equalizer-grid" | "neon-lines" | "pulse-ring";
+export type VfxRendererMode =
+  | "equalizer-grid"
+  | "neon-lines"
+  | "pulse-ring"
+  | "rounded-wobble-bars"
+  | "spectrum-bars"
+  | "waveform-ribbon";
 export type RendererMode = CoreRendererMode | VfxRendererMode;
 
 export interface RendererLimits {
@@ -150,7 +156,14 @@ export const WEBGL2_RENDERER_CAPABILITIES: RendererCapabilities = Object.freeze(
     maximumSpectrumPoints: 0,
     maximumTimeDomainColumns: 0,
   }),
-  modes: Object.freeze(["pulse-ring", "neon-lines", "equalizer-grid"] as const),
+  modes: Object.freeze([
+    "pulse-ring",
+    "neon-lines",
+    "equalizer-grid",
+    "waveform-ribbon",
+    "rounded-wobble-bars",
+    "spectrum-bars",
+  ] as const),
   semanticOverlays: "shared-dom",
   spectrumGeometries: Object.freeze([]),
   supportsDenseRealtime: true,
@@ -232,7 +245,15 @@ export function getRendererSupport(
 }
 
 function frameKindForMode(mode: RendererMode): AnalysisFrame["kind"] {
-  if (mode === "pulse-ring" || mode === "neon-lines" || mode === "equalizer-grid") return "bands";
+  if (
+    mode === "pulse-ring" ||
+    mode === "neon-lines" ||
+    mode === "equalizer-grid" ||
+    mode === "waveform-ribbon" ||
+    mode === "rounded-wobble-bars" ||
+    mode === "spectrum-bars"
+  )
+    return "bands";
   if (mode === "stepped-meter") return "meter";
   return mode;
 }

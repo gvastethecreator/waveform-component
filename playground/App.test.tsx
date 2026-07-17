@@ -371,6 +371,69 @@ describe("Signal Workbench tracer", () => {
     );
   });
 
+  it("keeps Ribbon and reactive bar schemas isolated across rapid VFX switching", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<App />);
+    await screen.findByText("DEMO / READY");
+    await user.selectOptions(screen.getByRole("combobox", { name: /Rendering engine/ }), "webgl2");
+    const writeText = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue(undefined);
+
+    await user.click(screen.getByRole("button", { name: "Waveform Ribbon" }));
+    expect(
+      container.querySelector("canvas[data-webgl-canvas='waveform-ribbon']"),
+    ).toBeInTheDocument();
+    const ribbonPreset = screen.getByRole("combobox", { name: /VFX preset/ });
+    await user.selectOptions(ribbonPreset, "ghost-mirror");
+    expect(screen.getByRole("slider", { name: "Reflection" })).toHaveValue("0.78");
+    fireEvent.change(screen.getByRole("slider", { name: "Reflection" }), {
+      target: { value: "0.5" },
+    });
+    expect(ribbonPreset).toHaveValue("custom");
+    await user.click(screen.getByRole("button", { name: "Copy code" }));
+    expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining("<WaveformRibbon"));
+    expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining("reflectionStrength: 0.50"));
+
+    await user.click(screen.getByRole("button", { name: "Wobble Bars" }));
+    expect(
+      container.querySelector("canvas[data-webgl-canvas='rounded-wobble-bars']"),
+    ).toBeInTheDocument();
+    const wobblePreset = screen.getByRole("combobox", { name: /VFX preset/ });
+    await user.selectOptions(wobblePreset, "candy-arc");
+    expect(screen.getByRole("slider", { name: "Bar count" })).toHaveValue("46");
+    expect(screen.getByRole("checkbox", { name: /^Mirror vertically/ })).not.toBeChecked();
+    await user.click(screen.getByRole("checkbox", { name: /^Mirror vertically/ }));
+    expect(wobblePreset).toHaveValue("custom");
+    await user.click(screen.getByRole("button", { name: /Copy code|Copied/ }));
+    expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining("<RoundedWobbleBars"));
+    expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining("mirrorVertically: true"));
+
+    await user.click(screen.getByRole("button", { name: "Spectrum Bars VFX" }));
+    expect(
+      container.querySelector("canvas[data-webgl-canvas='spectrum-bars']"),
+    ).toBeInTheDocument();
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: /VFX preset/ }),
+      "radar-spectrum",
+    );
+    expect(screen.getByRole("slider", { name: "Bar count" })).toHaveValue("72");
+    expect(screen.getByRole("slider", { name: "Baseline position" })).toHaveValue("0.08");
+    expect(container.querySelectorAll("canvas[data-webgl-canvas]")).toHaveLength(1);
+    await user.selectOptions(screen.getByRole("combobox", { name: /Energy fixture/ }), "overload");
+    expect(container.querySelector(".signal-stage")).toHaveAttribute(
+      "data-vfx-scenario",
+      "overload",
+    );
+    await user.click(screen.getByRole("button", { name: /Copy code|Copied/ }));
+    expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining("<SpectrumBarsVfx"));
+    expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining("barCount: 72"));
+
+    await user.click(screen.getByRole("button", { name: "Reset" }));
+    expect(screen.getByRole("button", { name: "Waveform" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
   it("keeps semantic seeking, regions, markers, and overlapping handles host-controlled", async () => {
     const user = userEvent.setup();
     render(<App />);

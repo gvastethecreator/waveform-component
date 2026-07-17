@@ -10,14 +10,23 @@ import {
   NEON_LINES_CONTROL_DEFINITIONS,
   NEON_LINES_PRESETS,
   PulseRing,
+  RoundedWobbleBars,
+  ROUNDED_WOBBLE_BARS_CONTROL_DEFINITIONS,
+  ROUNDED_WOBBLE_BARS_PRESETS,
   SignalOverlay,
   SVG_RENDERER_CAPABILITIES,
   SVG_RENDERER_ADAPTER,
   WEBGL2_RENDERER_CAPABILITIES,
   SessionWaveform,
   Spectrum,
+  SpectrumBarsVfx,
+  SPECTRUM_BARS_VFX_CONTROL_DEFINITIONS,
+  SPECTRUM_BARS_VFX_PRESETS,
   RecordedWaveformPlayer,
   Waveform,
+  WaveformRibbon,
+  WAVEFORM_RIBBON_CONTROL_DEFINITIONS,
+  WAVEFORM_RIBBON_PRESETS,
   createDemoWaveform,
   createBandEnergyFrameFromSpectrum,
   createEnvelopeFrameFromWaveform,
@@ -32,6 +41,9 @@ import {
   createWebglPulseRingRenderer,
   createWebglEqualizerGridRenderer,
   createWebglNeonLinesRenderer,
+  createWebglRoundedWobbleBarsRenderer,
+  createWebglSpectrumBarsVfxRenderer,
+  createWebglWaveformRibbonRenderer,
   renderSvgMeter,
   renderSvgSpectrum,
   renderDomMeter,
@@ -39,6 +51,9 @@ import {
   resolvePulseRingConfig,
   resolveEqualizerGridConfig,
   resolveNeonLinesConfig,
+  resolveRoundedWobbleBarsConfig,
+  resolveSpectrumBarsVfxConfig,
+  resolveWaveformRibbonConfig,
   useMicrophoneSource,
   type MicrophoneSource,
   type WaveformFrame,
@@ -71,6 +86,18 @@ const equalizerGridConfig = resolveEqualizerGridConfig({
   ...EQUALIZER_GRID_PRESETS[2].config,
   gridColumns: 32,
   quality: "high",
+});
+const waveformRibbonConfig = resolveWaveformRibbonConfig({
+  ...WAVEFORM_RIBBON_PRESETS[2].config,
+  reflectionStrength: 0.65,
+});
+const roundedWobbleBarsConfig = resolveRoundedWobbleBarsConfig({
+  ...ROUNDED_WOBBLE_BARS_PRESETS[1].config,
+  mirrorVertically: false,
+});
+const spectrumBarsVfxConfig = resolveSpectrumBarsVfxConfig({
+  ...SPECTRUM_BARS_VFX_PRESETS[2].config,
+  barCount: 80,
 });
 const dynamics = createSpectrumDynamicsProcessor();
 const meterDynamics = createMeterDynamicsProcessor();
@@ -291,6 +318,44 @@ export function createExternalNeonLinesRenderer(canvas: HTMLCanvasElement) {
 
 export function createExternalEqualizerGridRenderer(canvas: HTMLCanvasElement) {
   return createWebglEqualizerGridRenderer(canvas);
+}
+
+export function RibbonBarsConsumerExample() {
+  return (
+    <section
+      data-ribbon-controls={WAVEFORM_RIBBON_CONTROL_DEFINITIONS.length}
+      data-wobble-controls={ROUNDED_WOBBLE_BARS_CONTROL_DEFINITIONS.length}
+      data-spectrum-bars-controls={SPECTRUM_BARS_VFX_CONTROL_DEFINITIONS.length}
+    >
+      <WaveformRibbon
+        ariaLabel="External Waveform Ribbon"
+        config={waveformRibbonConfig}
+        data={pulseRingBands}
+      />
+      <RoundedWobbleBars
+        ariaLabel="External Rounded Wobble Bars"
+        config={roundedWobbleBarsConfig}
+        data={pulseRingBands}
+      />
+      <SpectrumBarsVfx
+        ariaLabel="External Spectrum Bars VFX"
+        config={spectrumBarsVfxConfig}
+        data={pulseRingBands}
+      />
+    </section>
+  );
+}
+
+export function createExternalRibbonBarsRenderers(
+  ribbon: HTMLCanvasElement,
+  wobble: HTMLCanvasElement,
+  spectrumBars: HTMLCanvasElement,
+) {
+  return {
+    ribbon: createWebglWaveformRibbonRenderer(ribbon),
+    spectrumBars: createWebglSpectrumBarsVfxRenderer(spectrumBars),
+    wobble: createWebglRoundedWobbleBarsRenderer(wobble),
+  };
 }
 
 export function OverlayConsumerExample({

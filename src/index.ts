@@ -180,6 +180,24 @@ export type {
   WebglEqualizerGridRenderer,
   WebglEqualizerGridRendererOptions,
 } from "./renderers/webgl2EqualizerGrid";
+export { createWebglWaveformRibbonRenderer } from "./renderers/webgl2WaveformRibbon";
+export type {
+  WebglWaveformRibbonRenderOptions,
+  WebglWaveformRibbonRenderer,
+  WebglWaveformRibbonRendererOptions,
+} from "./renderers/webgl2WaveformRibbon";
+export { createWebglRoundedWobbleBarsRenderer } from "./renderers/webgl2RoundedWobbleBars";
+export type {
+  WebglRoundedWobbleBarsRenderOptions,
+  WebglRoundedWobbleBarsRenderer,
+  WebglRoundedWobbleBarsRendererOptions,
+} from "./renderers/webgl2RoundedWobbleBars";
+export { createWebglSpectrumBarsVfxRenderer } from "./renderers/webgl2SpectrumBarsVfx";
+export type {
+  WebglSpectrumBarsVfxRenderOptions,
+  WebglSpectrumBarsVfxRenderer,
+  WebglSpectrumBarsVfxRendererOptions,
+} from "./renderers/webgl2SpectrumBarsVfx";
 export {
   WEBGL2_MAX_DRAWING_BUFFER_DIMENSION,
   WEBGL2_MAX_DRAWING_BUFFER_PIXELS,
@@ -200,6 +218,12 @@ export { NeonLines } from "./react/NeonLines";
 export type { NeonLinesProps } from "./react/NeonLines";
 export { EqualizerGrid } from "./react/EqualizerGrid";
 export type { EqualizerGridProps } from "./react/EqualizerGrid";
+export { WaveformRibbon } from "./react/WaveformRibbon";
+export type { WaveformRibbonProps } from "./react/WaveformRibbon";
+export { RoundedWobbleBars } from "./react/RoundedWobbleBars";
+export type { RoundedWobbleBarsProps } from "./react/RoundedWobbleBars";
+export { SpectrumBarsVfx } from "./react/SpectrumBarsVfx";
+export type { SpectrumBarsVfxProps } from "./react/SpectrumBarsVfx";
 export { SignalOverlay } from "./react/SignalOverlay";
 export type {
   SignalOverlayChangeMeta,
@@ -348,7 +372,57 @@ export type {
   EqualizerGridPresetId,
   EqualizerGridUniformState,
 } from "./vfx/equalizerGrid";
+export {
+  DEFAULT_WAVEFORM_RIBBON_CONFIG,
+  WAVEFORM_RIBBON_CONTROL_DEFINITIONS,
+  WAVEFORM_RIBBON_PRESETS,
+  createWaveformRibbonUniformState,
+  getWaveformRibbonPreset,
+  resolveWaveformRibbonConfig,
+} from "./vfx/waveformRibbon";
 export type {
+  WaveformRibbonConfig,
+  WaveformRibbonConfigInput,
+  WaveformRibbonControlDefinition,
+  WaveformRibbonPresetId,
+  WaveformRibbonUniformState,
+} from "./vfx/waveformRibbon";
+export {
+  DEFAULT_ROUNDED_WOBBLE_BARS_CONFIG,
+  MAX_WOBBLE_BAR_COUNT,
+  MIN_WOBBLE_BAR_COUNT,
+  ROUNDED_WOBBLE_BARS_CONTROL_DEFINITIONS,
+  ROUNDED_WOBBLE_BARS_PRESETS,
+  createRoundedWobbleBarsUniformState,
+  getRoundedWobbleBarsPreset,
+  resolveRoundedWobbleBarsConfig,
+} from "./vfx/roundedWobbleBars";
+export type {
+  RoundedWobbleBarsConfig,
+  RoundedWobbleBarsConfigInput,
+  RoundedWobbleBarsControlDefinition,
+  RoundedWobbleBarsPresetId,
+  RoundedWobbleBarsUniformState,
+} from "./vfx/roundedWobbleBars";
+export {
+  DEFAULT_SPECTRUM_BARS_VFX_CONFIG,
+  MAX_SPECTRUM_VFX_BAR_COUNT,
+  MIN_SPECTRUM_VFX_BAR_COUNT,
+  SPECTRUM_BARS_VFX_CONTROL_DEFINITIONS,
+  SPECTRUM_BARS_VFX_PRESETS,
+  createSpectrumBarsVfxUniformState,
+  getSpectrumBarsVfxPreset,
+  resolveSpectrumBarsVfxConfig,
+} from "./vfx/spectrumBarsVfx";
+export type {
+  SpectrumBarsVfxConfig,
+  SpectrumBarsVfxConfigInput,
+  SpectrumBarsVfxControlDefinition,
+  SpectrumBarsVfxPresetId,
+  SpectrumBarsVfxUniformState,
+} from "./vfx/spectrumBarsVfx";
+export type {
+  VfxBooleanControlDefinition,
   VfxColorControlDefinition,
   VfxControlDefinition,
   VfxEffectId,

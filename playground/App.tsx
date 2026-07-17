@@ -18,6 +18,9 @@ import {
   DEFAULT_EQUALIZER_GRID_CONFIG,
   DEFAULT_NEON_LINES_CONFIG,
   DEFAULT_PULSE_RING_CONFIG,
+  DEFAULT_ROUNDED_WOBBLE_BARS_CONFIG,
+  DEFAULT_SPECTRUM_BARS_VFX_CONFIG,
+  DEFAULT_WAVEFORM_RIBBON_CONFIG,
   DEFAULT_WAVEFORM_CONFIG,
   BUILTIN_RENDERER_CATALOG,
   Envelope,
@@ -29,13 +32,19 @@ import {
   NEON_LINES_PRESETS,
   NeonLines,
   PulseRing,
+  ROUNDED_WOBBLE_BARS_PRESETS,
   RecordedWaveformPlayer,
+  RoundedWobbleBars,
   SessionWaveform,
   SignalOverlay,
   Spectrum,
+  SpectrumBarsVfx,
   SpectrumFrameDelay,
+  SPECTRUM_BARS_VFX_PRESETS,
   SPECTRUM_CONTROL_DEFINITIONS,
   Waveform,
+  WaveformRibbon,
+  WAVEFORM_RIBBON_PRESETS,
   analyzeMeter,
   analyzeMeterWindows,
   analyzeSpectrum,
@@ -57,10 +66,13 @@ import {
   resolveMeterDynamicsConfig,
   resolveEqualizerGridConfig,
   resolveNeonLinesConfig,
+  resolveRoundedWobbleBarsConfig,
+  resolveSpectrumBarsVfxConfig,
   resolveSpectrumConfig,
   resolveSpectrumDynamicsConfig,
   resolveSpectrumFrequencyRange,
   resolveVisualSyncOffset,
+  resolveWaveformRibbonConfig,
   useWaveformSession,
   useMicrophoneSource,
   type SpectrumConfigInput,
@@ -82,6 +94,8 @@ import {
   type NeonLinesPresetId,
   type PulseRingConfigInput,
   type PulseRingQuality,
+  type RoundedWobbleBarsConfig,
+  type RoundedWobbleBarsPresetId,
   type SpectrumControlDefinition,
   type SpectrumControlId,
   type SpectrumDynamicsConfig,
@@ -95,11 +109,15 @@ import {
   type SpectrumLayout,
   type SpectrumPulseMode,
   type SpectrumSmoothingMode,
+  type SpectrumBarsVfxConfig,
+  type SpectrumBarsVfxPresetId,
   type VisualSyncCapability,
   type VfxMotion,
   type VfxQuality,
   type VfxRendererMode,
   type WaveformSessionStatus,
+  type WaveformRibbonConfig,
+  type WaveformRibbonPresetId,
   type SpectrumWindow,
   type SignalOverlayHandle,
   type WaveformFrame,
@@ -167,6 +185,24 @@ export default function App() {
   >(EQUALIZER_GRID_PRESETS[0].id as EqualizerGridPresetId);
   const [equalizerGridConfig, setEqualizerGridConfig] = useState<EqualizerGridConfig>(
     DEFAULT_EQUALIZER_GRID_CONFIG,
+  );
+  const [waveformRibbonPresetId, setWaveformRibbonPresetId] = useState<
+    WaveformRibbonPresetId | "custom"
+  >(WAVEFORM_RIBBON_PRESETS[0].id as WaveformRibbonPresetId);
+  const [waveformRibbonConfig, setWaveformRibbonConfig] = useState<WaveformRibbonConfig>(
+    DEFAULT_WAVEFORM_RIBBON_CONFIG,
+  );
+  const [roundedWobbleBarsPresetId, setRoundedWobbleBarsPresetId] = useState<
+    RoundedWobbleBarsPresetId | "custom"
+  >(ROUNDED_WOBBLE_BARS_PRESETS[0].id as RoundedWobbleBarsPresetId);
+  const [roundedWobbleBarsConfig, setRoundedWobbleBarsConfig] = useState<RoundedWobbleBarsConfig>(
+    DEFAULT_ROUNDED_WOBBLE_BARS_CONFIG,
+  );
+  const [spectrumBarsVfxPresetId, setSpectrumBarsVfxPresetId] = useState<
+    SpectrumBarsVfxPresetId | "custom"
+  >(SPECTRUM_BARS_VFX_PRESETS[0].id as SpectrumBarsVfxPresetId);
+  const [spectrumBarsVfxConfig, setSpectrumBarsVfxConfig] = useState<SpectrumBarsVfxConfig>(
+    DEFAULT_SPECTRUM_BARS_VFX_CONFIG,
   );
   const [vfxEnergyScenario, setVfxEnergyScenario] = useState<VfxEnergyScenario>("signal");
   const [sampleCount, setSampleCount] = useState(2048);
@@ -285,7 +321,16 @@ export default function App() {
   const isPulseRingMode = visualMode === "pulse-ring";
   const isNeonLinesMode = visualMode === "neon-lines";
   const isEqualizerGridMode = visualMode === "equalizer-grid";
-  const isVfxMode = isPulseRingMode || isNeonLinesMode || isEqualizerGridMode;
+  const isWaveformRibbonMode = visualMode === "waveform-ribbon";
+  const isRoundedWobbleBarsMode = visualMode === "rounded-wobble-bars";
+  const isSpectrumBarsVfxMode = visualMode === "spectrum-bars";
+  const isVfxMode =
+    isPulseRingMode ||
+    isNeonLinesMode ||
+    isEqualizerGridMode ||
+    isWaveformRibbonMode ||
+    isRoundedWobbleBarsMode ||
+    isSpectrumBarsVfxMode;
   const coreRenderer = renderer === "webgl2" ? "canvas2d" : renderer;
   const sessionSnapshot = useWaveformSession(session);
   const demoSource = useMemo(
@@ -448,12 +493,24 @@ export default function App() {
     ? pulseRingQuality
     : isNeonLinesMode
       ? neonLinesConfig.quality
-      : equalizerGridConfig.quality;
+      : isEqualizerGridMode
+        ? equalizerGridConfig.quality
+        : isWaveformRibbonMode
+          ? waveformRibbonConfig.quality
+          : isRoundedWobbleBarsMode
+            ? roundedWobbleBarsConfig.quality
+            : spectrumBarsVfxConfig.quality;
   const activeVfxMotion: VfxMotion = isPulseRingMode
     ? pulseRingMotion
     : isNeonLinesMode
       ? neonLinesConfig.motion
-      : equalizerGridConfig.motion;
+      : isEqualizerGridMode
+        ? equalizerGridConfig.motion
+        : isWaveformRibbonMode
+          ? waveformRibbonConfig.motion
+          : isRoundedWobbleBarsMode
+            ? roundedWobbleBarsConfig.motion
+            : spectrumBarsVfxConfig.motion;
   const spectrumConfig = useMemo<SpectrumConfigInput>(
     () => ({
       barGap,
@@ -998,6 +1055,12 @@ export default function App() {
     setNeonLinesConfig(DEFAULT_NEON_LINES_CONFIG);
     setEqualizerGridPresetId(EQUALIZER_GRID_PRESETS[0].id as EqualizerGridPresetId);
     setEqualizerGridConfig(DEFAULT_EQUALIZER_GRID_CONFIG);
+    setWaveformRibbonPresetId(WAVEFORM_RIBBON_PRESETS[0].id as WaveformRibbonPresetId);
+    setWaveformRibbonConfig(DEFAULT_WAVEFORM_RIBBON_CONFIG);
+    setRoundedWobbleBarsPresetId(ROUNDED_WOBBLE_BARS_PRESETS[0].id as RoundedWobbleBarsPresetId);
+    setRoundedWobbleBarsConfig(DEFAULT_ROUNDED_WOBBLE_BARS_CONFIG);
+    setSpectrumBarsVfxPresetId(SPECTRUM_BARS_VFX_PRESETS[0].id as SpectrumBarsVfxPresetId);
+    setSpectrumBarsVfxConfig(DEFAULT_SPECTRUM_BARS_VFX_CONFIG);
     setVfxEnergyScenario("signal");
     setSampleCount(2048);
     setAmplitude(DEFAULT_WAVEFORM_CONFIG.amplitude);
@@ -1117,6 +1180,44 @@ export default function App() {
     setEqualizerGridConfig(next.config);
   };
 
+  const updateWaveformRibbon = (patch: Partial<WaveformRibbonConfig>) => {
+    setWaveformRibbonConfig((current) => resolveWaveformRibbonConfig({ ...current, ...patch }));
+    setWaveformRibbonPresetId("custom");
+  };
+
+  const loadWaveformRibbonPreset = (id: string) => {
+    const next = WAVEFORM_RIBBON_PRESETS.find((candidate) => candidate.id === id);
+    if (!next) return;
+    setWaveformRibbonPresetId(next.id as WaveformRibbonPresetId);
+    setWaveformRibbonConfig(next.config);
+  };
+
+  const updateRoundedWobbleBars = (patch: Partial<RoundedWobbleBarsConfig>) => {
+    setRoundedWobbleBarsConfig((current) =>
+      resolveRoundedWobbleBarsConfig({ ...current, ...patch }),
+    );
+    setRoundedWobbleBarsPresetId("custom");
+  };
+
+  const loadRoundedWobbleBarsPreset = (id: string) => {
+    const next = ROUNDED_WOBBLE_BARS_PRESETS.find((candidate) => candidate.id === id);
+    if (!next) return;
+    setRoundedWobbleBarsPresetId(next.id as RoundedWobbleBarsPresetId);
+    setRoundedWobbleBarsConfig(next.config);
+  };
+
+  const updateSpectrumBarsVfx = (patch: Partial<SpectrumBarsVfxConfig>) => {
+    setSpectrumBarsVfxConfig((current) => resolveSpectrumBarsVfxConfig({ ...current, ...patch }));
+    setSpectrumBarsVfxPresetId("custom");
+  };
+
+  const loadSpectrumBarsVfxPreset = (id: string) => {
+    const next = SPECTRUM_BARS_VFX_PRESETS.find((candidate) => candidate.id === id);
+    if (!next) return;
+    setSpectrumBarsVfxPresetId(next.id as SpectrumBarsVfxPresetId);
+    setSpectrumBarsVfxConfig(next.config);
+  };
+
   const copyCode = async () => {
     const code = isPulseRingMode
       ? `const bands = createBandEnergyFrameFromSpectrum(spectrum, { bandCount: 8 });
@@ -1183,8 +1284,75 @@ export default function App() {
     gradientColor4: "${equalizerGridConfig.gradientColor4}"
   }}
 />`
-          : isMeterMode
-            ? `const meter = createMeterDynamicsProcessor();
+          : isWaveformRibbonMode
+            ? `const bands = createBandEnergyFrameFromSpectrum(spectrum, { bandCount: 8 });
+
+<WaveformRibbon
+  data={bands}
+  config={{
+    renderer: "webgl2",
+    mode: "waveform-ribbon",
+    backgroundColor: "${waveformRibbonConfig.backgroundColor}",
+    waveHeight: ${waveformRibbonConfig.waveHeight.toFixed(2)},
+    flowSpeed: ${waveformRibbonConfig.flowSpeed.toFixed(2)},
+    ribbonThickness: ${waveformRibbonConfig.ribbonThickness.toFixed(3)},
+    glowStrength: ${waveformRibbonConfig.glowStrength.toFixed(2)},
+    reflectionStrength: ${waveformRibbonConfig.reflectionStrength.toFixed(2)},
+    energyReactivity: ${waveformRibbonConfig.energyReactivity.toFixed(2)},
+    motion: "${waveformRibbonConfig.motion}",
+    quality: "${waveformRibbonConfig.quality}",
+    leftColor: "${waveformRibbonConfig.leftColor}",
+    rightColor: "${waveformRibbonConfig.rightColor}",
+    peakFlashColor: "${waveformRibbonConfig.peakFlashColor}"
+  }}
+/>`
+            : isRoundedWobbleBarsMode
+              ? `const bands = createBandEnergyFrameFromSpectrum(spectrum, { bandCount: 8 });
+
+<RoundedWobbleBars
+  data={bands}
+  config={{
+    renderer: "webgl2",
+    mode: "rounded-wobble-bars",
+    backgroundColor: "${roundedWobbleBarsConfig.backgroundColor}",
+    barCount: ${roundedWobbleBarsConfig.barCount},
+    wobbleIntensity: ${roundedWobbleBarsConfig.wobbleIntensity.toFixed(2)},
+    mirrorVertically: ${roundedWobbleBarsConfig.mirrorVertically},
+    barGap: ${roundedWobbleBarsConfig.barGap.toFixed(2)},
+    glowIntensity: ${roundedWobbleBarsConfig.glowIntensity.toFixed(2)},
+    energyReactivity: ${roundedWobbleBarsConfig.energyReactivity.toFixed(2)},
+    motion: "${roundedWobbleBarsConfig.motion}",
+    quality: "${roundedWobbleBarsConfig.quality}",
+    leftColor: "${roundedWobbleBarsConfig.leftColor}",
+    rightColor: "${roundedWobbleBarsConfig.rightColor}",
+    burstFlashColor: "${roundedWobbleBarsConfig.burstFlashColor}"
+  }}
+/>`
+              : isSpectrumBarsVfxMode
+                ? `const bands = createBandEnergyFrameFromSpectrum(spectrum, { bandCount: 8 });
+
+<SpectrumBarsVfx
+  data={bands}
+  config={{
+    renderer: "webgl2",
+    mode: "spectrum-bars",
+    backgroundColor: "${spectrumBarsVfxConfig.backgroundColor}",
+    barCount: ${spectrumBarsVfxConfig.barCount},
+    heightReactivity: ${spectrumBarsVfxConfig.heightReactivity.toFixed(2)},
+    gapSize: ${spectrumBarsVfxConfig.gapSize.toFixed(2)},
+    verticalPosition: ${spectrumBarsVfxConfig.verticalPosition.toFixed(2)},
+    randomSpeed: ${spectrumBarsVfxConfig.randomSpeed.toFixed(2)},
+    glowStrength: ${spectrumBarsVfxConfig.glowStrength.toFixed(2)},
+    motion: "${spectrumBarsVfxConfig.motion}",
+    quality: "${spectrumBarsVfxConfig.quality}",
+    gradientColor1: "${spectrumBarsVfxConfig.gradientColor1}",
+    gradientColor2: "${spectrumBarsVfxConfig.gradientColor2}",
+    gradientColor3: "${spectrumBarsVfxConfig.gradientColor3}",
+    gradientColor4: "${spectrumBarsVfxConfig.gradientColor4}"
+  }}
+/>`
+                : isMeterMode
+                  ? `const meter = createMeterDynamicsProcessor();
 const result = meter.process(
   analyzeMeter(samples, {
     channelMode: "${channelMode}",
@@ -1222,11 +1390,11 @@ const result = meter.process(
     showHistory: ${showMeterHistory}
   }}
 />`
-            : visualMode === "spectrum"
-              ? `const dynamics = createSpectrumDynamicsProcessor();\n\n<Spectrum\n  data={dynamics.process(\n    analyzeSpectrum(samples, {\n      sampleRate: ${sampleRate},\n      fftSize: ${spectrumAnalysis.fftSize},\n      allowLargeFft: ${spectrumAnalysis.allowLargeFft},\n      window: "${spectrumAnalysis.window}",\n      powerOfSineExponent: ${spectrumAnalysis.powerOfSineExponent},\n      minimumDecibels: ${spectrumAnalysis.minimumDecibels},\n      maximumDecibels: ${spectrumAnalysis.maximumDecibels}\n    }),\n    {\n      smoothingMode: "${dynamicsSettings.smoothingMode}",\n      smoothingFactor: ${dynamicsSettings.smoothingFactor},\n      attackMs: ${dynamicsSettings.attackMs},\n      releaseMs: ${dynamicsSettings.releaseMs},\n      inertiaMs: ${dynamicsSettings.inertiaMs},\n      fastPeaks: ${dynamicsSettings.fastPeaks},\n      normalizationEnabled: ${dynamicsSettings.normalizationEnabled},\n      normalizationTargetDb: ${dynamicsSettings.normalizationTargetDb},\n      normalizationMaxGainDb: ${dynamicsSettings.normalizationMaxGainDb},\n      gaussianRadius: ${dynamicsSettings.gaussianRadius},\n      highFrequencySlopeDbPerOctave: ${dynamicsSettings.highFrequencySlopeDbPerOctave},\n      rolloffBandwidthHz: ${dynamicsSettings.rolloffBandwidthHz},\n      rolloffAttenuationDb: ${dynamicsSettings.rolloffAttenuationDb}\n    },\n    { timestampMs: performance.now(), sourceState: "ready" }\n  ).frame}\n  config={{\n    renderer: "canvas2d",\n    mode: "spectrum",\n    geometry: "${spectrumGeometry}",\n    layout: "${spectrumLayout}",\n    radialInvert: ${radialInvert},\n    radialDeadzone: ${radialDeadzone.toFixed(2)},\n    radialArc: ${radialArc},\n    radialRotation: ${radialRotation},\n    roundedCaps: ${roundedCaps},\n    cornerRadius: ${cornerRadius},\n    frequencyScale: "${frequencyScale}",\n    lowFrequency: ${lowFrequency},\n    highFrequency: ${highFrequency},\n    minimumDecibels: ${minimumDecibels},\n    maximumDecibels: ${maximumDecibels},\n    interpolation: "${spectrumInterpolation}",\n    lineWidth: ${lineWidth},\n    barWidth: ${barWidth},\n    barGap: ${barGap},\n    colorMode: "${spectrumColorMode}",\n    pulseMode: "${spectrumPulseMode}",\n    colorRoles: {\n      base: { color: "${signalColor}", alpha: ${baseAlpha.toFixed(2)} },\n      middle: { color: "${middleColor}", alpha: ${middleAlpha.toFixed(2)} },\n      crest: { color: "${crestColor}", alpha: ${crestAlpha.toFixed(2)} },\n      accent: { color: "${accentColor}", alpha: ${accentAlpha.toFixed(2)} }\n    },\n    gradientRatio: ${gradientRatio.toFixed(2)},\n    middleDecibels: ${middleDecibels},\n    crestDecibels: ${crestDecibels},\n    showGrid: ${showSpectrumGrid}\n  }}\n/>`
-              : visualMode === "envelope"
-                ? `<Envelope\n  data={magnitudes}\n  ${timeDomainSizing === "fixed" ? `width={${fixedTimeDomainWidth}}\n  ` : ""}config={{\n    renderer: "canvas2d",\n    mode: "envelope",\n    channelMode: "${channelMode}",${channelMode === "single" ? `\n    channelIndex: ${channelIndex},` : ""}\n    channelLayout: "${channelLayout}",\n    channelGap: ${channelGap},\n    amplitudePlacement: "${envelopePlacement}",\n    orientation: "${orientation}",\n    amplitude: ${amplitude.toFixed(2)},\n    lineWidth: ${lineWidth.toFixed(1)},\n    color: "${signalColor}",\n    showCenterLine: ${showCenterLine}\n  }}\n/>`
-                : `<Waveform\n  data={channels}\n  ${timeDomainSizing === "fixed" ? `width={${fixedTimeDomainWidth}}\n  ` : ""}config={{\n    renderer: "canvas2d",\n    mode: "waveform",\n    channelMode: "${channelMode}",${channelMode === "single" ? `\n    channelIndex: ${channelIndex},` : ""}\n    channelLayout: "${channelLayout}",\n    channelGap: ${channelGap},\n    amplitudePlacement: "${waveformPlacement}",\n    orientation: "${orientation}",\n    amplitude: ${amplitude.toFixed(2)},\n    lineWidth: ${lineWidth.toFixed(1)},\n    color: "${signalColor}",\n    showCenterLine: ${showCenterLine}\n  }}\n/>`;
+                  : visualMode === "spectrum"
+                    ? `const dynamics = createSpectrumDynamicsProcessor();\n\n<Spectrum\n  data={dynamics.process(\n    analyzeSpectrum(samples, {\n      sampleRate: ${sampleRate},\n      fftSize: ${spectrumAnalysis.fftSize},\n      allowLargeFft: ${spectrumAnalysis.allowLargeFft},\n      window: "${spectrumAnalysis.window}",\n      powerOfSineExponent: ${spectrumAnalysis.powerOfSineExponent},\n      minimumDecibels: ${spectrumAnalysis.minimumDecibels},\n      maximumDecibels: ${spectrumAnalysis.maximumDecibels}\n    }),\n    {\n      smoothingMode: "${dynamicsSettings.smoothingMode}",\n      smoothingFactor: ${dynamicsSettings.smoothingFactor},\n      attackMs: ${dynamicsSettings.attackMs},\n      releaseMs: ${dynamicsSettings.releaseMs},\n      inertiaMs: ${dynamicsSettings.inertiaMs},\n      fastPeaks: ${dynamicsSettings.fastPeaks},\n      normalizationEnabled: ${dynamicsSettings.normalizationEnabled},\n      normalizationTargetDb: ${dynamicsSettings.normalizationTargetDb},\n      normalizationMaxGainDb: ${dynamicsSettings.normalizationMaxGainDb},\n      gaussianRadius: ${dynamicsSettings.gaussianRadius},\n      highFrequencySlopeDbPerOctave: ${dynamicsSettings.highFrequencySlopeDbPerOctave},\n      rolloffBandwidthHz: ${dynamicsSettings.rolloffBandwidthHz},\n      rolloffAttenuationDb: ${dynamicsSettings.rolloffAttenuationDb}\n    },\n    { timestampMs: performance.now(), sourceState: "ready" }\n  ).frame}\n  config={{\n    renderer: "canvas2d",\n    mode: "spectrum",\n    geometry: "${spectrumGeometry}",\n    layout: "${spectrumLayout}",\n    radialInvert: ${radialInvert},\n    radialDeadzone: ${radialDeadzone.toFixed(2)},\n    radialArc: ${radialArc},\n    radialRotation: ${radialRotation},\n    roundedCaps: ${roundedCaps},\n    cornerRadius: ${cornerRadius},\n    frequencyScale: "${frequencyScale}",\n    lowFrequency: ${lowFrequency},\n    highFrequency: ${highFrequency},\n    minimumDecibels: ${minimumDecibels},\n    maximumDecibels: ${maximumDecibels},\n    interpolation: "${spectrumInterpolation}",\n    lineWidth: ${lineWidth},\n    barWidth: ${barWidth},\n    barGap: ${barGap},\n    colorMode: "${spectrumColorMode}",\n    pulseMode: "${spectrumPulseMode}",\n    colorRoles: {\n      base: { color: "${signalColor}", alpha: ${baseAlpha.toFixed(2)} },\n      middle: { color: "${middleColor}", alpha: ${middleAlpha.toFixed(2)} },\n      crest: { color: "${crestColor}", alpha: ${crestAlpha.toFixed(2)} },\n      accent: { color: "${accentColor}", alpha: ${accentAlpha.toFixed(2)} }\n    },\n    gradientRatio: ${gradientRatio.toFixed(2)},\n    middleDecibels: ${middleDecibels},\n    crestDecibels: ${crestDecibels},\n    showGrid: ${showSpectrumGrid}\n  }}\n/>`
+                    : visualMode === "envelope"
+                      ? `<Envelope\n  data={magnitudes}\n  ${timeDomainSizing === "fixed" ? `width={${fixedTimeDomainWidth}}\n  ` : ""}config={{\n    renderer: "canvas2d",\n    mode: "envelope",\n    channelMode: "${channelMode}",${channelMode === "single" ? `\n    channelIndex: ${channelIndex},` : ""}\n    channelLayout: "${channelLayout}",\n    channelGap: ${channelGap},\n    amplitudePlacement: "${envelopePlacement}",\n    orientation: "${orientation}",\n    amplitude: ${amplitude.toFixed(2)},\n    lineWidth: ${lineWidth.toFixed(1)},\n    color: "${signalColor}",\n    showCenterLine: ${showCenterLine}\n  }}\n/>`
+                      : `<Waveform\n  data={channels}\n  ${timeDomainSizing === "fixed" ? `width={${fixedTimeDomainWidth}}\n  ` : ""}config={{\n    renderer: "canvas2d",\n    mode: "waveform",\n    channelMode: "${channelMode}",${channelMode === "single" ? `\n    channelIndex: ${channelIndex},` : ""}\n    channelLayout: "${channelLayout}",\n    channelGap: ${channelGap},\n    amplitudePlacement: "${waveformPlacement}",\n    orientation: "${orientation}",\n    amplitude: ${amplitude.toFixed(2)},\n    lineWidth: ${lineWidth.toFixed(1)},\n    color: "${signalColor}",\n    showCenterLine: ${showCenterLine}\n  }}\n/>`;
     const rendererCode = isVfxMode
       ? code
       : code.includes("renderer:")
@@ -1402,11 +1570,35 @@ const result = meter.process(
                       data={vfxFrame}
                       height="100%"
                     />
-                  ) : (
+                  ) : isEqualizerGridMode ? (
                     <EqualizerGrid
                       ariaLabel={`${microphoneSource ? "Live microphone" : preset.label} audio-reactive Equalizer Grid preview`}
                       className="primary-waveform"
                       config={equalizerGridConfig}
+                      data={vfxFrame}
+                      height="100%"
+                    />
+                  ) : isWaveformRibbonMode ? (
+                    <WaveformRibbon
+                      ariaLabel={`${microphoneSource ? "Live microphone" : preset.label} audio-reactive Waveform Ribbon preview`}
+                      className="primary-waveform"
+                      config={waveformRibbonConfig}
+                      data={vfxFrame}
+                      height="100%"
+                    />
+                  ) : isRoundedWobbleBarsMode ? (
+                    <RoundedWobbleBars
+                      ariaLabel={`${microphoneSource ? "Live microphone" : preset.label} audio-reactive Rounded Wobble Bars preview`}
+                      className="primary-waveform"
+                      config={roundedWobbleBarsConfig}
+                      data={vfxFrame}
+                      height="100%"
+                    />
+                  ) : (
+                    <SpectrumBarsVfx
+                      ariaLabel={`${microphoneSource ? "Live microphone" : preset.label} audio-reactive Spectrum Bars preview`}
+                      className="primary-waveform"
+                      config={spectrumBarsVfxConfig}
                       data={vfxFrame}
                       height="100%"
                     />
@@ -1683,15 +1875,21 @@ const result = meter.process(
                     ? `${neonLinesConfig.lineCount} LINES · HEIGHT ${neonLinesConfig.waveHeight.toFixed(2)} · GLOW ${neonLinesConfig.glowSize.toFixed(2)}×`
                     : isEqualizerGridMode
                       ? `${equalizerGridConfig.gridColumns}×${equalizerGridConfig.gridRows} CELLS · GAP ${equalizerGridConfig.cellGap.toFixed(2)}`
-                      : visualMode === "spectrum"
-                        ? spectrumPresentation.result
-                          ? `PEAK ${spectrumPresentation.result.peakDb.toFixed(1)} dBFS · ${spectrumPresentation.result.reacting ? "REACTING" : "IDLE"}`
-                          : "DYNAMICS INITIALIZING"
-                        : isMeterMode
-                          ? `${meterMeasurement.toUpperCase()} ${meterPresentation.frame.channels[0]?.[meterMeasurement === "rms" ? "rmsDbfs" : "peakDbfs"].toFixed(1) ?? meterMinimumDecibels} dBFS · ${meterPresentation.peaking ? "PEAKING" : meterPresentation.reacting ? "REACTING" : "IDLE"}`
-                          : visualMode === "envelope"
-                            ? "MAGNITUDE 0…1 · POLARITY SEPARATE"
-                            : "SIGNED −1…+1 · POLARITY PRESERVED"}
+                      : isWaveformRibbonMode
+                        ? `HEIGHT ${waveformRibbonConfig.waveHeight.toFixed(2)} · REFLECTION ${waveformRibbonConfig.reflectionStrength.toFixed(2)} · GLOW ${waveformRibbonConfig.glowStrength.toFixed(2)}×`
+                        : isRoundedWobbleBarsMode
+                          ? `${roundedWobbleBarsConfig.barCount} BARS · ${roundedWobbleBarsConfig.mirrorVertically ? "MIRRORED" : "BASELINE"} · GAP ${roundedWobbleBarsConfig.barGap.toFixed(2)}`
+                          : isSpectrumBarsVfxMode
+                            ? `${spectrumBarsVfxConfig.barCount} BARS · BASELINE ${spectrumBarsVfxConfig.verticalPosition.toFixed(2)} · GAP ${spectrumBarsVfxConfig.gapSize.toFixed(2)}`
+                            : visualMode === "spectrum"
+                              ? spectrumPresentation.result
+                                ? `PEAK ${spectrumPresentation.result.peakDb.toFixed(1)} dBFS · ${spectrumPresentation.result.reacting ? "REACTING" : "IDLE"}`
+                                : "DYNAMICS INITIALIZING"
+                              : isMeterMode
+                                ? `${meterMeasurement.toUpperCase()} ${meterPresentation.frame.channels[0]?.[meterMeasurement === "rms" ? "rmsDbfs" : "peakDbfs"].toFixed(1) ?? meterMinimumDecibels} dBFS · ${meterPresentation.peaking ? "PEAKING" : meterPresentation.reacting ? "REACTING" : "IDLE"}`
+                                : visualMode === "envelope"
+                                  ? "MAGNITUDE 0…1 · POLARITY SEPARATE"
+                                  : "SIGNED −1…+1 · POLARITY PRESERVED"}
               </span>
               <span>
                 {isPulseRingMode
@@ -1952,6 +2150,39 @@ const result = meter.process(
               >
                 Equalizer Grid
               </button>
+              <button
+                type="button"
+                aria-describedby={
+                  recordedSource ? "time-domain-source-limit" : "renderer-support-note"
+                }
+                aria-pressed={visualMode === "waveform-ribbon"}
+                disabled={Boolean(recordedSource) || renderer !== "webgl2"}
+                onClick={() => setVisualMode("waveform-ribbon")}
+              >
+                Waveform Ribbon
+              </button>
+              <button
+                type="button"
+                aria-describedby={
+                  recordedSource ? "time-domain-source-limit" : "renderer-support-note"
+                }
+                aria-pressed={visualMode === "rounded-wobble-bars"}
+                disabled={Boolean(recordedSource) || renderer !== "webgl2"}
+                onClick={() => setVisualMode("rounded-wobble-bars")}
+              >
+                Wobble Bars
+              </button>
+              <button
+                type="button"
+                aria-describedby={
+                  recordedSource ? "time-domain-source-limit" : "renderer-support-note"
+                }
+                aria-pressed={visualMode === "spectrum-bars"}
+                disabled={Boolean(recordedSource) || renderer !== "webgl2"}
+                onClick={() => setVisualMode("spectrum-bars")}
+              >
+                Spectrum Bars VFX
+              </button>
             </div>
             <SelectControl
               definition={{
@@ -1974,7 +2205,7 @@ const result = meter.process(
             >
               {recordedSource
                 ? "Envelope, spectrum, and meters are disabled: this transport exposes bounded peaks, not raw PCM. Signed polarity remains in the player."
-                : "Mode and engine are separate public contracts. WebGL2 exposes Pulse Ring, Neon Lines, and Equalizer Grid; core modes remain available through an explicit Canvas 2D fallback in the stage."}
+                : "Mode and engine are separate public contracts. WebGL2 exposes six clean-room VFX modes; core modes remain available through an explicit Canvas 2D fallback in the stage."}
             </p>
             <p
               className="capability-note"
@@ -2881,6 +3112,313 @@ const result = meter.process(
                   no textures.
                 </p>
               </>
+            ) : isWaveformRibbonMode ? (
+              <>
+                <SelectControl
+                  definition={{
+                    description:
+                      "Load an immutable, fully specified Waveform Ribbon configuration.",
+                    label: "VFX preset",
+                    options: [
+                      ...WAVEFORM_RIBBON_PRESETS.map((candidate) => ({
+                        label: candidate.label,
+                        value: candidate.id,
+                      })),
+                      { disabled: true, label: "Custom", value: "custom" },
+                    ],
+                  }}
+                  value={waveformRibbonPresetId}
+                  onChange={loadWaveformRibbonPreset}
+                />
+                <RangeControl
+                  label="Wave height"
+                  min={0.02}
+                  max={0.38}
+                  step={0.01}
+                  value={waveformRibbonConfig.waveHeight}
+                  valueLabel={`${Math.round(waveformRibbonConfig.waveHeight * 100)}%`}
+                  onChange={(waveHeight) => updateWaveformRibbon({ waveHeight })}
+                />
+                <RangeControl
+                  label="Flow speed"
+                  min={-2}
+                  max={2}
+                  step={0.05}
+                  value={waveformRibbonConfig.flowSpeed}
+                  valueLabel={`${waveformRibbonConfig.flowSpeed.toFixed(2)} cycles/s`}
+                  onChange={(flowSpeed) => updateWaveformRibbon({ flowSpeed })}
+                />
+                <RangeControl
+                  label="Ribbon thickness"
+                  min={0.015}
+                  max={0.28}
+                  step={0.005}
+                  value={waveformRibbonConfig.ribbonThickness}
+                  valueLabel={`${(waveformRibbonConfig.ribbonThickness * 100).toFixed(1)}%`}
+                  onChange={(ribbonThickness) => updateWaveformRibbon({ ribbonThickness })}
+                />
+                <RangeControl
+                  label="Glow strength"
+                  min={0}
+                  max={3}
+                  step={0.05}
+                  value={waveformRibbonConfig.glowStrength}
+                  valueLabel={`${waveformRibbonConfig.glowStrength.toFixed(2)}×`}
+                  onChange={(glowStrength) => updateWaveformRibbon({ glowStrength })}
+                />
+                <RangeControl
+                  label="Reflection"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={waveformRibbonConfig.reflectionStrength}
+                  valueLabel={`${Math.round(waveformRibbonConfig.reflectionStrength * 100)}%`}
+                  onChange={(reflectionStrength) => updateWaveformRibbon({ reflectionStrength })}
+                />
+                <RangeControl
+                  label="Energy reactivity"
+                  min={0}
+                  max={2}
+                  step={0.05}
+                  value={waveformRibbonConfig.energyReactivity}
+                  valueLabel={`${waveformRibbonConfig.energyReactivity.toFixed(2)}×`}
+                  onChange={(energyReactivity) => updateWaveformRibbon({ energyReactivity })}
+                />
+                <SelectControl
+                  definition={{
+                    description: "Follow the OS preference, animate, or draw one stable phase.",
+                    label: "Motion",
+                    options: [
+                      { label: "Auto · follow system", value: "auto" },
+                      { label: "Full · animate", value: "full" },
+                      { label: "Reduced · static", value: "reduced" },
+                    ],
+                  }}
+                  value={waveformRibbonConfig.motion}
+                  onChange={(motion) => updateWaveformRibbon({ motion: motion as VfxMotion })}
+                />
+                <SelectControl
+                  definition={{
+                    description: "Cap DPR before absolute dimension and pixel ceilings.",
+                    label: "GPU quality",
+                    options: [
+                      { label: "Low · 1× cap", value: "low" },
+                      { label: "Balanced · 1.5× cap", value: "balanced" },
+                      { label: "High · 2× cap", value: "high" },
+                    ],
+                  }}
+                  value={waveformRibbonConfig.quality}
+                  onChange={(quality) => updateWaveformRibbon({ quality: quality as VfxQuality })}
+                />
+                <p className="control-note">
+                  One procedural ribbon plus bounded reflection · 16 ordered bands · one fullscreen
+                  triangle · no textures.
+                </p>
+              </>
+            ) : isRoundedWobbleBarsMode ? (
+              <>
+                <SelectControl
+                  definition={{
+                    description:
+                      "Load an immutable, fully specified Rounded Wobble Bars configuration.",
+                    label: "VFX preset",
+                    options: [
+                      ...ROUNDED_WOBBLE_BARS_PRESETS.map((candidate) => ({
+                        label: candidate.label,
+                        value: candidate.id,
+                      })),
+                      { disabled: true, label: "Custom", value: "custom" },
+                    ],
+                  }}
+                  value={roundedWobbleBarsPresetId}
+                  onChange={loadRoundedWobbleBarsPreset}
+                />
+                <RangeControl
+                  label="Bar count"
+                  min={4}
+                  max={64}
+                  step={1}
+                  value={roundedWobbleBarsConfig.barCount}
+                  valueLabel={`${roundedWobbleBarsConfig.barCount} bars`}
+                  onChange={(barCount) => updateRoundedWobbleBars({ barCount })}
+                />
+                <RangeControl
+                  label="Wobble intensity"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={roundedWobbleBarsConfig.wobbleIntensity}
+                  valueLabel={`${roundedWobbleBarsConfig.wobbleIntensity.toFixed(2)}×`}
+                  onChange={(wobbleIntensity) => updateRoundedWobbleBars({ wobbleIntensity })}
+                />
+                <ToggleControl
+                  checked={roundedWobbleBarsConfig.mirrorVertically}
+                  description="Reflect every rounded bar around the central baseline."
+                  label="Mirror vertically"
+                  onChange={(mirrorVertically) => updateRoundedWobbleBars({ mirrorVertically })}
+                />
+                <RangeControl
+                  label="Bar gap"
+                  min={0}
+                  max={0.78}
+                  step={0.01}
+                  value={roundedWobbleBarsConfig.barGap}
+                  valueLabel={`${Math.round(roundedWobbleBarsConfig.barGap * 100)}%`}
+                  onChange={(barGap) => updateRoundedWobbleBars({ barGap })}
+                />
+                <RangeControl
+                  label="Glow intensity"
+                  min={0}
+                  max={3}
+                  step={0.05}
+                  value={roundedWobbleBarsConfig.glowIntensity}
+                  valueLabel={`${roundedWobbleBarsConfig.glowIntensity.toFixed(2)}×`}
+                  onChange={(glowIntensity) => updateRoundedWobbleBars({ glowIntensity })}
+                />
+                <RangeControl
+                  label="Energy reactivity"
+                  min={0}
+                  max={2}
+                  step={0.05}
+                  value={roundedWobbleBarsConfig.energyReactivity}
+                  valueLabel={`${roundedWobbleBarsConfig.energyReactivity.toFixed(2)}×`}
+                  onChange={(energyReactivity) => updateRoundedWobbleBars({ energyReactivity })}
+                />
+                <SelectControl
+                  definition={{
+                    description: "Follow the OS preference, animate, or draw one stable phase.",
+                    label: "Motion",
+                    options: [
+                      { label: "Auto · follow system", value: "auto" },
+                      { label: "Full · animate", value: "full" },
+                      { label: "Reduced · static", value: "reduced" },
+                    ],
+                  }}
+                  value={roundedWobbleBarsConfig.motion}
+                  onChange={(motion) => updateRoundedWobbleBars({ motion: motion as VfxMotion })}
+                />
+                <SelectControl
+                  definition={{
+                    description: "Cap DPR before absolute dimension and pixel ceilings.",
+                    label: "GPU quality",
+                    options: [
+                      { label: "Low · 1× cap", value: "low" },
+                      { label: "Balanced · 1.5× cap", value: "balanced" },
+                      { label: "High · 2× cap", value: "high" },
+                    ],
+                  }}
+                  value={roundedWobbleBarsConfig.quality}
+                  onChange={(quality) =>
+                    updateRoundedWobbleBars({ quality: quality as VfxQuality })
+                  }
+                />
+                <p className="control-note">
+                  Procedural O(1) addressing · maximum 64 rounded bars · 16 ordered bands · no
+                  density-sized buffers or textures.
+                </p>
+              </>
+            ) : isSpectrumBarsVfxMode ? (
+              <>
+                <SelectControl
+                  definition={{
+                    description: "Load an immutable, fully specified Spectrum Bars configuration.",
+                    label: "VFX preset",
+                    options: [
+                      ...SPECTRUM_BARS_VFX_PRESETS.map((candidate) => ({
+                        label: candidate.label,
+                        value: candidate.id,
+                      })),
+                      { disabled: true, label: "Custom", value: "custom" },
+                    ],
+                  }}
+                  value={spectrumBarsVfxPresetId}
+                  onChange={loadSpectrumBarsVfxPreset}
+                />
+                <RangeControl
+                  label="Bar count"
+                  min={4}
+                  max={96}
+                  step={1}
+                  value={spectrumBarsVfxConfig.barCount}
+                  valueLabel={`${spectrumBarsVfxConfig.barCount} bars`}
+                  onChange={(barCount) => updateSpectrumBarsVfx({ barCount })}
+                />
+                <RangeControl
+                  label="Height reactivity"
+                  min={0}
+                  max={2}
+                  step={0.05}
+                  value={spectrumBarsVfxConfig.heightReactivity}
+                  valueLabel={`${spectrumBarsVfxConfig.heightReactivity.toFixed(2)}×`}
+                  onChange={(heightReactivity) => updateSpectrumBarsVfx({ heightReactivity })}
+                />
+                <RangeControl
+                  label="Gap size"
+                  min={0}
+                  max={0.82}
+                  step={0.01}
+                  value={spectrumBarsVfxConfig.gapSize}
+                  valueLabel={`${Math.round(spectrumBarsVfxConfig.gapSize * 100)}%`}
+                  onChange={(gapSize) => updateSpectrumBarsVfx({ gapSize })}
+                />
+                <RangeControl
+                  label="Baseline position"
+                  min={0.05}
+                  max={0.72}
+                  step={0.01}
+                  value={spectrumBarsVfxConfig.verticalPosition}
+                  valueLabel={`${Math.round(spectrumBarsVfxConfig.verticalPosition * 100)}%`}
+                  onChange={(verticalPosition) => updateSpectrumBarsVfx({ verticalPosition })}
+                />
+                <RangeControl
+                  label="Random speed"
+                  min={0}
+                  max={2}
+                  step={0.05}
+                  value={spectrumBarsVfxConfig.randomSpeed}
+                  valueLabel={`${spectrumBarsVfxConfig.randomSpeed.toFixed(2)} cycles/s`}
+                  onChange={(randomSpeed) => updateSpectrumBarsVfx({ randomSpeed })}
+                />
+                <RangeControl
+                  label="Glow strength"
+                  min={0}
+                  max={3}
+                  step={0.05}
+                  value={spectrumBarsVfxConfig.glowStrength}
+                  valueLabel={`${spectrumBarsVfxConfig.glowStrength.toFixed(2)}×`}
+                  onChange={(glowStrength) => updateSpectrumBarsVfx({ glowStrength })}
+                />
+                <SelectControl
+                  definition={{
+                    description: "Follow the OS preference, animate, or freeze shimmer.",
+                    label: "Motion",
+                    options: [
+                      { label: "Auto · follow system", value: "auto" },
+                      { label: "Full · animate", value: "full" },
+                      { label: "Reduced · static", value: "reduced" },
+                    ],
+                  }}
+                  value={spectrumBarsVfxConfig.motion}
+                  onChange={(motion) => updateSpectrumBarsVfx({ motion: motion as VfxMotion })}
+                />
+                <SelectControl
+                  definition={{
+                    description: "Cap DPR before absolute dimension and pixel ceilings.",
+                    label: "GPU quality",
+                    options: [
+                      { label: "Low · 1× cap", value: "low" },
+                      { label: "Balanced · 1.5× cap", value: "balanced" },
+                      { label: "High · 2× cap", value: "high" },
+                    ],
+                  }}
+                  value={spectrumBarsVfxConfig.quality}
+                  onChange={(quality) => updateSpectrumBarsVfx({ quality: quality as VfxQuality })}
+                />
+                <p className="control-note">
+                  Procedural O(1) addressing · maximum 96 bars · 16 ordered bands · no density-sized
+                  buffers or textures.
+                </p>
+              </>
             ) : visualMode === "spectrum" ? (
               <>
                 <SelectControl
@@ -3458,6 +3996,92 @@ const result = meter.process(
                 <p className="control-note">
                   Frequency position and row level traverse all four stops; peak cells blend the
                   fourth role.
+                </p>
+              </>
+            ) : isWaveformRibbonMode ? (
+              <>
+                <VfxColorControl
+                  label="Background color"
+                  value={waveformRibbonConfig.backgroundColor}
+                  onChange={(backgroundColor) => updateWaveformRibbon({ backgroundColor })}
+                />
+                <VfxColorControl
+                  label="Left color"
+                  value={waveformRibbonConfig.leftColor}
+                  onChange={(leftColor) => updateWaveformRibbon({ leftColor })}
+                />
+                <VfxColorControl
+                  label="Right color"
+                  value={waveformRibbonConfig.rightColor}
+                  onChange={(rightColor) => updateWaveformRibbon({ rightColor })}
+                />
+                <VfxColorControl
+                  label="Peak flash color"
+                  value={waveformRibbonConfig.peakFlashColor}
+                  onChange={(peakFlashColor) => updateWaveformRibbon({ peakFlashColor })}
+                />
+                <p className="control-note">
+                  Ordered horizontal position blends left to right; energetic crests blend the peak
+                  role into both primary and reflected ribbons.
+                </p>
+              </>
+            ) : isRoundedWobbleBarsMode ? (
+              <>
+                <VfxColorControl
+                  label="Background color"
+                  value={roundedWobbleBarsConfig.backgroundColor}
+                  onChange={(backgroundColor) => updateRoundedWobbleBars({ backgroundColor })}
+                />
+                <VfxColorControl
+                  label="Left color"
+                  value={roundedWobbleBarsConfig.leftColor}
+                  onChange={(leftColor) => updateRoundedWobbleBars({ leftColor })}
+                />
+                <VfxColorControl
+                  label="Right color"
+                  value={roundedWobbleBarsConfig.rightColor}
+                  onChange={(rightColor) => updateRoundedWobbleBars({ rightColor })}
+                />
+                <VfxColorControl
+                  label="Burst flash color"
+                  value={roundedWobbleBarsConfig.burstFlashColor}
+                  onChange={(burstFlashColor) => updateRoundedWobbleBars({ burstFlashColor })}
+                />
+                <p className="control-note">
+                  Ordered bar position blends the edge roles; energetic tips receive the independent
+                  burst role.
+                </p>
+              </>
+            ) : isSpectrumBarsVfxMode ? (
+              <>
+                <VfxColorControl
+                  label="Background color"
+                  value={spectrumBarsVfxConfig.backgroundColor}
+                  onChange={(backgroundColor) => updateSpectrumBarsVfx({ backgroundColor })}
+                />
+                <VfxColorControl
+                  label="Gradient color 1"
+                  value={spectrumBarsVfxConfig.gradientColor1}
+                  onChange={(gradientColor1) => updateSpectrumBarsVfx({ gradientColor1 })}
+                />
+                <VfxColorControl
+                  label="Gradient color 2"
+                  value={spectrumBarsVfxConfig.gradientColor2}
+                  onChange={(gradientColor2) => updateSpectrumBarsVfx({ gradientColor2 })}
+                />
+                <VfxColorControl
+                  label="Gradient color 3"
+                  value={spectrumBarsVfxConfig.gradientColor3}
+                  onChange={(gradientColor3) => updateSpectrumBarsVfx({ gradientColor3 })}
+                />
+                <VfxColorControl
+                  label="Gradient color 4"
+                  value={spectrumBarsVfxConfig.gradientColor4}
+                  onChange={(gradientColor4) => updateSpectrumBarsVfx({ gradientColor4 })}
+                />
+                <p className="control-note">
+                  Ordered bar position traverses all four gradient roles; peak energy reinforces the
+                  fourth stop without reordering bars.
                 </p>
               </>
             ) : visualMode === "spectrum" ? (

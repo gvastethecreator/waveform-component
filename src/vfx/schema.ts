@@ -1,6 +1,12 @@
 import type { BandEnergyFrame } from "../types";
 
-export type VfxEffectId = "equalizer-grid" | "neon-lines" | "pulse-ring";
+export type VfxEffectId =
+  | "equalizer-grid"
+  | "neon-lines"
+  | "pulse-ring"
+  | "rounded-wobble-bars"
+  | "spectrum-bars"
+  | "waveform-ribbon";
 export type VfxMotion = "auto" | "full" | "reduced";
 export type VfxQuality = "balanced" | "high" | "low";
 
@@ -39,6 +45,14 @@ export interface VfxColorControlDefinition<Id extends string> extends VfxControl
   readonly unit: "css-color";
 }
 
+export interface VfxBooleanControlDefinition<
+  Id extends string,
+> extends VfxControlDefinitionBase<Id> {
+  readonly defaultValue: boolean;
+  readonly type: "boolean";
+  readonly unit: "boolean";
+}
+
 export interface VfxSelectControlDefinition<
   Id extends string,
   Value extends string,
@@ -50,6 +64,7 @@ export interface VfxSelectControlDefinition<
 }
 
 export type VfxControlDefinition<Id extends string = string> =
+  | VfxBooleanControlDefinition<Id>
   | VfxColorControlDefinition<Id>
   | VfxNumericControlDefinition<Id>
   | VfxSelectControlDefinition<Id, string>;

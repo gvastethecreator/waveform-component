@@ -34,6 +34,9 @@ describe("renderer capabilities", () => {
       "pulse-ring",
       "neon-lines",
       "equalizer-grid",
+      "waveform-ribbon",
+      "rounded-wobble-bars",
+      "spectrum-bars",
     ]);
     expect(WEBGL2_RENDERER_CAPABILITIES.layouts).toEqual(["radial", "rectangular"]);
     expect(WEBGL2_RENDERER_CAPABILITIES.limits.maximumBands).toBe(16);
@@ -128,7 +131,13 @@ describe("renderer capabilities", () => {
       reasons: ["pulse-ring mode requires a bands frame, not spectrum."],
       warnings: [],
     });
-    for (const mode of ["neon-lines", "equalizer-grid"] as const) {
+    for (const mode of [
+      "neon-lines",
+      "equalizer-grid",
+      "waveform-ribbon",
+      "rounded-wobble-bars",
+      "spectrum-bars",
+    ] as const) {
       expect(
         getRendererSupport("webgl2", {
           frameKind: "bands",
