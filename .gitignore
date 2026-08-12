@@ -9,7 +9,8 @@ logs/*
 *.log
 *.tsbuildinfo
 .DS_Store
-.vscode/
+.vscode/*
+!.vscode/tasks.json
 .env*
 .local/
 
@@ -17,6 +18,6 @@ logs/*
 .scratch/references/
 .scratch/evidence/
 .scratch/design/**/*.png
-fixtures/external-consumer/bun.lock
+fixtures/external-consumer/pnpm-lock.yaml
 fixtures/external-consumer/node_modules/
 fixtures/external-consumer/waveform-component.tgz

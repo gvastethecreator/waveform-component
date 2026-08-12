@@ -387,16 +387,18 @@ The React surfaces expose `data-webgl-state`, effect, generation, resource count
 
 ## Development
 
-Requires Bun 1.3.14.
+Requires Node.js 22 and pnpm 11.20.0.
 
 ```bash
-bun install
-bun run dev
-bun run verify:tracer
-bun run test:e2e
+pnpm install
+pnpm run dev
+pnpm run verify:tracer
+pnpm run test:e2e
 ```
 
 The playground imports `waveform-component` through the public entry point and drives its main artifact through a shared session. `fixtures/external-consumer` installs a freshly packed tarball and typechecks waveform/envelope layout, session, recorded-player, microphone, analyzer, spectrum-dynamics, Canvas/SVG/DOM renderers, all eleven WebGL2 VFX surfaces and adapter APIs, meter-analysis, meter-history, and controlled overlay interfaces against generated declarations exactly as an external consumer would.
+
+Dependency freshness and security checks are available through `pnpm run deps:check` and `pnpm run audit`. `pnpm run verify` runs the full tracer gate. VS Code tasks in `.vscode/tasks.json` expose the same common commands with short emoji labels.
 
 ## Project records
 
@@ -409,6 +411,9 @@ The playground imports `waveform-component` through the public entry point and d
 - Organic/particle clean-room research: [`docs/research/2026-07-16-organic-particle-vfx.md`](docs/research/2026-07-16-organic-particle-vfx.md)
 - Product requirements: [`.scratch/waveform-component/PRD.md`](.scratch/waveform-component/PRD.md)
 - Execution frontier: [`.scratch/waveform-component/issues/`](.scratch/waveform-component/issues/)
+- Dependency updates and changelog review: [`docs/DEPENDENCY_UPDATES.md`](docs/DEPENDENCY_UPDATES.md)
+- Quality evidence and residual gates: [`docs/QUALITY_AUDIT.md`](docs/QUALITY_AUDIT.md)
+- Maintenance history: [`docs/CHANGELOG_MAINTENANCE.md`](docs/CHANGELOG_MAINTENANCE.md)
 
 ## License and clean-room boundary
 

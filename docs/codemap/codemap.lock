@@ -1,0 +1,90 @@
+{
+  "current_commit": "b90a990332184d545d878932d06cea515d6287f2",
+  "working_tree_dirty": true,
+  "generated_at": "2026-08-12T09:35:18.5704513Z",
+  "scanned_scope": [
+    "."
+  ],
+  "excluded_directories": [
+    ".cache",
+    ".git",
+    ".hg",
+    ".next",
+    ".nuxt",
+    ".scratch",
+    ".svn",
+    ".turbo",
+    ".venv",
+    "__pycache__",
+    "build",
+    "coverage",
+    "dist",
+    "dist-playground",
+    "docs/codemap",
+    "generated",
+    "node_modules",
+    "out",
+    "playwright-report",
+    "target",
+    "test-results",
+    "vendor",
+    "venv"
+  ],
+  "fingerprint_algorithm": "sha256-path-content-v1",
+  "modules": [
+    {
+      "id": ".",
+      "path": ".",
+      "file_count": 13,
+      "fingerprint": "afc26397ab80657753da071f5d4ce36276b8928e047679bb6e5f11189399df05"
+    },
+    {
+      "id": "docs",
+      "path": "docs",
+      "file_count": 7,
+      "fingerprint": "d61305b421ff2f32e8257af0afbf39ada537396f15fa4b4ceaa59a6a1d5916ce"
+    },
+    {
+      "id": "e2e",
+      "path": "e2e",
+      "file_count": 1,
+      "fingerprint": "5d110a90f687d0030ccc3f81e6331b9b2453a3c8c6c112b5306e3497d82e3e02"
+    },
+    {
+      "id": "fixtures",
+      "path": "fixtures",
+      "file_count": 3,
+      "fingerprint": "adf088936a6259c4d5740363f06cf6a2c646181de5cc389b0240dd1130ccd145"
+    },
+    {
+      "id": "logs",
+      "path": "logs",
+      "file_count": 1,
+      "fingerprint": "ca529b17df8b65dae6995867d41e104507c5c3ca157c97969ee8239763ca9b70"
+    },
+    {
+      "id": "playground",
+      "path": "playground",
+      "file_count": 4,
+      "fingerprint": "9f51c17f08f9d88991f6abde70a2925bd41631293fbef24fef807755cd21609a"
+    },
+    {
+      "id": "public",
+      "path": "public",
+      "file_count": 1,
+      "fingerprint": "9b19ada9c8e359fb0391176490a063a46d936b1e07a53f81bd64adaf0f1b07dd"
+    },
+    {
+      "id": "scripts",
+      "path": "scripts",
+      "file_count": 2,
+      "fingerprint": "ef9f05b68272b88f3f0468235c576177acf055d75512add968a63ca6e319ab0b"
+    },
+    {
+      "id": "src",
+      "path": "src",
+      "file_count": 165,
+      "fingerprint": "7eebffeaff66fc1761fdb43a74824f77e83d82bf0fcd048867572793d67a3f07"
+    }
+  ]
+}

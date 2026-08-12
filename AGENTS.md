@@ -1,6 +1,6 @@
 # Agent Guide — Waveform Component
 
-Standalone reusable React 19 waveform package plus a Vite 8 Signal Workbench playground. Pure frontend, no backend, credentials, telemetry, or remote audio. Package manager/runtime: **Bun**.
+Standalone reusable React 19 waveform package plus a Vite 8 Signal Workbench playground. Pure frontend, no backend, credentials, telemetry, or remote audio. Package manager: **pnpm**; runtime: **Node.js/browser**.
 
 ## Source of truth
 

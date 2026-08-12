@@ -1,0 +1,2193 @@
+{
+  "generated_at": "2026-08-12T09:35:18.5704513Z",
+  "generated_from_commit": "b90a990332184d545d878932d06cea515d6287f2",
+  "scope": [
+    "."
+  ],
+  "nodes": [
+    {
+      "id": "external-dependencies",
+      "path": "fixtures/external-consumer/src/app.tsx",
+      "role": "Represents external packages referenced by tracked source files.",
+      "type": "external",
+      "boundary": "External",
+      "entrypoints": [
+        "fixtures/external-consumer/src/app.tsx:waveform-component"
+      ],
+      "tests": [],
+      "constraints": [
+        "Only dependencies with literal tracked-source references appear here."
+      ],
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "fixtures/external-consumer/src/app.tsx",
+            "symbol": "waveform-component"
+          }
+        ]
+      }
+    },
+    {
+      "id": "fixtures",
+      "path": "fixtures",
+      "role": "Owns the tracked files for the fixtures module.",
+      "type": "module",
+      "boundary": "Fixtures",
+      "entrypoints": [
+        "fixtures/external-consumer/src/app.tsx:ExternalConsumerExample"
+      ],
+      "tests": [],
+      "constraints": [
+        "This baseline uses tracked source and explicit dependency references only."
+      ],
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "fixtures/external-consumer/src/app.tsx",
+            "symbol": "ExternalConsumerExample"
+          }
+        ]
+      }
+    },
+    {
+      "id": "index",
+      "path": "index.html",
+      "role": "Owns the tracked files for the index module.",
+      "type": "module",
+      "boundary": "Index",
+      "entrypoints": [
+        "index.html:Signal Workbench"
+      ],
+      "tests": [],
+      "constraints": [
+        "This baseline uses tracked source and explicit dependency references only."
+      ],
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "index.html",
+            "symbol": "Signal Workbench"
+          }
+        ]
+      }
+    },
+    {
+      "id": "other-modules",
+      "path": "playwright.config.ts",
+      "role": "Owns the tracked files for the other-modules module.",
+      "type": "module",
+      "boundary": "Other Modules",
+      "entrypoints": [
+        "playwright.config.ts:port"
+      ],
+      "tests": [],
+      "constraints": [
+        "This baseline uses tracked source and explicit dependency references only."
+      ],
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "playwright.config.ts",
+            "symbol": "port"
+          }
+        ]
+      }
+    },
+    {
+      "id": "playground",
+      "path": "playground",
+      "role": "Owns the tracked files for the playground module.",
+      "type": "module",
+      "boundary": "Playground",
+      "entrypoints": [
+        "playground/App.tsx:useSpectrumPresentation"
+      ],
+      "tests": [
+        "playground/App.test.tsx"
+      ],
+      "constraints": [
+        "This baseline uses tracked source and explicit dependency references only."
+      ],
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "playground/App.tsx",
+            "symbol": "useSpectrumPresentation"
+          }
+        ]
+      }
+    },
+    {
+      "id": "repository",
+      "path": "README.md",
+      "role": "Owns the tracked files for the repository module.",
+      "type": "module",
+      "boundary": "Repository",
+      "entrypoints": [
+        "README.md:waveform-component"
+      ],
+      "tests": [],
+      "constraints": [
+        "This baseline uses tracked source and explicit dependency references only."
+      ],
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "README.md",
+            "symbol": "waveform-component"
+          }
+        ]
+      }
+    },
+    {
+      "id": "src",
+      "path": "src",
+      "role": "Owns the tracked files for the src module.",
+      "type": "module",
+      "boundary": "Src",
+      "entrypoints": [
+        "src/index.ts:export {"
+      ],
+      "tests": [
+        "src/analysis/channels.test.ts",
+        "src/config.test.ts",
+        "src/core/staticFrame.test.ts",
+        "src/core/waveformGeometry.test.ts",
+        "src/live/MicrophoneSource.test.ts"
+      ],
+      "constraints": [
+        "This baseline uses tracked source and explicit dependency references only."
+      ],
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/index.ts",
+            "symbol": "export {"
+          }
+        ]
+      }
+    },
+    {
+      "id": "src-analysis",
+      "path": "src/analysis",
+      "role": "Owns the tracked files for the src / analysis module.",
+      "type": "module",
+      "boundary": "Src",
+      "entrypoints": [
+        "src/analysis/bands.ts:createBandEnergyFrameFromSpectrum"
+      ],
+      "tests": [
+        "src/analysis/bands.test.ts",
+        "src/analysis/channels.test.ts",
+        "src/analysis/meter.test.ts",
+        "src/analysis/meterDynamics.test.ts",
+        "src/analysis/spectrum.test.ts"
+      ],
+      "constraints": [
+        "This baseline uses tracked source and explicit dependency references only."
+      ],
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/analysis/bands.ts",
+            "symbol": "createBandEnergyFrameFromSpectrum"
+          }
+        ]
+      }
+    },
+    {
+      "id": "src-capabilities",
+      "path": "src/capabilities",
+      "role": "Owns the tracked files for the src / capabilities module.",
+      "type": "module",
+      "boundary": "Src",
+      "entrypoints": [
+        "src/capabilities/meterControls.ts:getMeterControlAvailability"
+      ],
+      "tests": [
+        "src/capabilities/meterControls.test.ts",
+        "src/capabilities/spectrumControls.test.ts"
+      ],
+      "constraints": [
+        "This baseline uses tracked source and explicit dependency references only."
+      ],
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/capabilities/meterControls.ts",
+            "symbol": "getMeterControlAvailability"
+          }
+        ]
+      }
+    },
+    {
+      "id": "src-color",
+      "path": "src/color",
+      "role": "Owns the tracked files for the src / color module.",
+      "type": "module",
+      "boundary": "Src",
+      "entrypoints": [
+        "src/color/spectrumColor.ts:spectrumRangeRole"
+      ],
+      "tests": [
+        "src/color/spectrumColor.test.ts"
+      ],
+      "constraints": [
+        "This baseline uses tracked source and explicit dependency references only."
+      ],
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/color/spectrumColor.ts",
+            "symbol": "spectrumRangeRole"
+          }
+        ]
+      }
+    },
+    {
+      "id": "src-core",
+      "path": "src/core",
+      "role": "Owns the tracked files for the src / core module.",
+      "type": "service",
+      "boundary": "Src",
+      "entrypoints": [
+        "src/core/meterGeometry.ts:buildMeterRects"
+      ],
+      "tests": [
+        "src/analysis/channels.test.ts",
+        "src/core/meterGeometry.test.ts",
+        "src/core/spectrumGeometry.test.ts",
+        "src/core/staticFrame.test.ts",
+        "src/core/waveformGeometry.test.ts"
+      ],
+      "constraints": [
+        "This baseline uses tracked source and explicit dependency references only."
+      ],
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/core/meterGeometry.ts",
+            "symbol": "buildMeterRects"
+          }
+        ]
+      }
+    },
+    {
+      "id": "src-live",
+      "path": "src/live",
+      "role": "Owns the tracked files for the src / live module.",
+      "type": "module",
+      "boundary": "Src",
+      "entrypoints": [
+        "src/live/MicrophoneSource.ts:createMicrophoneSource"
+      ],
+      "tests": [
+        "src/live/MicrophoneSource.test.ts"
+      ],
+      "constraints": [
+        "This baseline uses tracked source and explicit dependency references only."
+      ],
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/live/MicrophoneSource.ts",
+            "symbol": "createMicrophoneSource"
+          }
+        ]
+      }
+    },
+    {
+      "id": "src-overlays",
+      "path": "src/overlays",
+      "role": "Owns the tracked files for the src / overlays module.",
+      "type": "module",
+      "boundary": "Src",
+      "entrypoints": [
+        "src/overlays/coordinates.ts:normalizedValueFromPoint"
+      ],
+      "tests": [
+        "src/overlays/coordinates.test.ts"
+      ],
+      "constraints": [
+        "This baseline uses tracked source and explicit dependency references only."
+      ],
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/overlays/coordinates.ts",
+            "symbol": "normalizedValueFromPoint"
+          }
+        ]
+      }
+    },
+    {
+      "id": "src-react",
+      "path": "src/react",
+      "role": "Owns the tracked files for the src / react module.",
+      "type": "module",
+      "boundary": "Src",
+      "entrypoints": [
+        "src/react/BandVfxSurface.tsx:BandVfxSurface"
+      ],
+      "tests": [
+        "src/react/DomRenderer.test.tsx",
+        "src/react/Envelope.test.tsx",
+        "src/react/Meter.test.tsx",
+        "src/react/NeonGrid.test.tsx",
+        "src/react/OrganicParticle.test.tsx"
+      ],
+      "constraints": [
+        "This baseline uses tracked source and explicit dependency references only."
+      ],
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/react/BandVfxSurface.tsx",
+            "symbol": "BandVfxSurface"
+          }
+        ]
+      }
+    },
+    {
+      "id": "src-recorded",
+      "path": "src/recorded",
+      "role": "Owns the tracked files for the src / recorded module.",
+      "type": "module",
+      "boundary": "Src",
+      "entrypoints": [
+        "src/recorded/RecordedAudioSource.ts:createRecordedAudioSource"
+      ],
+      "tests": [
+        "src/react/RecordedWaveformPlayer.test.tsx",
+        "src/recorded/RecordedAudioSource.test.ts"
+      ],
+      "constraints": [
+        "This baseline uses tracked source and explicit dependency references only."
+      ],
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/recorded/RecordedAudioSource.ts",
+            "symbol": "createRecordedAudioSource"
+          }
+        ]
+      }
+    },
+    {
+      "id": "src-renderers",
+      "path": "src/renderers",
+      "role": "Owns the tracked files for the src / renderers module.",
+      "type": "module",
+      "boundary": "Src",
+      "entrypoints": [
+        "src/renderers/canvas2d.ts:syncCanvasSize"
+      ],
+      "tests": [
+        "src/renderers/canvas2d.test.ts",
+        "src/renderers/canvasMeter.test.ts",
+        "src/renderers/canvasSpectrum.test.ts",
+        "src/renderers/capabilities.test.ts",
+        "src/renderers/dom.test.ts"
+      ],
+      "constraints": [
+        "This baseline uses tracked source and explicit dependency references only."
+      ],
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/renderers/canvas2d.ts",
+            "symbol": "syncCanvasSize"
+          }
+        ]
+      }
+    },
+    {
+      "id": "src-session",
+      "path": "src/session",
+      "role": "Owns the tracked files for the src / session module.",
+      "type": "module",
+      "boundary": "Src",
+      "entrypoints": [
+        "src/session/WaveformSession.ts:createWaveformSession"
+      ],
+      "tests": [
+        "src/live/MicrophoneSource.test.ts",
+        "src/react/RecordedWaveformPlayer.test.tsx",
+        "src/react/SessionWaveform.test.tsx",
+        "src/recorded/RecordedAudioSource.test.ts",
+        "src/session/WaveformSession.test.ts"
+      ],
+      "constraints": [
+        "This baseline uses tracked source and explicit dependency references only."
+      ],
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/session/WaveformSession.ts",
+            "symbol": "createWaveformSession"
+          }
+        ]
+      }
+    },
+    {
+      "id": "src-vfx",
+      "path": "src/vfx",
+      "role": "Owns the tracked files for the src / vfx module.",
+      "type": "module",
+      "boundary": "Src",
+      "entrypoints": [
+        "src/vfx/controlFactories.ts:vfxNumberControl"
+      ],
+      "tests": [
+        "src/renderers/webgl2OrganicParticle.test.ts",
+        "src/vfx/neonGrid.test.ts",
+        "src/vfx/organicParticle.test.ts",
+        "src/vfx/pulseRing.test.ts",
+        "src/vfx/radialSpatial.test.ts"
+      ],
+      "constraints": [
+        "This baseline uses tracked source and explicit dependency references only."
+      ],
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/vfx/controlFactories.ts",
+            "symbol": "vfxNumberControl"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vite-config",
+      "path": "vite.config.ts",
+      "role": "Owns the tracked files for the vite.config module.",
+      "type": "module",
+      "boundary": "Vite.Config",
+      "entrypoints": [
+        "vite.config.ts:import tailwindcss from \"@tailwindcss/vite\";"
+      ],
+      "tests": [],
+      "constraints": [
+        "This baseline uses tracked source and explicit dependency references only."
+      ],
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "vite.config.ts",
+            "symbol": "import tailwindcss from \"@tailwindcss/vite\";"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vite-lib-config",
+      "path": "vite.lib.config.ts",
+      "role": "Owns the tracked files for the vite.lib.config module.",
+      "type": "module",
+      "boundary": "Vite.Lib.Config",
+      "entrypoints": [
+        "vite.lib.config.ts:import react from \"@vitejs/plugin-react\";"
+      ],
+      "tests": [],
+      "constraints": [
+        "This baseline uses tracked source and explicit dependency references only."
+      ],
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "vite.lib.config.ts",
+            "symbol": "import react from \"@vitejs/plugin-react\";"
+          }
+        ]
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "fixtures",
+      "to": "external-dependencies",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "fixtures/external-consumer/src/app.tsx",
+            "symbol": "waveform-component"
+          }
+        ]
+      }
+    },
+    {
+      "from": "index",
+      "to": "playground",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "index.html",
+            "symbol": "/playground/main.tsx"
+          }
+        ]
+      }
+    },
+    {
+      "from": "other-modules",
+      "to": "external-dependencies",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "playwright.config.ts",
+            "symbol": "playwright/test"
+          },
+          {
+            "path": "vitest.config.ts",
+            "symbol": "@vitejs/plugin-react"
+          },
+          {
+            "path": "vitest.config.ts",
+            "symbol": "vitest/config"
+          }
+        ]
+      }
+    },
+    {
+      "from": "playground",
+      "to": "external-dependencies",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "playground/App.test.tsx",
+            "symbol": "@testing-library/react"
+          },
+          {
+            "path": "playground/App.test.tsx",
+            "symbol": "@testing-library/user-event"
+          },
+          {
+            "path": "playground/App.test.tsx",
+            "symbol": "vitest"
+          },
+          {
+            "path": "playground/App.tsx",
+            "symbol": "@tabler/icons-react"
+          },
+          {
+            "path": "playground/App.tsx",
+            "symbol": "react"
+          },
+          {
+            "path": "playground/App.tsx",
+            "symbol": "waveform-component"
+          },
+          {
+            "path": "playground/main.tsx",
+            "symbol": "react"
+          },
+          {
+            "path": "playground/main.tsx",
+            "symbol": "react-dom/client"
+          }
+        ]
+      }
+    },
+    {
+      "from": "repository",
+      "to": "other-modules",
+      "type": "calls",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "package.json",
+            "symbol": "scripts/clean.ts"
+          },
+          {
+            "path": "package.json",
+            "symbol": "scripts/clean-consumer.ts"
+          }
+        ]
+      }
+    },
+    {
+      "from": "repository",
+      "to": "vite-lib-config",
+      "type": "calls",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "package.json",
+            "symbol": "vite.lib.config.ts"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src",
+      "to": "external-dependencies",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/config.test.ts",
+            "symbol": "vitest"
+          },
+          {
+            "path": "src/meterConfig.test.ts",
+            "symbol": "vitest"
+          },
+          {
+            "path": "src/spectrumConfig.test.ts",
+            "symbol": "vitest"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src",
+      "to": "src-analysis",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/index.ts",
+            "symbol": "./analysis/channels"
+          },
+          {
+            "path": "src/index.ts",
+            "symbol": "./analysis/meter"
+          },
+          {
+            "path": "src/index.ts",
+            "symbol": "./analysis/bands"
+          },
+          {
+            "path": "src/index.ts",
+            "symbol": "./analysis/meterDynamics"
+          },
+          {
+            "path": "src/index.ts",
+            "symbol": "./analysis/spectrum"
+          },
+          {
+            "path": "src/index.ts",
+            "symbol": "./analysis/spectrumDynamics"
+          },
+          {
+            "path": "src/meterConfig.test.ts",
+            "symbol": "./analysis/meter"
+          },
+          {
+            "path": "src/spectrumConfig.test.ts",
+            "symbol": "./analysis/spectrum"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src",
+      "to": "src-capabilities",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/index.ts",
+            "symbol": "./capabilities/spectrumControls"
+          },
+          {
+            "path": "src/index.ts",
+            "symbol": "./capabilities/meterControls"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src",
+      "to": "src-color",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/index.ts",
+            "symbol": "./color/spectrumColor"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src",
+      "to": "src-core",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/index.ts",
+            "symbol": "./core/staticFrame"
+          },
+          {
+            "path": "src/index.ts",
+            "symbol": "./core/waveformGeometry"
+          },
+          {
+            "path": "src/index.ts",
+            "symbol": "./core/meterGeometry"
+          },
+          {
+            "path": "src/index.ts",
+            "symbol": "./core/spectrumGeometry"
+          },
+          {
+            "path": "src/index.ts",
+            "symbol": "./core/waveformPeaks"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src",
+      "to": "src-live",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/index.ts",
+            "symbol": "./live/MicrophoneSource"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src",
+      "to": "src-overlays",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/index.ts",
+            "symbol": "./overlays/coordinates"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src",
+      "to": "src-react",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/index.ts",
+            "symbol": "./react/Waveform"
+          },
+          {
+            "path": "src/index.ts",
+            "symbol": "./react/Envelope"
+          },
+          {
+            "path": "src/index.ts",
+            "symbol": "./react/Spectrum"
+          },
+          {
+            "path": "src/index.ts",
+            "symbol": "./react/Meter"
+          },
+          {
+            "path": "src/index.ts",
+            "symbol": "./react/PulseRing"
+          },
+          {
+            "path": "src/index.ts",
+            "symbol": "./react/NeonLines"
+          },
+          {
+            "path": "src/index.ts",
+            "symbol": "./react/EqualizerGrid"
+          },
+          {
+            "path": "src/index.ts",
+            "symbol": "./react/WaveformRibbon"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src",
+      "to": "src-recorded",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/index.ts",
+            "symbol": "./recorded/RecordedAudioSource"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src",
+      "to": "src-renderers",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/index.ts",
+            "symbol": "./renderers/canvas2d"
+          },
+          {
+            "path": "src/index.ts",
+            "symbol": "./renderers/canvasMeter"
+          },
+          {
+            "path": "src/index.ts",
+            "symbol": "./renderers/canvasSpectrum"
+          },
+          {
+            "path": "src/index.ts",
+            "symbol": "./renderers/capabilities"
+          },
+          {
+            "path": "src/index.ts",
+            "symbol": "./renderers/domMeter"
+          },
+          {
+            "path": "src/index.ts",
+            "symbol": "./renderers/domSpectrum"
+          },
+          {
+            "path": "src/index.ts",
+            "symbol": "./renderers/dom"
+          },
+          {
+            "path": "src/index.ts",
+            "symbol": "./renderers/domTypes"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src",
+      "to": "src-session",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/index.ts",
+            "symbol": "./session/WaveformSession"
+          },
+          {
+            "path": "src/index.ts",
+            "symbol": "./session/sources"
+          },
+          {
+            "path": "src/index.ts",
+            "symbol": "./session/types"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src",
+      "to": "src-vfx",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/index.ts",
+            "symbol": "./vfx/pulseRing"
+          },
+          {
+            "path": "src/index.ts",
+            "symbol": "./vfx/neonLines"
+          },
+          {
+            "path": "src/index.ts",
+            "symbol": "./vfx/equalizerGrid"
+          },
+          {
+            "path": "src/index.ts",
+            "symbol": "./vfx/waveformRibbon"
+          },
+          {
+            "path": "src/index.ts",
+            "symbol": "./vfx/roundedWobbleBars"
+          },
+          {
+            "path": "src/index.ts",
+            "symbol": "./vfx/spectrumBarsVfx"
+          },
+          {
+            "path": "src/index.ts",
+            "symbol": "./vfx/radialSpikes"
+          },
+          {
+            "path": "src/index.ts",
+            "symbol": "./vfx/liquidBlobs"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-analysis",
+      "to": "external-dependencies",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/analysis/bands.test.ts",
+            "symbol": "vitest"
+          },
+          {
+            "path": "src/analysis/channels.test.ts",
+            "symbol": "vitest"
+          },
+          {
+            "path": "src/analysis/meter.test.ts",
+            "symbol": "vitest"
+          },
+          {
+            "path": "src/analysis/meterDynamics.test.ts",
+            "symbol": "vitest"
+          },
+          {
+            "path": "src/analysis/spectrum.test.ts",
+            "symbol": "vitest"
+          },
+          {
+            "path": "src/analysis/spectrumDynamics.test.ts",
+            "symbol": "vitest"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-analysis",
+      "to": "src",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/analysis/bands.ts",
+            "symbol": "../types"
+          },
+          {
+            "path": "src/analysis/channels.test.ts",
+            "symbol": "../config"
+          },
+          {
+            "path": "src/analysis/channels.ts",
+            "symbol": "../config"
+          },
+          {
+            "path": "src/analysis/channels.ts",
+            "symbol": "../types"
+          },
+          {
+            "path": "src/analysis/meter.ts",
+            "symbol": "../types"
+          },
+          {
+            "path": "src/analysis/meterDynamics.ts",
+            "symbol": "../types"
+          },
+          {
+            "path": "src/analysis/spectrum.ts",
+            "symbol": "../spectrumConfig"
+          },
+          {
+            "path": "src/analysis/spectrum.ts",
+            "symbol": "../types"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-analysis",
+      "to": "src-core",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/analysis/channels.test.ts",
+            "symbol": "../core/staticFrame"
+          },
+          {
+            "path": "src/analysis/meter.ts",
+            "symbol": "../core/staticFrame"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-capabilities",
+      "to": "external-dependencies",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/capabilities/meterControls.test.ts",
+            "symbol": "vitest"
+          },
+          {
+            "path": "src/capabilities/spectrumControls.test.ts",
+            "symbol": "vitest"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-capabilities",
+      "to": "src",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/capabilities/meterControls.ts",
+            "symbol": "../types"
+          },
+          {
+            "path": "src/capabilities/spectrumControls.ts",
+            "symbol": "../spectrumConfig"
+          },
+          {
+            "path": "src/capabilities/spectrumControls.ts",
+            "symbol": "../types"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-color",
+      "to": "external-dependencies",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/color/spectrumColor.test.ts",
+            "symbol": "vitest"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-color",
+      "to": "src",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/color/spectrumColor.ts",
+            "symbol": "../types"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-core",
+      "to": "external-dependencies",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/core/meterGeometry.test.ts",
+            "symbol": "vitest"
+          },
+          {
+            "path": "src/core/spectrumGeometry.test.ts",
+            "symbol": "vitest"
+          },
+          {
+            "path": "src/core/staticFrame.test.ts",
+            "symbol": "vitest"
+          },
+          {
+            "path": "src/core/waveformGeometry.test.ts",
+            "symbol": "vitest"
+          },
+          {
+            "path": "src/core/waveformPeaks.test.ts",
+            "symbol": "vitest"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-core",
+      "to": "src",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/core/meterGeometry.ts",
+            "symbol": "../meterConfig"
+          },
+          {
+            "path": "src/core/meterGeometry.ts",
+            "symbol": "../types"
+          },
+          {
+            "path": "src/core/spectrumGeometry.ts",
+            "symbol": "../spectrumConfig"
+          },
+          {
+            "path": "src/core/spectrumGeometry.ts",
+            "symbol": "../types"
+          },
+          {
+            "path": "src/core/staticFrame.test.ts",
+            "symbol": "../types"
+          },
+          {
+            "path": "src/core/staticFrame.ts",
+            "symbol": "../types"
+          },
+          {
+            "path": "src/core/waveformGeometry.test.ts",
+            "symbol": "../config"
+          },
+          {
+            "path": "src/core/waveformGeometry.ts",
+            "symbol": "../config"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-core",
+      "to": "src-analysis",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/core/meterGeometry.test.ts",
+            "symbol": "../analysis/meter"
+          },
+          {
+            "path": "src/core/spectrumGeometry.test.ts",
+            "symbol": "../analysis/spectrum"
+          },
+          {
+            "path": "src/core/spectrumGeometry.ts",
+            "symbol": "../analysis/spectrum"
+          },
+          {
+            "path": "src/core/waveformGeometry.ts",
+            "symbol": "../analysis/channels"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-live",
+      "to": "external-dependencies",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/live/MicrophoneSource.test.ts",
+            "symbol": "vitest"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-live",
+      "to": "src",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/live/MicrophoneSource.test.ts",
+            "symbol": "../types"
+          },
+          {
+            "path": "src/live/MicrophoneSource.ts",
+            "symbol": "../types"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-live",
+      "to": "src-core",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/live/MicrophoneSource.ts",
+            "symbol": "../core/staticFrame"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-live",
+      "to": "src-session",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/live/MicrophoneSource.test.ts",
+            "symbol": "../session/sources"
+          },
+          {
+            "path": "src/live/MicrophoneSource.test.ts",
+            "symbol": "../session/WaveformSession"
+          },
+          {
+            "path": "src/live/MicrophoneSource.ts",
+            "symbol": "../session/types"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-overlays",
+      "to": "external-dependencies",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/overlays/coordinates.test.ts",
+            "symbol": "vitest"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-overlays",
+      "to": "src",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/overlays/coordinates.ts",
+            "symbol": "../types"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-react",
+      "to": "external-dependencies",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/react/BandVfxSurface.tsx",
+            "symbol": "react"
+          },
+          {
+            "path": "src/react/DomRenderer.test.tsx",
+            "symbol": "@testing-library/react"
+          },
+          {
+            "path": "src/react/DomRenderer.test.tsx",
+            "symbol": "react-dom/server"
+          },
+          {
+            "path": "src/react/DomRenderer.test.tsx",
+            "symbol": "vitest"
+          },
+          {
+            "path": "src/react/DomSurface.tsx",
+            "symbol": "react"
+          },
+          {
+            "path": "src/react/Envelope.test.tsx",
+            "symbol": "@testing-library/react"
+          },
+          {
+            "path": "src/react/Envelope.test.tsx",
+            "symbol": "vitest"
+          },
+          {
+            "path": "src/react/Envelope.tsx",
+            "symbol": "react"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-react",
+      "to": "src",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/react/BandVfxSurface.tsx",
+            "symbol": "../types"
+          },
+          {
+            "path": "src/react/DomSurface.tsx",
+            "symbol": "../types"
+          },
+          {
+            "path": "src/react/Envelope.tsx",
+            "symbol": "../types"
+          },
+          {
+            "path": "src/react/EqualizerGrid.tsx",
+            "symbol": "../types"
+          },
+          {
+            "path": "src/react/LiquidBlobs.tsx",
+            "symbol": "../types"
+          },
+          {
+            "path": "src/react/Meter.tsx",
+            "symbol": "../meterConfig"
+          },
+          {
+            "path": "src/react/Meter.tsx",
+            "symbol": "../types"
+          },
+          {
+            "path": "src/react/NeonGrid.test.tsx",
+            "symbol": "../types"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-react",
+      "to": "src-analysis",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/react/DomRenderer.test.tsx",
+            "symbol": "../analysis/meter"
+          },
+          {
+            "path": "src/react/DomRenderer.test.tsx",
+            "symbol": "../analysis/spectrum"
+          },
+          {
+            "path": "src/react/Meter.test.tsx",
+            "symbol": "../analysis/meter"
+          },
+          {
+            "path": "src/react/Spectrum.test.tsx",
+            "symbol": "../analysis/spectrum"
+          },
+          {
+            "path": "src/react/SvgRenderer.test.tsx",
+            "symbol": "../analysis/meter"
+          },
+          {
+            "path": "src/react/SvgRenderer.test.tsx",
+            "symbol": "../analysis/spectrum"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-react",
+      "to": "src-core",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/react/DomRenderer.test.tsx",
+            "symbol": "../core/staticFrame"
+          },
+          {
+            "path": "src/react/Envelope.tsx",
+            "symbol": "../core/staticFrame"
+          },
+          {
+            "path": "src/react/SessionWaveform.test.tsx",
+            "symbol": "../core/staticFrame"
+          },
+          {
+            "path": "src/react/SessionWaveform.tsx",
+            "symbol": "../core/staticFrame"
+          },
+          {
+            "path": "src/react/SvgRenderer.test.tsx",
+            "symbol": "../core/staticFrame"
+          },
+          {
+            "path": "src/react/Waveform.tsx",
+            "symbol": "../core/staticFrame"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-react",
+      "to": "src-live",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/react/useMicrophoneSource.ts",
+            "symbol": "../live/MicrophoneSource"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-react",
+      "to": "src-overlays",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/react/SignalOverlay.tsx",
+            "symbol": "../overlays/coordinates"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-react",
+      "to": "src-recorded",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/react/RecordedWaveformPlayer.test.tsx",
+            "symbol": "../recorded/RecordedAudioSource"
+          },
+          {
+            "path": "src/react/RecordedWaveformPlayer.tsx",
+            "symbol": "../recorded/RecordedAudioSource"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-react",
+      "to": "src-renderers",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/react/BandVfxSurface.tsx",
+            "symbol": "../renderers/webgl2BandVfx"
+          },
+          {
+            "path": "src/react/BandVfxSurface.tsx",
+            "symbol": "../renderers/webgl2Sizing"
+          },
+          {
+            "path": "src/react/DomSurface.tsx",
+            "symbol": "../renderers/domHelpers"
+          },
+          {
+            "path": "src/react/DomSurface.tsx",
+            "symbol": "../renderers/domTypes"
+          },
+          {
+            "path": "src/react/EqualizerGrid.tsx",
+            "symbol": "../renderers/webgl2BandVfx"
+          },
+          {
+            "path": "src/react/EqualizerGrid.tsx",
+            "symbol": "../renderers/webgl2EqualizerGrid"
+          },
+          {
+            "path": "src/react/LiquidBlobs.tsx",
+            "symbol": "../renderers/webgl2BandVfx"
+          },
+          {
+            "path": "src/react/LiquidBlobs.tsx",
+            "symbol": "../renderers/webgl2LiquidBlobs"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-react",
+      "to": "src-session",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/react/RecordedWaveformPlayer.test.tsx",
+            "symbol": "../session/WaveformSession"
+          },
+          {
+            "path": "src/react/RecordedWaveformPlayer.tsx",
+            "symbol": "../session/types"
+          },
+          {
+            "path": "src/react/SessionWaveform.test.tsx",
+            "symbol": "../session/WaveformSession"
+          },
+          {
+            "path": "src/react/SessionWaveform.test.tsx",
+            "symbol": "../session/sources"
+          },
+          {
+            "path": "src/react/SessionWaveform.tsx",
+            "symbol": "../session/types"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-react",
+      "to": "src-vfx",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/react/BandVfxSurface.tsx",
+            "symbol": "../vfx/schema"
+          },
+          {
+            "path": "src/react/EqualizerGrid.tsx",
+            "symbol": "../vfx/equalizerGrid"
+          },
+          {
+            "path": "src/react/LiquidBlobs.tsx",
+            "symbol": "../vfx/liquidBlobs"
+          },
+          {
+            "path": "src/react/NeonLines.tsx",
+            "symbol": "../vfx/neonLines"
+          },
+          {
+            "path": "src/react/PulseRing.tsx",
+            "symbol": "../vfx/pulseRing"
+          },
+          {
+            "path": "src/react/RadialSpikes.tsx",
+            "symbol": "../vfx/radialSpikes"
+          },
+          {
+            "path": "src/react/RoundedWobbleBars.tsx",
+            "symbol": "../vfx/roundedWobbleBars"
+          },
+          {
+            "path": "src/react/SpectrumBarsVfx.tsx",
+            "symbol": "../vfx/spectrumBarsVfx"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-recorded",
+      "to": "external-dependencies",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/recorded/RecordedAudioSource.test.ts",
+            "symbol": "vitest"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-recorded",
+      "to": "src",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/recorded/RecordedAudioSource.test.ts",
+            "symbol": "../types"
+          },
+          {
+            "path": "src/recorded/RecordedAudioSource.ts",
+            "symbol": "../types"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-recorded",
+      "to": "src-core",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/recorded/RecordedAudioSource.ts",
+            "symbol": "../core/waveformPeaks"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-recorded",
+      "to": "src-session",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/recorded/RecordedAudioSource.test.ts",
+            "symbol": "../session/sources"
+          },
+          {
+            "path": "src/recorded/RecordedAudioSource.test.ts",
+            "symbol": "../session/WaveformSession"
+          },
+          {
+            "path": "src/recorded/RecordedAudioSource.ts",
+            "symbol": "../session/types"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-renderers",
+      "to": "external-dependencies",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/renderers/canvas2d.test.ts",
+            "symbol": "vitest"
+          },
+          {
+            "path": "src/renderers/canvasMeter.test.ts",
+            "symbol": "vitest"
+          },
+          {
+            "path": "src/renderers/canvasSpectrum.test.ts",
+            "symbol": "vitest"
+          },
+          {
+            "path": "src/renderers/capabilities.test.ts",
+            "symbol": "vitest"
+          },
+          {
+            "path": "src/renderers/dom.test.ts",
+            "symbol": "vitest"
+          },
+          {
+            "path": "src/renderers/domHelpers.test.ts",
+            "symbol": "vitest"
+          },
+          {
+            "path": "src/renderers/domMeter.test.ts",
+            "symbol": "vitest"
+          },
+          {
+            "path": "src/renderers/domSpectrum.test.ts",
+            "symbol": "vitest"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-renderers",
+      "to": "src",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/renderers/canvas2d.ts",
+            "symbol": "../config"
+          },
+          {
+            "path": "src/renderers/canvas2d.ts",
+            "symbol": "../types"
+          },
+          {
+            "path": "src/renderers/canvasMeter.ts",
+            "symbol": "../meterConfig"
+          },
+          {
+            "path": "src/renderers/canvasMeter.ts",
+            "symbol": "../types"
+          },
+          {
+            "path": "src/renderers/canvasSpectrum.ts",
+            "symbol": "../spectrumConfig"
+          },
+          {
+            "path": "src/renderers/canvasSpectrum.ts",
+            "symbol": "../types"
+          },
+          {
+            "path": "src/renderers/capabilities.ts",
+            "symbol": "../types"
+          },
+          {
+            "path": "src/renderers/dom.ts",
+            "symbol": "../types"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-renderers",
+      "to": "src-analysis",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/renderers/canvasMeter.test.ts",
+            "symbol": "../analysis/meter"
+          },
+          {
+            "path": "src/renderers/canvasSpectrum.test.ts",
+            "symbol": "../analysis/spectrum"
+          },
+          {
+            "path": "src/renderers/dom.test.ts",
+            "symbol": "../analysis/meter"
+          },
+          {
+            "path": "src/renderers/dom.test.ts",
+            "symbol": "../analysis/spectrum"
+          },
+          {
+            "path": "src/renderers/domMeter.test.ts",
+            "symbol": "../analysis/meter"
+          },
+          {
+            "path": "src/renderers/domSpectrum.test.ts",
+            "symbol": "../analysis/spectrum"
+          },
+          {
+            "path": "src/renderers/svg.test.ts",
+            "symbol": "../analysis/meter"
+          },
+          {
+            "path": "src/renderers/svg.test.ts",
+            "symbol": "../analysis/spectrum"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-renderers",
+      "to": "src-color",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/renderers/canvasMeter.ts",
+            "symbol": "../color/spectrumColor"
+          },
+          {
+            "path": "src/renderers/canvasSpectrum.ts",
+            "symbol": "../color/spectrumColor"
+          },
+          {
+            "path": "src/renderers/domSpectrum.ts",
+            "symbol": "../color/spectrumColor"
+          },
+          {
+            "path": "src/renderers/svgSpectrum.ts",
+            "symbol": "../color/spectrumColor"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-renderers",
+      "to": "src-core",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/renderers/canvas2d.test.ts",
+            "symbol": "../core/staticFrame"
+          },
+          {
+            "path": "src/renderers/canvas2d.ts",
+            "symbol": "../core/waveformGeometry"
+          },
+          {
+            "path": "src/renderers/canvasMeter.ts",
+            "symbol": "../core/meterGeometry"
+          },
+          {
+            "path": "src/renderers/canvasSpectrum.ts",
+            "symbol": "../core/spectrumGeometry"
+          },
+          {
+            "path": "src/renderers/dom.test.ts",
+            "symbol": "../core/staticFrame"
+          },
+          {
+            "path": "src/renderers/domMeter.ts",
+            "symbol": "../core/meterGeometry"
+          },
+          {
+            "path": "src/renderers/domSpectrum.ts",
+            "symbol": "../core/spectrumGeometry"
+          },
+          {
+            "path": "src/renderers/svg.test.ts",
+            "symbol": "../core/staticFrame"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-renderers",
+      "to": "src-vfx",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/renderers/webgl2BandVfx.ts",
+            "symbol": "../vfx/shared"
+          },
+          {
+            "path": "src/renderers/webgl2BandVfx.ts",
+            "symbol": "../vfx/schema"
+          },
+          {
+            "path": "src/renderers/webgl2EqualizerGrid.ts",
+            "symbol": "../vfx/equalizerGrid"
+          },
+          {
+            "path": "src/renderers/webgl2LiquidBlobs.ts",
+            "symbol": "../vfx/liquidBlobs"
+          },
+          {
+            "path": "src/renderers/webgl2NeonLines.ts",
+            "symbol": "../vfx/neonLines"
+          },
+          {
+            "path": "src/renderers/webgl2OrganicParticle.test.ts",
+            "symbol": "../vfx/liquidBlobs"
+          },
+          {
+            "path": "src/renderers/webgl2OrganicParticle.test.ts",
+            "symbol": "../vfx/shared"
+          },
+          {
+            "path": "src/renderers/webgl2PulseRing.ts",
+            "symbol": "../vfx/pulseRing"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-session",
+      "to": "external-dependencies",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/session/WaveformSession.test.ts",
+            "symbol": "vitest"
+          },
+          {
+            "path": "src/session/sources.test.ts",
+            "symbol": "vitest"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-session",
+      "to": "src",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/session/WaveformSession.test.ts",
+            "symbol": "../types"
+          },
+          {
+            "path": "src/session/WaveformSession.ts",
+            "symbol": "../types"
+          },
+          {
+            "path": "src/session/sources.test.ts",
+            "symbol": "../types"
+          },
+          {
+            "path": "src/session/sources.ts",
+            "symbol": "../types"
+          },
+          {
+            "path": "src/session/types.ts",
+            "symbol": "../types"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-session",
+      "to": "src-core",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/session/WaveformSession.test.ts",
+            "symbol": "../core/staticFrame"
+          },
+          {
+            "path": "src/session/sources.ts",
+            "symbol": "../core/staticFrame"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-vfx",
+      "to": "external-dependencies",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/vfx/neonGrid.test.ts",
+            "symbol": "vitest"
+          },
+          {
+            "path": "src/vfx/organicParticle.test.ts",
+            "symbol": "vitest"
+          },
+          {
+            "path": "src/vfx/pulseRing.test.ts",
+            "symbol": "vitest"
+          },
+          {
+            "path": "src/vfx/radialSpatial.test.ts",
+            "symbol": "vitest"
+          },
+          {
+            "path": "src/vfx/ribbonBars.test.ts",
+            "symbol": "vitest"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-vfx",
+      "to": "src",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/vfx/equalizerGrid.ts",
+            "symbol": "../types"
+          },
+          {
+            "path": "src/vfx/liquidBlobs.ts",
+            "symbol": "../types"
+          },
+          {
+            "path": "src/vfx/neonGrid.test.ts",
+            "symbol": "../types"
+          },
+          {
+            "path": "src/vfx/neonLines.ts",
+            "symbol": "../types"
+          },
+          {
+            "path": "src/vfx/organicParticle.test.ts",
+            "symbol": "../types"
+          },
+          {
+            "path": "src/vfx/pulseRing.test.ts",
+            "symbol": "../types"
+          },
+          {
+            "path": "src/vfx/pulseRing.ts",
+            "symbol": "../types"
+          },
+          {
+            "path": "src/vfx/radialSpatial.test.ts",
+            "symbol": "../types"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-vfx",
+      "to": "src-analysis",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/vfx/shared.ts",
+            "symbol": "../analysis/bands"
+          }
+        ]
+      }
+    },
+    {
+      "from": "vite-config",
+      "to": "external-dependencies",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "vite.config.ts",
+            "symbol": "@tailwindcss/vite"
+          },
+          {
+            "path": "vite.config.ts",
+            "symbol": "@vitejs/plugin-react"
+          },
+          {
+            "path": "vite.config.ts",
+            "symbol": "vite"
+          }
+        ]
+      }
+    },
+    {
+      "from": "vite-lib-config",
+      "to": "external-dependencies",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "vite.lib.config.ts",
+            "symbol": "@vitejs/plugin-react"
+          },
+          {
+            "path": "vite.lib.config.ts",
+            "symbol": "vite"
+          }
+        ]
+      }
+    }
+  ],
+  "flows": [
+    {
+      "trigger": "Tracked reference src/index.ts:./live/MicrophoneSource",
+      "steps": [
+        "src",
+        "src-live",
+        "src-session",
+        "src-core",
+        "src-analysis",
+        "external-dependencies"
+      ],
+      "outcome": "The verified dependency path reaches external-dependencies through 5 step(s)."
+    },
+    {
+      "trigger": "Tracked reference src/index.ts:./react/Waveform",
+      "steps": [
+        "src",
+        "src-react",
+        "src-live",
+        "src-core",
+        "src-analysis",
+        "external-dependencies"
+      ],
+      "outcome": "The verified dependency path reaches external-dependencies through 5 step(s)."
+    },
+    {
+      "trigger": "Tracked reference src/index.ts:./react/Waveform to external-dependencies",
+      "steps": [
+        "src",
+        "src-react",
+        "src-live",
+        "src-session",
+        "src-core",
+        "external-dependencies"
+      ],
+      "outcome": "The verified dependency path reaches external-dependencies through 5 step(s)."
+    },
+    {
+      "trigger": "Tracked reference src/index.ts:./react/Waveform to src-analysis",
+      "steps": [
+        "src",
+        "src-react",
+        "src-live",
+        "src-session",
+        "src-core",
+        "src-analysis"
+      ],
+      "outcome": "The verified dependency path reaches src-analysis through 5 step(s)."
+    },
+    {
+      "trigger": "Tracked reference src/index.ts:./react/Waveform to src-core",
+      "steps": [
+        "src",
+        "src-react",
+        "src-renderers",
+        "src-vfx",
+        "src-analysis",
+        "src-core"
+      ],
+      "outcome": "The verified dependency path reaches src-core through 5 step(s)."
+    }
+  ]
+}

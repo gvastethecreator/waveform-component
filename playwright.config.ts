@@ -1,4 +1,4 @@
-import { defineConfig, devices } from "@playwright/test";
+import { defineConfig, devices } from "playwright/test";
 
 const port = Number(process.env.PLAYWRIGHT_PORT ?? 4192);
 const baseURL = `http://127.0.0.1:${port}`;
@@ -27,7 +27,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `bun run vite --host 127.0.0.1 --port ${port} --strictPort`,
+    command: `pnpm exec vite --host 127.0.0.1 --port ${port} --strictPort`,
     url: `${baseURL}/waveform-component-health.txt`,
     reuseExistingServer: true,
     timeout: 120_000,

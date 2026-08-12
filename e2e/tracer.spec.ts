@@ -1,5 +1,5 @@
-import { expect, test } from "@playwright/test";
-import type { Page } from "@playwright/test";
+import { expect, test } from "playwright/test";
+import type { Page } from "playwright/test";
 import { Buffer } from "node:buffer";
 import { mkdir, writeFile } from "node:fs/promises";
 

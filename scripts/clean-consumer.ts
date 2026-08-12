@@ -9,6 +9,6 @@ if (fixtureRelative.startsWith("..") || isAbsolute(fixtureRelative)) {
   throw new Error("Refusing to clean an external-consumer fixture outside the repository.");
 }
 
-for (const entry of ["node_modules", "bun.lock", "waveform-component.tgz"]) {
+for (const entry of ["node_modules", "pnpm-lock.yaml", "waveform-component.tgz"]) {
   await rm(resolve(fixtureRoot, entry), { force: true, recursive: entry === "node_modules" });
 }
